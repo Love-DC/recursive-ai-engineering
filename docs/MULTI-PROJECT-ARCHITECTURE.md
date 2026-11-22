@@ -92,8 +92,8 @@ Hard boundaries:
 - A direct engineering request authorizes the current coordinator conversation to investigate, decompose, and execute within approved scope.
 - Worker conversations require a direct coordinator dispatch or an exact Issue with a valid READY activation record, plus the owner's naming of that exact Issue in the Worker conversation.
 - Open Issues are backlog, not permission. Never bulk-import or auto-claim the backlog.
-- Workers use isolated task branches and deliver PRs. Workers do not merge.
-- The product owner retains final merge approval.
+- Workers use isolated task branches and deliver PRs; leaf Workers do not merge their own work.
+- The AI coordinator owns independent review and merge of eligible engineering PRs after the exact-head checklist passes. The product owner retains product/design authority, not routine engineering merge approval.
 - Web sessions validate through GitHub Actions on the exact PR head SHA. Do not claim local Godot commands ran.
 - Stop and request a product decision when the correct player-facing behaviour is not already approved.
 
