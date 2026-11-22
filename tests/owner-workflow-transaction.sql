@@ -121,6 +121,10 @@ begin
   exception when others then
     if sqlerrm not like '%REVIEW_ALREADY_EXISTS%' then raise; end if;
   end;
+  v_review_claim := public.claim_task(v_project_id,v_owner_worker_id,300,v_key||'-wrong-reviewer-claim');
+  if v_review_claim->'data'->'task' is distinct from 'null'::jsonb then
+    raise exception 'FAIL: unassigned Worker claimed Review Task';
+  end if;
   v_review_claim := public.claim_task(v_project_id,v_reviewer_worker_id,300,v_key||'-review-claim1');
   v_review_exec_id := (v_review_claim->'data'->>'execution_id')::uuid;
   if (v_review_claim->'data'->>'task_id')::uuid <> v_review_id then
