@@ -130,9 +130,9 @@ class RepositoryGovernanceTests(unittest.TestCase):
         root = self.make_repo()
         manifest_path = root / "rae-governance.json"
         manifest = json.loads(manifest_path.read_text())
-        manifest["validation"].pop("repository")
-        manifest["validation"]["workflow"] = ".github/workflows/missing.yml"
-        with self.assertRaisesRegex(GovernanceError, "Missing validation.workflow file"):
+        manifest["validation"]["repository"] = None
+        manifest["validation"]["workflow"] = "../outside.yml"
+        with self.assertRaisesRegex(GovernanceError, "Unsafe"):
             self.load(root)
 
 
