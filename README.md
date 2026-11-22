@@ -14,12 +14,14 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 ## Current pilot setup
 
 - Supabase project: `recursive-ai-engineering` (PostgreSQL 17, ap-northeast-1).
-- Project ID: `61e32c05-39b7-47a6-ab5c-592c8e37d72d`.
+- Supabase MCP project ref: `rgztxilqcfuclkekyojl`.
+- Database `public.projects.id`: `61e32c05-39b7-47a6-ab5c-592c8e37d72d`.
 - Shared Worker ID: `78953b49-db9d-4fbc-9d3c-be3421a1c975`.
 - GitHub repository: `Love-DC/recursive-ai-engineering`.
 - Seven core tables and 20 public RPCs are deployed.
-- The create → claim → complete RPC smoke test passed using the shared Worker and was rolled back; no test task was left behind.
-- Live project and shared Worker records have been initialized. No pilot task has been created yet.
+- The create → claim → complete RPC smoke test passed using the shared Worker and was rolled back.
+- The first formal root task (`dedafaf5-6abb-4d66-9c0d-7622cebfcb2f`) has been created and claimed; three bounded child tasks were created and completed in the initial execution run.
+- The task lifecycle and owner-MCP SQL examples are documented in `docs/WORKER-INSTRUCTIONS.md`; query Supabase for live task state.
 
 ## Start here
 
