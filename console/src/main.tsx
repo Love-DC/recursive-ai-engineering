@@ -101,7 +101,7 @@ export default function App() {
     setTasks([])
   }
 
-  async function createProject(event: React.FormEvent) {
+  async function createProject(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
     try {
@@ -126,7 +126,7 @@ export default function App() {
     finally { setBusy(false) }
   }
 
-  async function createWorker(event: React.FormEvent) {
+  async function createWorker(event: FormEvent) {
     event.preventDefault()
     if (!projectId) return
     setBusy(true)
@@ -140,7 +140,7 @@ export default function App() {
     finally { setBusy(false) }
   }
 
-  async function createTask(event: React.FormEvent) {
+  async function createTask(event: FormEvent) {
     event.preventDefault()
     if (!projectId) return
     const coordinator = workers.find(w => w.worker_key === 'coordinator')
@@ -211,4 +211,4 @@ export default function App() {
 function Stat({label,value,icon}:{label:string;value:number;icon:ReactNode}) { return <div className="stat-card"><div className="stat-icon">{icon}</div><span>{label}</span><strong>{value}</strong></div> }
 function Status({value}:{value:string}) { return <span className={`status status-${value}`}>{statusLabel(value)}</span> }
 function Empty({text}:{text:string}) { return <div className="empty-state">{text}</div> }
-function Modal({title,children,onClose}:{title:string;children:React.ReactNode;onClose:()=>void}) { return <div className="modal-backdrop" onMouseDown={e => { if(e.target===e.currentTarget) onClose() }}><section className="modal"><div className="modal-head"><h2>{title}</h2><button className="icon-button" onClick={onClose}><X size={17}/></button></div>{children}</section></div> }
+function Modal({title,children,onClose}:{title:string;children:ReactNode;onClose:()=>void}) { return <div className="modal-backdrop" onMouseDown={e => { if(e.target===e.currentTarget) onClose() }}><section className="modal"><div className="modal-head"><h2>{title}</h2><button className="icon-button" onClick={onClose}><X size={17}/></button></div>{children}</section></div> }
