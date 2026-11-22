@@ -165,7 +165,7 @@ export default function App() {
         p_idempotency_key: crypto.randomUUID(),
       })
       setShowTask(false)
-      setTaskForm({ title: '', description: '', requirements: '', worker_id: '', priority: '100', requires_review: true })
+      setTaskForm({ title: '', description: '', requirements: '', priority: '100', requires_review: true })
       notify('ok', '任务已发布到任务池')
       await refresh()
     } catch (error) { notify('error', messageOf(error)) }
