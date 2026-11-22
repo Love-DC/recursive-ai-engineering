@@ -7,7 +7,7 @@ This addendum supersedes any assumption below that every task belongs to the ori
 - Use that exact project UUID and worker UUID for every task RPC. Never reuse the RAE worker UUID for Colony Sim or vice versa.
 - RAE project key/repository: `recursive-ai-engineering` / `Love-DC/recursive-ai-engineering`.
 - Colony Sim project key/repository: `colony-sim` / `Love-DC/colony-sim`.
-- Colony Sim governance is loaded from the repository paths in its `projects.config.governance` object. At minimum read `AGENTS.md`, `docs/ai/AI_START_HERE.md`, and `docs/ai/WEB_GITHUB_WORKFLOW.md`.
+- Governance is discovered from the target repository's root `rae-governance.json` at the task's pinned base SHA. Validate it with `scripts/repository_governance.py`, then read every declared instruction, entrypoint, and required rule file at that same SHA. Do not read or depend on `projects.config.governance`; it is a deprecated compatibility fallback only until all repositories publish manifests.
 - Keep task-specific GitHub metadata in `tasks.requirements` JSONB using the contract in `docs/MULTI-PROJECT-ARCHITECTURE.md`. Store actual delivery evidence in the execution result and artifacts.
 - A direct owner request authorizes the current coordinator to execute a bounded engineering objective in the selected project. It does not authorize unapproved product decisions.
 - Never bulk-import Issues. For Colony Sim, an Issue becomes executable only under its explicit owner/coordinator dispatch rules. An open Issue is not permission.
