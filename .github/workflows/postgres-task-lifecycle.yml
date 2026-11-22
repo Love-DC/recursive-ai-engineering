@@ -78,6 +78,9 @@ jobs:
           FAILURE_RECOVERY_TEST_ALLOW_MUTATIONS: "YES"
         run: bash scripts/test-failure-recovery.sh
 
+      - name: Run two-session fail versus lease-reclaim race
+        run: bash scripts/test-fail-reclaim-race.sh
+
       - name: Run task lifecycle integration harness
         env:
           TASK_LIFECYCLE_TEST_ALLOW_MUTATIONS: "YES"
