@@ -49,6 +49,7 @@ Run only against the isolated CI fixture. The script intentionally does not regi
 | Create root implementation task | `create_task` | Root record is returned |
 | Recursive decomposition | `create_task(parent_task_id)` | Child and grandchild point to their immediate parent |
 | Execution heartbeat | `heartbeat_execution` | `heartbeat_at` advances and `lease_until` is renewed beyond the safety margin |
+| Failure → repair child | `create_task(parent_task_id)` with a failure-derived idempotency key | Replay returns the same child ID; exactly one child is linked to the failed execution and can be claimed/completed |
 | Pending → running | `claim_task` | Priority ordering claims root before child |
 | Claim idempotency replay | `claim_task` with same key and arguments | Same execution ID is returned |
 | Running → accepted | `complete_execution` | Child and reclaimed root are accepted |
