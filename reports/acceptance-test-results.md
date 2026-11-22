@@ -6,7 +6,7 @@
 
 ## Executive status
 
-The database foundation and all 19 RPC definitions have been deployed. Schema and permission metadata checks passed. A rollback-safe end-to-end RPC workflow test now passes under a simulated authenticated Owner JWT context. The full MVP acceptance suite is still **not passed**: the browser console build and real login flow are not verified, and concurrency across distinct Auth-user identities remains untested. A two-connection database race, lease reclaim and stale-Execution fencing test did pass under the same Owner identity. The live database currently has zero projects, zero Workers and zero Tasks; transactional test data was rolled back, and the temporary concurrency project was deleted after the race/reclaim checks.
+The database foundation and all 19 RPC definitions have been deployed. Schema and permission metadata checks passed. A rollback-safe end-to-end RPC workflow test now passes under a simulated authenticated Owner JWT context. The full MVP acceptance suite is still **not passed**: the console build passes in GitHub Actions, but real browser login and live UI workflow are not verified; concurrency across distinct Auth-user identities remains untested. A two-connection database race, lease reclaim and stale-Execution fencing test did pass under the same Owner identity. The live database currently has zero projects, zero Workers and zero Tasks; transactional test data was rolled back, and the temporary concurrency project was deleted after the race/reclaim checks.
 
 ## Stage results
 
