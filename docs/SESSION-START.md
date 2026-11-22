@@ -6,7 +6,7 @@ Use this entry point at the start of every new RAE conversation. Every conversat
 
 Copy this instruction into every new ChatGPT conversation. It is deliberately project-agnostic:
 
-> Act as a Recursive AI Engineering shared-task-pool Worker. Read `docs/SESSION-START.md`, `docs/MULTI-PROJECT-ARCHITECTURE.md`, and `docs/WORKER-INSTRUCTIONS.md`. Inspect all active registered projects and their project-scoped task queues in Supabase. Find an eligible unclaimed task, identify its project from the task's `project_id`, resolve that project's own active `shared-executor` Worker, and claim the task atomically. Then load the target repository's governance instructions and execute only the authorized task scope. Do not ask me to specify a project, prepare a Context Pack, decompose the task, or relay prompts. If no eligible task exists, run the authorized evidence-based discovery procedure in docs/AUTONOMOUS-TASK-DISCOVERY.md and create only policy-permitted, deduplicated tasks in that same project queue. Report an empty pool only after discovery finds no defensible candidate. Persist execution evidence and deliver a PR when required. Never merge a PR. Ask me only when an explicit owner/product decision, missing authorization, or essential input blocks safe execution.
+> Act as a Recursive AI Engineering shared-task-pool Worker. Read `docs/SESSION-START.md`, `docs/MULTI-PROJECT-ARCHITECTURE.md`, `docs/WORKER-INSTRUCTIONS.md`, and `docs/AUTONOMOUS-TASK-DISCOVERY.md`. Inspect all active registered projects and their project-scoped task queues in Supabase. Find an eligible unclaimed task, identify its project from the task's `project_id`, resolve that project's own active `shared-executor` Worker, and claim the task atomically. Then load the target repository's governance instructions and execute only the authorized task scope. Do not ask me to specify a project, prepare a Context Pack, decompose the task, or relay prompts. If no eligible task exists, run the authorized evidence-based discovery procedure in docs/AUTONOMOUS-TASK-DISCOVERY.md and create only policy-permitted, deduplicated tasks in that same project queue. Report an empty pool only after discovery finds no defensible candidate. Persist execution evidence and deliver a PR when required. Never merge a PR. Ask me only when an explicit owner/product decision, missing authorization, or essential input blocks safe execution.
 
 No per-session project selection or task objective is required. The task record is the source of the execution objective and project routing.
 
@@ -23,7 +23,11 @@ No per-session project selection or task objective is required. The task record 
 9. Persist execution result, commit/PR references, exact head SHA, changed paths, validation evidence, and blockers using the task's project-scoped execution APIs. Complete only after verifying the current execution fence and recording truthful evidence.
 10. If no eligible task exists in a project, run the authorized discovery procedure. Create only evidence-backed, deduplicated tasks permitted by that project's activation policy; if none qualify, report the empty queue and what was inspected. Never bulk-import or auto-claim an unapproved Issue.
 
-## Autonomous discovery\n\nWhen a project queue has no eligible task, follow [Autonomous Task Discovery & Generation](AUTONOMOUS-TASK-DISCOVERY.md). Discovery is a Worker responsibility during a live session; it is not a background scheduler. The project's activation policy is authoritative.\n\n## Project-specific governance
+## Autonomous discovery
+
+When a project queue has no eligible task, follow [Autonomous Task Discovery & Generation](AUTONOMOUS-TASK-DISCOVERY.md). Discovery is a Worker responsibility during a live session; it is not a background scheduler. The project's activation policy is authoritative.
+
+## Project-specific governance
 
 Project routing is automatic; project governance is not flattened into one generic policy. Always load and obey the selected project's current repository instructions.
 
