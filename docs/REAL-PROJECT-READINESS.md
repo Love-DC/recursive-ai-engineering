@@ -43,3 +43,7 @@ Pause the affected task—not the whole project—if:
 The pilot assumes participating conversations have the user's trusted Supabase MCP access. Do not expose this operating model to untrusted users or public clients. Before doing so, implement and verify a proper non-owner authentication and authorization boundary.
 
 Vercel and the Owner Console remain optional. They are not required to start the shared MCP pilot.
+
+## Live security audit
+
+A read-only audit of the connected Supabase project was recorded on 2026-11-23: [Security Boundary Audit](SECURITY-BOUNDARY-AUDIT.md). It confirms no pilot blocker was found in the inspected owner-MCP boundary, while documenting the outstanding production gates (20 authenticated SECURITY DEFINER RPCs, leaked-password protection disabled, and unverified Auth dashboard settings). This evidence does not authorize public exposure or production deployment.
