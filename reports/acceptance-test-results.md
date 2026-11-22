@@ -6,7 +6,7 @@
 
 ## Executive status
 
-The database foundation and all 19 RPC definitions have been deployed. Schema and permission metadata checks passed. The full workflow acceptance suite is **not passed**: the Auth user table currently contains zero users, so authenticated owner-context workflow tests cannot be run without provisioning an owner account. Real concurrent claim/lease races also remain unexecuted and must not be represented as passed.
+The database foundation and all 19 RPC definitions have been deployed. Schema and permission metadata checks passed. The full workflow acceptance suite is **not passed**. One Auth user is now provisioned, but the live database currently has zero projects, zero Workers and zero Tasks. The Owner console source has been added under `console/`, but it has not yet been deployed or built in a verified CI run. Authenticated owner-context workflow tests, real concurrent claim/lease races and cross-session Reviewer tests remain unexecuted and must not be represented as passed.
 
 ## Stage results
 
@@ -29,12 +29,15 @@ The database foundation and all 19 RPC definitions have been deployed. Schema an
 | Unauthenticated RPC guard | Transactional role test passed | PASS |
 | anon RPC denial | Transactional role test passed | PASS |
 | Schema acceptance assertions | Executed, no exceptions | PASS |
-| Full authenticated business workflow | No Auth users available | BLOCKED |
+| Auth user provisioned | Count = 1 | PASS |
+| Owner console source committed | `console/` Vite/React app and Supabase RPC integration | IMPLEMENTED, BUILD NOT VERIFIED |
+| Live project/Worker/Task records | Counts = 0 / 0 / 0 | NOT STARTED |
+| Full authenticated business workflow | Not executed through a real Owner session | NOT RUN |
 | Actual two-session claim race | Not run | NOT RUN |
 | Actual lease/reclaim race | Not run | NOT RUN |
 | Cross-session Reviewer workflow | Not run | NOT RUN |
 
-## Deployed migrations
+## Owner console progress\n\nA Vite/React Owner console is committed under `console/`. It supports password sign-in, project registration, Worker registration, implementation Task creation, task queue listing and `get_task` inspection. It uses only the Supabase publishable key in the browser and existing authenticated RPCs. A GitHub Actions build workflow was added at `.github/workflows/console-build.yml`; a successful build has not yet been observed. Deployment is pending Vercel connection and environment configuration. The console does not launch GPT Workers.\n\n## Deployed migrations
 
 1. `mvp_v1_1_core_schema`
 2. `mvp_v1_1_fk_covering_indexes`
@@ -58,7 +61,7 @@ A consolidated, current database snapshot is committed at `supabase/migrations/d
 
 ## Known implementation limitations requiring follow-up before Worker onboarding
 
-1. Provision an owner Auth user in the Supabase dashboard, then test real JWT-backed calls for all RPCs.
+1. Sign in to the Owner console and create the first project; verify the `register_project` and `register_worker` RPCs using the real Owner JWT.
 2. Fix and test idempotent replay on `register_project` with an authenticated owner; its deterministic project UUID is derived from owner + idempotency key.
 3. Exercise all A01–A63 acceptance cases, especially duplicate review creation, rejected/accepted latest_review_task_id updates, no-review completion, cancel-running behavior, and expired-lease fencing.
 4. Run two genuinely independent authenticated sessions for claim_task and lease/reclaim concurrency. Sequential SQL scripts are not substitutes.
@@ -67,4 +70,4 @@ A consolidated, current database snapshot is committed at `supabase/migrations/d
 
 ## Credential boundary
 
-No Service Role Key, secret key, database password, or privileged database connection string has been added to GitHub or Worker instructions. No Worker was started.
+No Service Role Key, secret key, database password, or privileged database connection string has been added to GitHub or Worker instructions. No Worker was started. No project, Worker or Task records were created during this implementation session.
