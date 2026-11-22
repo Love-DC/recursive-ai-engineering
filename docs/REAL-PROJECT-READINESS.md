@@ -13,7 +13,7 @@ This document separates the MVP v1.1 database workflow from production onboardin
 
 ## No-go items
 
-- [ ] Owner Console production build verified by CI.
+- [x] Owner Console production build verified by CI (GitHub Actions run 45052216112).
 - [ ] Real browser sign-in, project creation and task creation verified with the provisioned Owner account.
 - [ ] Distinct Auth-user identities provisioned for Workers; logical Worker IDs must no longer be treated as authentication.
 - [ ] Worker RPC authorization must bind the authenticated subject to the exact Worker ID. An Owner may administer all Workers; a Worker session must not impersonate another Worker.
