@@ -34,6 +34,12 @@ DECLARE
   v_fail jsonb;
   v_replay jsonb;
   v_requeue jsonb;
+  v_repair_task jsonb;
+  v_repair_replay jsonb;
+  v_repair_claim jsonb;
+  v_repair_id uuid;
+  v_repair_exec uuid;
+  v_repair_count integer;
   v_status text;
   v_message text;
 BEGIN
@@ -106,6 +112,53 @@ BEGIN
   END;
   IF (SELECT count(*) FROM public.executions WHERE task_id=v_task_id) <> 2 THEN
     RAISE EXCEPTION 'FAIL: execution history was not preserved';
+  END IF;
+
+  -- A failed execution creates one deduplicated repair child linked to its source failure.
+  v_repair_task := public.create_task(v_project,v_worker,'implementation',
+    'Repair child for failed execution ' || v_exec2::text,
+    'Disposable repair-child fixture linked to the failed execution.',
+    jsonb_build_object(
+      'source_failure_task_id',v_task_id,
+      'source_failure_execution_id',v_exec2,
+      'error_code','BUILD_FAILED'
+    ),
+    1,false,v_task_id,null,'repair-child-for-failure-' || v_exec2::text);
+  v_repair_replay := public.create_task(v_project,v_worker,'implementation',
+    'Repair child for failed execution ' || v_exec2::text,
+    'Disposable repair-child fixture linked to the failed execution.',
+    jsonb_build_object(
+      'source_failure_task_id',v_task_id,
+      'source_failure_execution_id',v_exec2,
+      'error_code','BUILD_FAILED'
+    ),
+    1,false,v_task_id,null,'repair-child-for-failure-' || v_exec2::text);
+  v_repair_id := (v_repair_task->'data'->>'id')::uuid;
+  IF v_repair_id IS NULL OR v_repair_replay->'data'->>'id' IS DISTINCT FROM v_repair_id::text THEN
+    RAISE EXCEPTION 'FAIL: repair child idempotency replay returned a different task: % / %',
+      v_repair_task,v_repair_replay;
+  END IF;
+  SELECT count(*) INTO v_repair_count
+    FROM public.tasks
+    WHERE parent_task_id=v_task_id
+      AND requirements->>'source_failure_execution_id'=v_exec2::text;
+  IF v_repair_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: expected exactly one repair child for source failure %, found %',
+      v_exec2,v_repair_count;
+  END IF;
+  v_repair_claim := public.claim_task(v_project,v_worker,600,
+    'repair-child-claim-' || v_exec2::text);
+  IF v_repair_claim->'data'->>'task_id' IS DISTINCT FROM v_repair_id::text THEN
+    RAISE EXCEPTION 'FAIL: repair child was not the task claimed: %',v_repair_claim;
+  END IF;
+  v_repair_exec := (v_repair_claim->'data'->>'execution_id')::uuid;
+  PERFORM public.complete_execution(v_repair_id,v_repair_exec,v_worker,
+    jsonb_build_object('summary','deduplicated repair child completed',
+      'source_failure_execution_id',v_exec2),
+    'repair-child-complete-' || v_exec2::text);
+  IF (SELECT status FROM public.tasks WHERE id=v_repair_id) <> 'accepted'
+     OR (SELECT status FROM public.executions WHERE id=v_exec2) <> 'failed' THEN
+    RAISE EXCEPTION 'FAIL: repair child completion lost source failure evidence';
   END IF;
 
   -- Backoff is enforced before another claim can occur.
@@ -187,7 +240,7 @@ BEGIN
     IF SQLERRM <> 'TASK_NOT_FAILED' THEN RAISE; END IF;
   END;
 
-  RAISE NOTICE 'PASS: atomic failure persistence, wrong-worker fencing, idempotency replay/conflict, retry attempt history, retry cap, backoff, expired-execution fencing/reclaim, and cancellation separation';
+  RAISE NOTICE 'PASS: atomic failure persistence, wrong-worker fencing, idempotency replay/conflict, retry attempt history, retry cap, backoff, expired-execution fencing/reclaim, and cancellation separation, plus deduplicated repair-child creation/claim/completion';
 END
 $test$;
 
