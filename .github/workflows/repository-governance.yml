@@ -29,13 +29,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
       - name: Validate RAE governance manifest against repository
         run: |
-          SHA="$(git rev-parse HEAD)"
-          python scripts/repository_governance.py . --expected-sha "$SHA" --actual-sha "$SHA"
+          EXPECTED_SHA="${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          python scripts/repository_governance.py . --expected-sha "$EXPECTED_SHA" --actual-sha "$ACTUAL_SHA"
       - name: Run governance discovery tests
         run: python -m unittest discover -s tests -p "test_repository_governance.py" -v
       - name: Compile governance adapter
