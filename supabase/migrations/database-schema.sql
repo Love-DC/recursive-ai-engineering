@@ -1,6 +1,6 @@
--- Reproducible consolidated schema snapshot of the deployed MVP v1.1 database.
+-- Reproducible consolidated snapshot of deployed MVP v1.1 database objects.
 -- Apply to an EMPTY Supabase PostgreSQL 17 database only.
--- Contains 7 core tables, constraints, indexes, RLS, triggers, 19 RPCs and grants.
+-- Includes seven core tables, constraints, indexes, RLS, triggers, 19 RPCs and grants.
 
 create schema if not exists private;
 
@@ -1023,94 +1023,94 @@ revoke all on table public.projects, public.workers, public.tasks, public.execut
 
 grant select on table public.projects, public.workers, public.tasks, public.executions, public.artifacts, public.task_events to authenticated;
 
-revoke all on function public.add_artifact(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_artifact_type text, p_name text, p_github_repo text, p_github_path text, p_commit_sha text, p_pr_url text, p_external_url text, p_metadata jsonb, p_idempotency_key text) from public, anon;
+revoke all on function public.add_artifact(uuid, uuid, uuid, text, text, text, text, text, text, text, jsonb, text) from public, anon;
 
-revoke all on function public.cancel_task(p_task_id uuid, p_worker_id uuid, p_reason text, p_idempotency_key text) from public, anon;
+revoke all on function public.cancel_task(uuid, uuid, text, text) from public, anon;
 
-revoke all on function public.claim_task(p_project_id uuid, p_worker_id uuid, p_lease_seconds integer, p_idempotency_key text) from public, anon;
+revoke all on function public.claim_task(uuid, uuid, integer, text) from public, anon;
 
-revoke all on function public.complete_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_result jsonb, p_idempotency_key text) from public, anon;
+revoke all on function public.complete_execution(uuid, uuid, uuid, jsonb, text) from public, anon;
 
-revoke all on function public.create_fix_task(p_original_task_id uuid, p_review_task_id uuid, p_title text, p_description text, p_requirements jsonb, p_worker_id uuid, p_idempotency_key text) from public, anon;
+revoke all on function public.create_fix_task(uuid, uuid, text, text, jsonb, uuid, text) from public, anon;
 
-revoke all on function public.create_review_task(p_original_task_id uuid, p_delivery_task_id uuid, p_delivery_execution_id uuid, p_reviewer_worker_id uuid, p_idempotency_key text) from public, anon;
+revoke all on function public.create_review_task(uuid, uuid, uuid, uuid, text) from public, anon;
 
-revoke all on function public.create_task(p_project_id uuid, p_worker_id uuid, p_task_type text, p_title text, p_description text, p_requirements jsonb, p_priority integer, p_requires_review boolean, p_parent_task_id uuid, p_fixes_task_id uuid, p_idempotency_key text) from public, anon;
+revoke all on function public.create_task(uuid, uuid, text, text, text, jsonb, integer, boolean, uuid, uuid, text) from public, anon;
 
-revoke all on function public.get_project(p_project_id uuid) from public, anon;
+revoke all on function public.get_project(uuid) from public, anon;
 
-revoke all on function public.get_task(p_task_id uuid) from public, anon;
+revoke all on function public.get_task(uuid) from public, anon;
 
-revoke all on function public.get_worker(p_worker_id uuid) from public, anon;
+revoke all on function public.get_worker(uuid) from public, anon;
 
-revoke all on function public.heartbeat_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_idempotency_key text) from public, anon;
+revoke all on function public.heartbeat_execution(uuid, uuid, uuid, text) from public, anon;
 
-revoke all on function public.heartbeat_worker(p_worker_id uuid) from public, anon;
+revoke all on function public.heartbeat_worker(uuid) from public, anon;
 
-revoke all on function public.list_tasks(p_project_id uuid, p_status text, p_worker_id uuid, p_limit integer, p_cursor timestamp with time zone) from public, anon;
+revoke all on function public.list_tasks(uuid, text, uuid, integer, timestamp with time zone) from public, anon;
 
-revoke all on function public.list_workers(p_project_id uuid) from public, anon;
+revoke all on function public.list_workers(uuid) from public, anon;
 
-revoke all on function public.register_project(p_name text, p_description text, p_github_repo text, p_config jsonb, p_idempotency_key text) from public, anon;
+revoke all on function public.register_project(text, text, text, jsonb, text) from public, anon;
 
-revoke all on function public.register_worker(p_project_id uuid, p_worker_key text, p_display_name text, p_description text) from public, anon;
+revoke all on function public.register_worker(uuid, text, text, text) from public, anon;
 
-revoke all on function public.resubmit_after_fix(p_original_task_id uuid, p_fix_task_id uuid, p_fix_execution_id uuid, p_worker_id uuid, p_idempotency_key text) from public, anon;
+revoke all on function public.resubmit_after_fix(uuid, uuid, uuid, uuid, text) from public, anon;
 
-revoke all on function public.review_result(p_review_task_id uuid, p_execution_id uuid, p_reviewer_worker_id uuid, p_decision text, p_review jsonb, p_idempotency_key text) from public, anon;
+revoke all on function public.review_result(uuid, uuid, uuid, text, jsonb, text) from public, anon;
 
-revoke all on function public.submit_result(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_result jsonb, p_idempotency_key text) from public, anon;
+revoke all on function public.submit_result(uuid, uuid, uuid, jsonb, text) from public, anon;
 
-grant execute on function public.add_artifact(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_artifact_type text, p_name text, p_github_repo text, p_github_path text, p_commit_sha text, p_pr_url text, p_external_url text, p_metadata jsonb, p_idempotency_key text) to authenticated;
+grant execute on function public.add_artifact(uuid, uuid, uuid, text, text, text, text, text, text, text, jsonb, text) to authenticated;
 
-grant execute on function public.cancel_task(p_task_id uuid, p_worker_id uuid, p_reason text, p_idempotency_key text) to authenticated;
+grant execute on function public.cancel_task(uuid, uuid, text, text) to authenticated;
 
-grant execute on function public.claim_task(p_project_id uuid, p_worker_id uuid, p_lease_seconds integer, p_idempotency_key text) to authenticated;
+grant execute on function public.claim_task(uuid, uuid, integer, text) to authenticated;
 
-grant execute on function public.complete_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_result jsonb, p_idempotency_key text) to authenticated;
+grant execute on function public.complete_execution(uuid, uuid, uuid, jsonb, text) to authenticated;
 
-grant execute on function public.create_fix_task(p_original_task_id uuid, p_review_task_id uuid, p_title text, p_description text, p_requirements jsonb, p_worker_id uuid, p_idempotency_key text) to authenticated;
+grant execute on function public.create_fix_task(uuid, uuid, text, text, jsonb, uuid, text) to authenticated;
 
-grant execute on function public.create_review_task(p_original_task_id uuid, p_delivery_task_id uuid, p_delivery_execution_id uuid, p_reviewer_worker_id uuid, p_idempotency_key text) to authenticated;
+grant execute on function public.create_review_task(uuid, uuid, uuid, uuid, text) to authenticated;
 
-grant execute on function public.create_task(p_project_id uuid, p_worker_id uuid, p_task_type text, p_title text, p_description text, p_requirements jsonb, p_priority integer, p_requires_review boolean, p_parent_task_id uuid, p_fixes_task_id uuid, p_idempotency_key text) to authenticated;
+grant execute on function public.create_task(uuid, uuid, text, text, text, jsonb, integer, boolean, uuid, uuid, text) to authenticated;
 
-grant execute on function public.get_project(p_project_id uuid) to authenticated;
+grant execute on function public.get_project(uuid) to authenticated;
 
-grant execute on function public.get_task(p_task_id uuid) to authenticated;
+grant execute on function public.get_task(uuid) to authenticated;
 
-grant execute on function public.get_worker(p_worker_id uuid) to authenticated;
+grant execute on function public.get_worker(uuid) to authenticated;
 
-grant execute on function public.heartbeat_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_idempotency_key text) to authenticated;
+grant execute on function public.heartbeat_execution(uuid, uuid, uuid, text) to authenticated;
 
-grant execute on function public.heartbeat_worker(p_worker_id uuid) to authenticated;
+grant execute on function public.heartbeat_worker(uuid) to authenticated;
 
-grant execute on function public.list_tasks(p_project_id uuid, p_status text, p_worker_id uuid, p_limit integer, p_cursor timestamp with time zone) to authenticated;
+grant execute on function public.list_tasks(uuid, text, uuid, integer, timestamp with time zone) to authenticated;
 
-grant execute on function public.list_workers(p_project_id uuid) to authenticated;
+grant execute on function public.list_workers(uuid) to authenticated;
 
-grant execute on function public.register_project(p_name text, p_description text, p_github_repo text, p_config jsonb, p_idempotency_key text) to authenticated;
+grant execute on function public.register_project(text, text, text, jsonb, text) to authenticated;
 
-grant execute on function public.register_worker(p_project_id uuid, p_worker_key text, p_display_name text, p_description text) to authenticated;
+grant execute on function public.register_worker(uuid, text, text, text) to authenticated;
 
-grant execute on function public.resubmit_after_fix(p_original_task_id uuid, p_fix_task_id uuid, p_fix_execution_id uuid, p_worker_id uuid, p_idempotency_key text) to authenticated;
+grant execute on function public.resubmit_after_fix(uuid, uuid, uuid, uuid, text) to authenticated;
 
-grant execute on function public.review_result(p_review_task_id uuid, p_execution_id uuid, p_reviewer_worker_id uuid, p_decision text, p_review jsonb, p_idempotency_key text) to authenticated;
+grant execute on function public.review_result(uuid, uuid, uuid, text, jsonb, text) to authenticated;
 
-grant execute on function public.submit_result(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_result jsonb, p_idempotency_key text) to authenticated;
+grant execute on function public.submit_result(uuid, uuid, uuid, jsonb, text) to authenticated;
 
-revoke all on function private.add_event(p_project_id uuid, p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_event_type text, p_payload jsonb) from public, anon, authenticated;
+revoke all on function private.add_event(uuid, uuid, uuid, uuid, text, jsonb) from public, anon, authenticated;
 
-revoke all on function private.assert_current_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid) from public, anon, authenticated;
+revoke all on function private.assert_current_execution(uuid, uuid, uuid) from public, anon, authenticated;
 
-revoke all on function private.assert_owner(p_project_id uuid) from public, anon, authenticated;
+revoke all on function private.assert_owner(uuid) from public, anon, authenticated;
 
 revoke all on function private.guard_artifact_immutable_fields() from public, anon, authenticated;
 
 revoke all on function private.guard_task_immutable_fields() from public, anon, authenticated;
 
-revoke all on function private.idempotency_get(p_project_id uuid, p_operation text, p_key text, p_hash text) from public, anon, authenticated;
+revoke all on function private.idempotency_get(uuid, text, text, text) from public, anon, authenticated;
 
-revoke all on function private.idempotency_put(p_project_id uuid, p_operation text, p_key text, p_hash text, p_response jsonb) from public, anon, authenticated;
+revoke all on function private.idempotency_put(uuid, text, text, text, jsonb) from public, anon, authenticated;
 
-revoke all on function private.request_hash(p_payload jsonb) from public, anon, authenticated;
+revoke all on function private.request_hash(jsonb) from public, anon, authenticated;
