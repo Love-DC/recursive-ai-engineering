@@ -52,3 +52,24 @@ Before any independent/non-owner client is admitted:
 - Supabase security advisor returned: 1 `rls_enabled_no_policy` INFO finding (`operation_requests`); 20 `authenticated_security_definer_function_executable` WARN findings; 1 `auth_leaked_password_protection` WARN finding.
 - The advisor remediation references are the Supabase database linter rule 0008, rule 0029, and the Auth password security guide.
 - This was a read-only configuration/source audit. It did not attempt exploit tests, inspect provider-specific Auth settings, change grants, or deploy anything.
+
+## Performance advisor baseline
+
+**Observed:** 2026-11-22 19:19:57 UTC (Supabase Performance Advisor); PostgreSQL statistics sampled at 2026-11-22 19:20:30 UTC.
+
+- The Performance Advisor reported **15 unused-index findings** across `public.projects`, `public.tasks`, and `public.task_events`. Representative findings include `idx_projects_owner`, `idx_tasks_worker`, `idx_tasks_lease`, `idx_tasks_parent_project`, `idx_tasks_assigned_project`, `idx_events_task`, `idx_events_project`, `idx_events_worker_project`, and `idx_events_execution_task`.
+- A direct read-only query of `pg_stat_user_indexes` returned **19 indexes with `idx_scan = 0`** across the seven public application tables. This broader count also includes primary-key/unique-constraint indexes (for example, `tasks_pkey`, `executions_pkey`, and `operation_requests_project_id_operation_idempotency_key_key`); it is not equivalent to the Advisor's 15 findings and is not a drop list.
+- The statistics reset timestamp was **2026-11-13 21:18:31 UTC**, giving approximately **8 days 22 hours** of accumulated statistics at sampling time. The same sample estimated only 2 project rows, 13 task rows, 61 task-event rows, and 2 worker rows. This is a small pilot dataset, not representative production traffic.
+
+### Interpretation and safe follow-up
+
+An unused-index warning is a prompt for workload review, not proof that an index is redundant. Low row counts, limited pilot traffic, infrequent administrative/reporting queries, planner preference for sequential scans, and the statistics-reset window can all produce zero scans. Primary-key and unique-constraint backing indexes must not be treated as ordinary cleanup candidates.
+
+Before proposing any index removal:
+
+1. Capture the relevant query shapes and predicates from representative workload; inspect `pg_stat_user_indexes` again after sustained traffic and record the statistics-reset timestamp.
+2. Compare candidate indexes with primary/unique constraints, foreign-key access paths, RLS predicates, task-claim/lease queries, and infrequent operational queries.
+3. Use representative `EXPLAIN (ANALYZE, BUFFERS)` plans in a safe test environment to establish whether the index is useful; compare read plans and write overhead.
+4. If removal remains justified, prepare a separate reviewed migration, validate it against a disposable database and workload, and obtain explicit authorization before any production DDL.
+
+**Disposition:** No indexes were dropped or altered. These observations are a dated baseline only; repeat the measurement after the pilot has accumulated representative workload. The existing security findings and production-exposure gates above remain unchanged.
