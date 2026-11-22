@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "rae-governance.json"
+      - "README.md"
       - "scripts/repository_governance.py"
       - "tests/test_repository_governance.py"
       - "docs/REPOSITORY-GOVERNANCE-PROTOCOL.md"
