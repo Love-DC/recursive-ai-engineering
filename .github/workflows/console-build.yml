@@ -1,0 +1,27 @@
+name: Owner Console Build
+
+on:
+  push:
+    paths:
+      - "console/**"
+      - ".github/workflows/console-build.yml"
+  pull_request:
+    paths:
+      - "console/**"
+      - ".github/workflows/console-build.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: console
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: console/package.json
+      - run: npm install --no-package-lock
+      - run: npm run build
