@@ -6,7 +6,7 @@
 
 ## Executive status
 
-The database foundation and all 19 RPC definitions have been deployed. Schema and permission metadata checks passed. A rollback-safe end-to-end RPC workflow test now passes under a simulated authenticated Owner JWT context. The full MVP acceptance suite is still **not passed**: the browser console build and real login flow are not verified, and independent-session concurrency/lease races remain untested. The live database currently has zero projects, zero Workers and zero Tasks; transactional test data was rolled back, and the temporary concurrency project was deleted after the race/reclaim checks.
+The database foundation and all 19 RPC definitions have been deployed. Schema and permission metadata checks passed. A rollback-safe end-to-end RPC workflow test now passes under a simulated authenticated Owner JWT context. The full MVP acceptance suite is still **not passed**: the browser console build and real login flow are not verified, and concurrency across distinct Auth-user identities remains untested. A two-connection database race, lease reclaim and stale-Execution fencing test did pass under the same Owner identity. The live database currently has zero projects, zero Workers and zero Tasks; transactional test data was rolled back, and the temporary concurrency project was deleted after the race/reclaim checks.
 
 ## Stage results
 
@@ -32,7 +32,7 @@ The database foundation and all 19 RPC definitions have been deployed. Schema an
 | Auth user provisioned | Count = 1 | PASS |
 | Owner console source committed | `console/` Vite/React app and Supabase RPC integration | IMPLEMENTED, BUILD NOT VERIFIED |
 | Live project/Worker/Task records | Counts = 0 / 0 / 0 | NOT STARTED |
-| Transactional authenticated RPC workflow | Project/Worker/Task reads; project idempotency replay/conflict; claim/heartbeat; artifact; submit; self-review and duplicate-review guards; Reviewer reject; Fix/resubmit; Reviewer accept; no-review completion; running-task cancellation. Executed as `authenticated` with an existing Auth user's JWT subject; all writes rolled back. | PASS (RPC-level, not browser UI) |
+| Transactional authenticated RPC workflow | Project/Worker/Task reads; cross-owner read denial; project idempotency replay/conflict; claim/heartbeat; artifact; submit; self-review and duplicate-review guards; Reviewer reject; Fix/resubmit; Reviewer accept; no-review completion; running-task cancellation. Executed as `authenticated` with an existing Auth user's JWT subject; all writes rolled back. | PASS (RPC-level, not browser UI) |
 | Concurrent claim race | Two separate SQL connections called `claim_task` simultaneously with different Worker IDs and the same authenticated Owner JWT. Exactly one claimed the Task; the other received `task: null`. | PASS (separate DB sessions; same Auth identity) |
 | Lease expiry/reclaim | Forced the test Task lease into the past; second Worker reclaimed it as attempt 2. | PASS |
 | Stale Execution fencing | Heartbeat from attempt 1 after attempt 2 reclaimed the Task was rejected with `EXECUTION_SUPERSEDED`. | PASS |
