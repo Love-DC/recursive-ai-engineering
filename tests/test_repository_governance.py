@@ -126,7 +126,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
         with self.assertRaisesRegex(GovernanceError, "Incompatible governance protocol major"):
             self.load(root)
 
-    def test_rejects_missing_local_validation_workflow(self):
+    def test_rejects_unsafe_local_validation_workflow(self):
         root = self.make_repo()
         manifest_path = root / "rae-governance.json"
         manifest = json.loads(manifest_path.read_text())
