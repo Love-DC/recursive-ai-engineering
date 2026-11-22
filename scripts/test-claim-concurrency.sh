@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 # Exercise claim_task from two independent PostgreSQL sessions.
 # Required environment:
-#   SUPABASE_DB_URL, SUPABASE_OWNER_ID, SUPABASE_PROJECT_ID, SHARED_WORKER_ID
+#   SUPABASE_DB_URL, SUPABASE_OWNER_ID, SUPABASE_PROJECT_ID, SHARED_WORKER_ID, SECOND_WORKER_ID
 set -euo pipefail
 
 : "${SUPABASE_DB_URL:?Set SUPABASE_DB_URL to the authorized PostgreSQL connection string}"
 : "${SUPABASE_OWNER_ID:?Set SUPABASE_OWNER_ID}"
 : "${SUPABASE_PROJECT_ID:?Set SUPABASE_PROJECT_ID}"
 : "${SHARED_WORKER_ID:?Set SHARED_WORKER_ID}"
+: "${SECOND_WORKER_ID:?Set SECOND_WORKER_ID}"
 
 command -v psql >/dev/null || { echo "psql is required" >&2; exit 2; }
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 2; }
 
 uuid_re='^[0-9a-fA-F-]{36}$'
-for value in "$SUPABASE_OWNER_ID" "$SUPABASE_PROJECT_ID" "$SHARED_WORKER_ID"; do
+for value in "$SUPABASE_OWNER_ID" "$SUPABASE_PROJECT_ID" "$SHARED_WORKER_ID" "$SECOND_WORKER_ID"; do
   [[ "$value" =~ $uuid_re ]] || { echo "Expected UUID environment values" >&2; exit 2; }
 done
 
@@ -60,6 +61,7 @@ SQL
 
 claim_session() {
   local label="$1"
+  local worker_id="$2"
   : > "$tmp/ready-$label"
   while [[ ! -f "$tmp/go" ]]; do sleep 0.02; done
   psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL > "$tmp/$label.json"
@@ -68,7 +70,7 @@ with auth as (
 )
 select public.claim_task(
   '$SUPABASE_PROJECT_ID',
-  '$SHARED_WORKER_ID',
+  '$worker_id',
   600,
   'claim-concurrency-$run_key-$label'
 )
@@ -76,9 +78,9 @@ from auth;
 SQL
 }
 
-claim_session a &
+claim_session a "$SHARED_WORKER_ID" &
 pid_a=$!
-claim_session b &
+claim_session b "$SECOND_WORKER_ID" &
 pid_b=$!
 while [[ ! -f "$tmp/ready-a" || ! -f "$tmp/ready-b" ]]; do sleep 0.02; done
 touch "$tmp/go"
@@ -92,8 +94,10 @@ exec_b="$(jq -r '.data.execution_id // empty' "$tmp/b.json")"
 
 if [[ "$id_a" == "$task_id" && -z "$id_b" ]]; then
   winner_exec="$exec_a"
+  winner_worker="$SHARED_WORKER_ID"
 elif [[ "$id_b" == "$task_id" && -z "$id_a" ]]; then
   winner_exec="$exec_b"
+  winner_worker="$SECOND_WORKER_ID"
 else
   echo "FAIL: expected exactly one claim for $task_id; session a=$id_a session b=$id_b" >&2
   echo "Responses: $(cat "$tmp/a.json") / $(cat "$tmp/b.json")" >&2
@@ -109,7 +113,7 @@ with auth as (
 select public.complete_execution(
   '$task_id',
   '$winner_exec',
-  '$SHARED_WORKER_ID',
+  '$winner_worker',
   jsonb_build_object(
     'summary', 'Two independent PostgreSQL sessions raced to claim one task; exactly one received the lease.',
     'verification', jsonb_build_array('session a task_id=' || nullif('$id_a',''), 'session b task_id=' || nullif('$id_b','')),
@@ -122,3 +126,4 @@ SQL
 
 echo "PASS: exactly one of two independent sessions claimed $task_id"
 echo "Winning execution: $winner_exec"
+echo "Winning Worker: $winner_worker"
