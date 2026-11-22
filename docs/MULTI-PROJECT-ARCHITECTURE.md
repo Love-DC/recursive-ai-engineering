@@ -100,7 +100,11 @@ Hard boundaries:
 
 The user-facing workflow is project-agnostic. A new conversation does not receive a project name or a bespoke objective; it inspects every active registered project's queue. The logical shared pool is the union of project-scoped queues, not a cross-project table that erases ownership boundaries. For each project, the coordinator resolves that project's own active `shared-executor` Worker and calls `list_tasks`/`claim_task` with the matching project and Worker IDs. The claimed task's `project_id` determines repository routing. Atomic claim is authoritative; never infer claim success from a prior queue listing. If a project's queue is empty, run the authorized evidence-based discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md. A candidate may be written only to that same project's queue after deduplication and authority checks. If no candidate qualifies, report an empty queue. Never create work from an unapproved Issue or invent a task.
 
-## Autonomous task discovery\n\nWorkers inspect their authorized project's code, docs, tests, CI, and read-only operational signals when no eligible work is queued. Findings must include durable evidence, impact, risk, acceptance criteria, validation, and a stable project-scoped deduplication fingerprint. Only findings permitted by the project's task_activation policy may be created as executable tasks. Colony Sim remains explicit_owner_authorization_only; an open Issue is backlog, never authorization. See docs/AUTONOMOUS-TASK-DISCOVERY.md for the candidate contract, noise limits, authority matrix, and pilot limitations.\n\n## Session routing and execution
+## Autonomous task discovery
+
+Workers inspect their authorized project's code, docs, tests, CI, and read-only operational signals when no eligible work is queued. Findings must include durable evidence, impact, risk, acceptance criteria, validation, and a stable project-scoped deduplication fingerprint. Only findings permitted by the project's task_activation policy may be created as executable tasks. Colony Sim remains explicit_owner_authorization_only; an open Issue is backlog, never authorization. See docs/AUTONOMOUS-TASK-DISCOVERY.md for the candidate contract, noise limits, authority matrix, and pilot limitations.
+
+## Session routing and execution
 
 1. Read the RAE session entry point and inspect registered projects in Supabase.
 2. Resolve the user's named target project to exactly one active project record. If the target is omitted and the objective does not identify one unambiguously, ask one short clarification.
