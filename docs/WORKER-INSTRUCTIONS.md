@@ -3,15 +3,15 @@
 This addendum supersedes any assumption below that every task belongs to the original RAE project. Before creating, claiming, or completing work, resolve the target project and its project-scoped worker from live Supabase data.
 
 - Query `public.projects` and select the active row by `config->>'project_key'` or canonical `github_repo`.
-- Query `public.workers` for `project_id = <selected project UUID>`, `worker_key = 'shared-executor'`, and `status = 'active'`.
+- Query active `public.workers` rows for the selected `project_id`. Select the Worker matching the task's required worker key or the project's `config.worker_routing` mapping. If no explicit route exists, use the sole active Worker only when exactly one is available; if multiple candidates remain, stop and request routing configuration. Never select a Worker from another project.
 - Use that exact project UUID and worker UUID for every task RPC. Never reuse the RAE worker UUID for Colony Sim or vice versa.
-- RAE project key/repository: `recursive-ai-engineering` / `Love-DC/recursive-ai-engineering`.
-- Colony Sim project key/repository: `colony-sim` / `Love-DC/colony-sim`.
-- Colony Sim governance is loaded from the repository paths in its `projects.config.governance` object. At minimum read `AGENTS.md`, `docs/ai/AI_START_HERE.md`, and `docs/ai/WEB_GITHUB_WORKFLOW.md`.
+- RAE project key/repository: `recursive-ai-engineering` / `Love-DC/recursive-ai-engineering` (current pilot Worker key: `shared-executor`).
+- Colony Sim project key/repository: `colony-sim` / `Love-DC/colony-sim` (current pilot Worker key: `shared-executor`).
+- Governance is discovered from the target repository's root `rae-governance.json` at the task's pinned base SHA. Validate it with `scripts/repository_governance.py` when a local checkout is available; web sessions must perform equivalent structural checks by fetching the manifest and every declared file at the exact pinned SHA. Read every declared instruction, entrypoint, and required rule file at that same SHA. Do not read or depend on `projects.config.governance`; it is a deprecated compatibility fallback only until all repositories publish manifests.
 - Keep task-specific GitHub metadata in `tasks.requirements` JSONB using the contract in `docs/MULTI-PROJECT-ARCHITECTURE.md`. Store actual delivery evidence in the execution result and artifacts.
 - A direct owner request authorizes the current coordinator to execute a bounded engineering objective in the selected project. It does not authorize unapproved product decisions.
-- Never bulk-import Issues. For Colony Sim, an Issue becomes executable only under its explicit owner/coordinator dispatch rules. An open Issue is not permission.
-- When a project queue is empty, follow docs/AUTONOMOUS-TASK-DISCOVERY.md; create only evidence-backed, deduplicated tasks permitted by that project's activation policy. Colony Sim remains explicit-owner-authorization-only.
+- Never bulk-import Issues. An Issue becomes executable only under the target repository's local dispatch and authorization rules. An open Issue is not permission unless that repository explicitly defines an authorized activation path.
+- When a project queue is empty, follow docs/AUTONOMOUS-TASK-DISCOVERY.md; create only evidence-backed, deduplicated tasks permitted by that project's activation policy. Use only the selected repository's explicit task-activation policy; never infer authorization from backlog presence.
 - A leaf Worker does not merge its own PR or sibling PRs. The AI coordinator owns independent review and merge of eligible engineering-only PRs after the review checklist and exact-head CI pass. Product-owner approval remains required for product/design decisions, not routine engineering merges.
 
 Use [Session Start](SESSION-START.md) as the canonical new-conversation entry point and [Multi-Project Architecture](MULTI-PROJECT-ARCHITECTURE.md) as the canonical routing/task contract.
@@ -24,7 +24,7 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 
 - A ChatGPT conversation is temporary. Do not create, track, heartbeat, identify, or report on individual sessions.
 - All sessions work as one shared executor through the user's already-authorized Supabase MCP connection.
-- Use the single project Worker record with key `shared-executor`. Its UUID is a stable database routing reference, not a session ID or identity credential.
+- Use the Worker selected by the project's routing metadata. The current pilot uses one `shared-executor` row per project, but that key is not a platform-wide requirement; different projects may route to different Worker keys and task types.
 - Do not create separate Supabase Auth users or bind Worker identities for this pilot.
 - Supabase is the source of truth for task state. GitHub is the source of truth for code and durable project documents.
 

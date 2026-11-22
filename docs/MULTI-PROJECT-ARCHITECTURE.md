@@ -23,7 +23,7 @@ The current schema already scopes `projects`, `workers`, `tasks`, `executions`, 
 
 Each registered project has:
 - One `public.projects` row with its canonical repository and project-specific configuration.
-- One active `shared-executor` worker row in that project. This is a stable database routing record, not a ChatGPT session identity.
+- One or more active Worker rows in that project. Worker keys and routing may differ by project and task type; a Worker UUID is a project-scoped routing identifier, not a ChatGPT session identity.
 - Tasks created and claimed only within that project ID.
 - Project-specific rules and GitHub metadata carried in the task's JSON requirements and result/artifact records.
 
@@ -31,28 +31,22 @@ Do not share a Worker UUID across projects. The stable worker key may be the sam
 
 ## Project configuration contract
 
-Use `public.projects.github_repo` as the canonical `owner/repository` identifier. Store the following in `public.projects.config`:
+Use `public.projects.github_repo` as the canonical `owner/repository` identifier. Supabase configuration is limited to routing and platform execution metadata, including optional per-project Worker routing, for example:
 
 ```json
 {
-  "execution_mode": "single_owner_shared_executor",
-  "session_identity_tracking": false,
   "project_key": "colony-sim",
   "default_branch": "main",
-  "governance": {
-    "agent_instructions": "AGENTS.md",
-    "ai_entrypoint": "docs/ai/AI_START_HERE.md",
-    "web_workflow": "docs/ai/WEB_GITHUB_WORKFLOW.md",
-    "issue_dispatch": "docs/ai/ISSUE_BASED_WORKER_DISPATCH.md",
-    "product_decisions": "docs/ai/DECISIONS.md",
-    "project_state": "docs/ai/PROJECT_STATE.md"
-  },
-  "task_source": "github_issues",
-  "task_activation": "explicit_owner_authorization_only",
-  "delivery": "pull_request",
-  "merge_authority": "ai_coordinator_after_review"
+  "execution_mode": "single_owner_shared_executor",
+  "session_identity_tracking": false,
+  "worker_routing": {
+    "default_worker_key": "shared-executor",
+    "task_type_worker_keys": {}
+  }
 }
 ```
+
+Do not store governance file paths, CI workflow names, review policy, task activation policy, product decisions, acceptance criteria, or release rules in Supabase. Those belong to the target repository's root `rae-governance.json` and its referenced files. During migration, legacy governance keys may be read only as a deprecated fallback; a valid repository manifest always takes precedence. Remove legacy keys only after the compatibility reader is deployed and all active repositories have passed manifest validation.
 
 Never store credentials, access tokens, database passwords, or privileged connection strings in project config, task requirements, GitHub, or prompts.
 
@@ -83,27 +77,23 @@ Keep the existing task schema stable. Put repository-specific task context in th
 
 The exact shape may add task-specific fields, but must never weaken project governance. Record actual PR URL, branch, head SHA, commit SHA, changed paths, test evidence, and blockers in the execution result and/or artifacts.
 
-## Colony Sim governance adapter
+Worker routing is separate from engineering governance. `worker_routing.default_worker_key` and `worker_routing.task_type_worker_keys` may select active Worker rows within the same project. Different repositories may use different Worker keys and task-type mappings. If routing is absent, the Coordinator may use the only active Worker for that project; ambiguous routing blocks task claim.
 
-Every Colony Sim task must load and follow the target repository's current rules at its pinned base SHA. At minimum, inspect `AGENTS.md`, `docs/ai/AI_START_HERE.md`, and `docs/ai/WEB_GITHUB_WORKFLOW.md`; coordinators also read the dispatch and development protocol documents required by those entry points.
+## Repository-local governance discovery
 
-Hard boundaries:
-- The product owner retains all game-design and player-experience decisions.
-- A direct engineering request authorizes the current coordinator conversation to investigate, decompose, and execute within approved scope.
-- Worker conversations require a direct coordinator dispatch or an exact Issue with a valid READY activation record, plus the owner's naming of that exact Issue in the Worker conversation.
-- Open Issues are backlog, not permission. Never bulk-import or auto-claim the backlog.
-- Workers use isolated task branches and deliver PRs; leaf Workers do not merge their own work.
-- The AI coordinator owns independent review and merge of eligible engineering PRs after the exact-head checklist passes. The product owner retains product/design authority, not routine engineering merge approval.
-- Web sessions validate through GitHub Actions on the exact PR head SHA. Do not claim local Godot commands ran.
-- Stop and request a product decision when the correct player-facing behaviour is not already approved.
+Every target repository must publish a root `rae-governance.json`. Before planning or dispatching a task, the Coordinator pins the target repository SHA, discovers and validates that manifest, and reads all declared governance files at the same SHA. The manifest defines the repository's AI instructions, engineering standards, task authorization rules, review process, CI provider/workflow, and acceptance entrypoints. RAE core must not branch on repository names or encode project-specific paths.
+
+Missing manifests/files, incompatible protocol versions, conflicting rule declarations, semantic policy conflicts, or stale SHAs block execution. The Coordinator must report the exact source and ask the Owner when a conflict cannot be resolved by an explicit repository-local precedence rule. See [Repository-local governance discovery protocol](REPOSITORY-GOVERNANCE-PROTOCOL.md).
+
+The Colony Sim manifest identifies `Love-DC/colony-sim-ci` as an independent validation repository. Its workflow is not a Colony Sim subdirectory and must be invoked only through its documented exact-HEAD trigger. Product-owner authority, explicit Worker dispatch, and independent Coordinator review remain enforced by Colony Sim's own repository documents.
 
 ## Shared task-pool semantics
 
-The user-facing workflow is project-agnostic. A new conversation does not receive a project name or a bespoke objective; it inspects every active registered project's queue. The logical shared pool is the union of project-scoped queues, not a cross-project table that erases ownership boundaries. For each project, the coordinator resolves that project's own active `shared-executor` Worker and calls `list_tasks`/`claim_task` with the matching project and Worker IDs. The claimed task's `project_id` determines repository routing. Atomic claim is authoritative; never infer claim success from a prior queue listing. If a project's queue is empty, run the authorized evidence-based discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md. A candidate may be written only to that same project's queue after deduplication and authority checks. If no candidate qualifies, report an empty queue. Never create work from an unapproved Issue or invent a task.
+The user-facing workflow is project-agnostic. A new conversation does not receive a project name or a bespoke objective; it inspects every active registered project's queue. The logical shared pool is the union of project-scoped queues, not a cross-project table that erases ownership boundaries. For each project, the coordinator resolves an active Worker using that project's Worker routing metadata and the task's requirements, then calls `list_tasks`/`claim_task` with the matching project and Worker IDs. The claimed task's `project_id` determines repository routing. Atomic claim is authoritative; never infer claim success from a prior queue listing. If a project's queue is empty, run the authorized evidence-based discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md. A candidate may be written only to that same project's queue after deduplication and authority checks. If no candidate qualifies, report an empty queue. Never create work from an unapproved Issue or invent a task.
 
 ## Autonomous task discovery
 
-Workers inspect their authorized project's code, docs, tests, CI, and read-only operational signals when no eligible work is queued. Findings must include durable evidence, impact, risk, acceptance criteria, validation, and a stable project-scoped deduplication fingerprint. Only findings permitted by the project's task_activation policy may be created as executable tasks. Colony Sim remains explicit_owner_authorization_only; an open Issue is backlog, never authorization. See docs/AUTONOMOUS-TASK-DISCOVERY.md for the candidate contract, noise limits, authority matrix, and pilot limitations.
+Workers inspect their authorized project's code, docs, tests, CI, and read-only operational signals when no eligible work is queued. Findings must include durable evidence, impact, risk, acceptance criteria, validation, and a stable project-scoped deduplication fingerprint. Only findings permitted by the target repository's local activation policy may be created as executable tasks. An open Issue is backlog, never authorization unless the repository's own rules define a valid activation path. See docs/AUTONOMOUS-TASK-DISCOVERY.md for the candidate contract, noise limits, authority matrix, and pilot limitations.
 
 ## Session routing and execution
 

@@ -6,7 +6,7 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 
 - A conversation is disposable and is not tracked as a Worker identity.
 - All conversations use the user's already-authorized Supabase MCP connection.
-- One stable `shared-executor` Worker row is used as a database routing reference; it does not identify individual sessions.
+- Each project has project-scoped Worker routing rows; worker keys can differ by repository and task type. A Worker row is a routing reference, not an individual session identity.
 - Supabase stores project and task state. GitHub stores code, documents and commit history.
 - Large tasks can be decomposed into child tasks. Any fresh conversation can claim the next available task.
 - Pilot implementation tasks use `requires_review=false`; the separate Reviewer/Fixer workflow is not a startup requirement.
@@ -28,10 +28,11 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 - [Autonomous Task Discovery & Generation](docs/AUTONOMOUS-TASK-DISCOVERY.md): evidence-based discovery, project authorization, deduplication, and empty-queue behavior.
 
 - [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the coordinator route and execute it.
-- [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, task metadata, and governance adapters.
+- [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, and task metadata.
+- [Repository-local governance protocol](docs/REPOSITORY-GOVERNANCE-PROTOCOL.md): pinned-SHA discovery, compatibility checks, conflict handling, and repository-owned CI routing.
 - [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md): Supabase task lifecycle and owner-MCP operating details.
 
-The platform currently registers two projects: `recursive-ai-engineering` and `colony-sim` (`Love-DC/colony-sim`). Each has its own Supabase project row and project-scoped `shared-executor` worker. Task state remains isolated by `project_id`; code, Issues, PRs, CI, and project governance remain in the target repository.
+The platform currently registers two projects: `recursive-ai-engineering` and `colony-sim` (`Love-DC/colony-sim`). Each has its own Supabase project row and project-scoped Worker routing records (the current pilot uses `shared-executor` for both; this is not a platform-wide requirement). Task state remains isolated by `project_id`; code, Issues, PRs, CI, and project governance remain in the target repository.
 
 Before changing the system, review [Pilot Readiness and Deferred Production Gates](docs/REAL-PROJECT-READINESS.md) for the trusted-pilot boundary and outstanding expansion gates. The [Failure Reporting and Retry Contract](docs/FAILURE-RECOVERY-CONTRACT.md) records the current missing failure/requeue API and its proposed safe semantics; it is a design contract, not a deployed feature.
 
