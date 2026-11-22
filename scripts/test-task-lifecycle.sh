@@ -48,6 +48,10 @@ DECLARE
   v_completion jsonb;
   v_task jsonb;
   v_list jsonb;
+  v_heartbeat jsonb;
+  v_heartbeat_before timestamptz;
+  v_heartbeat_after timestamptz;
+  v_heartbeat_lease timestamptz;
 BEGIN
   -- Create a three-level tree; repeated create with the same key must replay.
   v_root := public.create_task(v_project,v_worker,'implementation',
@@ -81,6 +85,22 @@ BEGIN
     RAISE EXCEPTION 'FAIL: priority ordering did not claim root first: %',v_claim;
   END IF;
   v_root_exec := (v_claim->'data'->>'execution_id')::uuid;
+
+  -- A real execution heartbeat renews the fixture lease and advances heartbeat_at.
+  SELECT heartbeat_at INTO v_heartbeat_before
+    FROM public.executions WHERE id=v_root_exec AND task_id=v_root_id;
+  v_heartbeat := public.heartbeat_execution(
+    v_root_id,v_root_exec,v_worker,'lifecycle-root-heartbeat-' || gen_random_uuid()::text
+  );
+  SELECT e.heartbeat_at,t.lease_until INTO v_heartbeat_after,v_heartbeat_lease
+    FROM public.executions e JOIN public.tasks t ON t.id=v_root_id
+    WHERE e.id=v_root_exec AND e.task_id=t.id;
+  IF v_heartbeat->>'success' <> 'true'
+     OR v_heartbeat_after <= v_heartbeat_before
+     OR v_heartbeat_lease < clock_timestamp()+interval '240 seconds' THEN
+    RAISE EXCEPTION 'FAIL: heartbeat did not advance heartbeat_at and lease_until: %, %, %',
+      v_heartbeat,v_heartbeat_after,v_heartbeat_lease;
+  END IF;
 
   -- A repeated idempotency key with identical arguments returns the same execution.
   v_replay := public.claim_task(v_project,v_worker,600,
@@ -138,7 +158,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL: list_tasks omitted recursive descendant';
   END IF;
 
-  RAISE NOTICE 'PASS: recursive parent linkage, ordered claims, claim idempotency replay, child completion, lease expiry/reclaim, stale-execution fencing, completion, get_task and list_tasks';
+  RAISE NOTICE 'PASS: recursive parent linkage, ordered claims, claim idempotency replay, execution heartbeat and lease renewal, child completion, lease expiry/reclaim, stale-execution fencing, completion, get_task and list_tasks';
 END
 $test$;
 
