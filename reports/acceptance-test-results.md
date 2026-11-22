@@ -6,7 +6,7 @@
 
 ## Executive status
 
-The database foundation and all 19 RPC definitions have been deployed. Schema and permission metadata checks passed. The full workflow acceptance suite is **not passed**. One Auth user is now provisioned, but the live database currently has zero projects, zero Workers and zero Tasks. The Owner console source has been added under `console/`, but it has not yet been deployed or built in a verified CI run. Authenticated owner-context workflow tests, real concurrent claim/lease races and cross-session Reviewer tests remain unexecuted and must not be represented as passed.
+The database foundation and all 19 RPC definitions have been deployed. Schema and permission metadata checks passed. A rollback-safe end-to-end RPC workflow test now passes under a simulated authenticated Owner JWT context. The full MVP acceptance suite is still **not passed**: the browser console build and real login flow are not verified, and independent-session concurrency/lease races remain untested. The live database currently has zero projects, zero Workers and zero Tasks; the transactional test rolled back all generated records.
 
 ## Stage results
 
@@ -32,12 +32,16 @@ The database foundation and all 19 RPC definitions have been deployed. Schema an
 | Auth user provisioned | Count = 1 | PASS |
 | Owner console source committed | `console/` Vite/React app and Supabase RPC integration | IMPLEMENTED, BUILD NOT VERIFIED |
 | Live project/Worker/Task records | Counts = 0 / 0 / 0 | NOT STARTED |
-| Full authenticated business workflow | Not executed through a real Owner session | NOT RUN |
+| Transactional authenticated RPC workflow | Project/Worker/Task reads; idempotent project creation; claim/heartbeat; artifact; submit; reject; Fix/resubmit; accept; no-review completion. Executed as `authenticated` with an existing Auth user's JWT subject; all writes rolled back. | PASS (RPC-level, not browser UI) |
 | Actual two-session claim race | Not run | NOT RUN |
 | Actual lease/reclaim race | Not run | NOT RUN |
 | Cross-session Reviewer workflow | Not run | NOT RUN |
 
-## Owner console progress\n\nA Vite/React Owner console is committed under `console/`. It supports password sign-in, project registration, Worker registration, implementation Task creation, task queue listing and `get_task` inspection. It uses only the Supabase publishable key in the browser and existing authenticated RPCs. A GitHub Actions build workflow was added at `.github/workflows/console-build.yml`; a successful build has not yet been observed. Deployment is pending Vercel connection and environment configuration. The console does not launch GPT Workers.\n\n## Deployed migrations
+## Owner console progress
+
+A Vite/React Owner console is committed under `console/`. It supports password sign-in, project registration, Worker registration, implementation Task creation, task queue listing and `get_task` inspection. It uses only the Supabase publishable key in the browser and existing authenticated RPCs. Live catalog inspection confirmed the console's `get_project`, `list_workers`, `list_tasks`, `create_task`, `register_worker` and `get_task` argument names. A TypeScript task-form reset mismatch was fixed in commit `3ad2ec9`. The GitHub Actions build workflow exists, but a successful build has not yet been observed. The console does not launch GPT Workers. Vercel remains optional and is not connected.
+
+## Deployed migrations
 
 1. `mvp_v1_1_core_schema`
 2. `mvp_v1_1_fk_covering_indexes`
@@ -54,19 +58,20 @@ The initial covering-index migration attempt failed because one index already ex
 ## Security Advisor notes
 
 - `operation_requests` has RLS enabled and intentionally has no client policy or client table grant. This is default-deny by design.
-- Supabase Advisor reports the 19 authenticated SECURITY DEFINER RPCs as warnings because they are callable via the API. This is intentional for the selected RPC-only write model; every public RPC has an auth.uid()/project-owner guard, fixed search_path and exact EXECUTE grants. This warning requires continued manual security review, not blanket suppression.
+- Supabase Advisor reports all 19 authenticated SECURITY DEFINER RPCs as warnings because they are callable via the API. Catalog checks confirm all 19 have fixed `search_path`, `authenticated` grants, and no `anon`/`PUBLIC` EXECUTE grants. Their owner guards were exercised by the transactional workflow test, but they still require ongoing manual security review.
+- Supabase Advisor reports leaked-password protection disabled. This setting must be enabled in Supabase Auth password/security settings before real-user rollout.
 - Performance Advisor initially found missing foreign-key covering indexes. Covering indexes were added, including the final created_by_worker_id/project_id index. Unused-index notices are expected before workload traffic exists.
 
 A consolidated, current database snapshot is committed at `supabase/migrations/database-schema.sql`. It is generated from the deployed catalog and is intended for an EMPTY PostgreSQL 17 database. The incremental Supabase migration history remains authoritative for the live project.
 
 ## Known implementation limitations requiring follow-up before Worker onboarding
 
-1. Sign in to the Owner console and create the first project; verify the `register_project` and `register_worker` RPCs using the real Owner JWT.
-2. Fix and test idempotent replay on `register_project` with an authenticated owner; its deterministic project UUID is derived from owner + idempotency key.
-3. Exercise all A01–A63 acceptance cases, especially duplicate review creation, rejected/accepted latest_review_task_id updates, no-review completion, cancel-running behavior, and expired-lease fencing.
-4. Run two genuinely independent authenticated sessions for claim_task and lease/reclaim concurrency. Sequential SQL scripts are not substitutes.
-5. Validate the Review RPC lock order under genuine concurrent sessions before production Worker use.
-6. Verify the consolidated migration by applying it to an empty disposable PostgreSQL 17 database before production handoff.
+1. Run the Owner console build in a verified CI environment and complete the real browser login/project creation flow.
+2. Run two genuinely independent authenticated sessions for `claim_task`, lease expiry/reclaim and stale Execution fencing. Sequential transactional tests are not substitutes for concurrency tests.
+3. Exercise remaining A01–A63 cases, including duplicate review creation, cross-project access denial, cancel-running behavior, idempotency conflicts and lease-expiry fencing.
+4. Validate Review RPC lock ordering under genuine concurrent sessions.
+5. Verify the consolidated migration by applying it to an empty disposable PostgreSQL 17 database.
+6. Before real multi-GPT deployment, replace shared-owner logical Worker identity with per-Worker authentication or an equivalent isolation boundary. The current schema intentionally does not cryptographically isolate GPT sessions.
 
 ## Credential boundary
 
