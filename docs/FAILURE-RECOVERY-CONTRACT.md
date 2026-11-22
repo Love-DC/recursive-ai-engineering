@@ -1,74 +1,81 @@
 # Failure Reporting and Retry Contract
 
-**Status:** Proposed contract only; no production RPC, schema, grant, or deployment change was made.  
-**Inspection date:** 2026-11-23
+**Status:** Deployed to the production Supabase project for the trusted owner-MCP pilot.  
+**Source migration:** `supabase/migrations/202611230003_failure_reporting_retry.sql`  
+**Applied migration history version:** `20261122221942_failure_reporting_retry`  
+**Deployment PR:** [RAE #8](https://github.com/Love-DC/recursive-ai-engineering/pull/8), merged as `801a651434a76e8ab52776f0685ddb2e0b11bd37`.
 
-## Implementation candidate (not deployed)
+## Deployed scope
 
-A review candidate is being developed in `supabase/migrations/202611230003_failure_reporting_retry.sql`.
-It adds fenced `fail_execution`, owner-authorized `requeue_failed_task`, and bounded lease-expiry recovery in `claim_task`, using the existing tables and RLS without changing table structure or policies.
+The migration is function-only. It adds `fail_execution` and `requeue_failed_task`, and replaces `claim_task` with bounded lease-expiry recovery. It does not alter table definitions or RLS policies.
 
-This candidate is not deployed. The live production RPC inventory remains unchanged until a separate Owner-approved deployment. Isolated PostgreSQL 17 CI is being added to apply the consolidated snapshot plus this migration and exercise the failure/retry contract. Until that CI passes, the candidate is not considered validated.
+The new RPCs are `SECURITY DEFINER` functions with a fixed search path. Execute is revoked from `PUBLIC` and `anon`, and granted to `authenticated`. The functions enforce the existing owner/worker/project/task/execution checks. `requeue_failed_task` is owner-only. The current supported deployment boundary remains the trusted owner-MCP pilot; do not expose these RPCs to untrusted or non-owner clients without a separate authorization review.
 
-## Current deployed behavior (verified)
-
-The live database currently exposes `claim_task`, `complete_execution`, and `cancel_task`, but no `fail_execution` or general retry/requeue RPC.
-
-The live CHECK constraints permit these task states: `pending`, `running`, `submitted`, `accepted`, `rejected`, `failed`, `cancelled`. Execution states are `running`, `submitted`, `succeeded`, `failed`, `expired`, and `superseded`.
+## State transitions
 
 | Condition | Execution state | Task state | Meaning / recovery |
 |---|---|---|---|
 | Claimed and active | `running` | `running` | One current execution ID and a live lease are required. |
-| Worker reports an error today | No general API | No general API | Not currently reportable through a dedicated worker RPC. |
-| Lease expires | `expired` on next reclaim | `running`, then a new running attempt | `claim_task` detects an expired lease, marks the old execution expired, and creates a new attempt. This is lease recovery, not a worker-reported failure. |
-| Explicit cancellation | `failed` if there was a running execution | `cancelled` | `cancel_task` marks the active execution failed, then the task cancelled. Cancellation is terminal and is not equivalent to execution failure. |
-| Review workflow handoff | `submitted` | `submitted` | Work is delivered for review; not a failure or final acceptance. |
-| Successful implementation completion | `succeeded` | `accepted` | `complete_execution` requires the current execution fence and lease. |
-| Review rejection | Review/fix-specific | `rejected` | A review decision, not an implementation execution failure. |
-| Failed task | `failed` | `failed` | Allowed by constraints, but current claim query does not select failed tasks. There is no deployed retry transition. |
+| Worker reports a current execution failure | `failed` | `failed` | `fail_execution` checks the current execution fence, worker/project relationship and lease; persists a bounded error payload and failure events atomically. |
+| Explicit retry | Previous attempt remains `failed` | `pending` | Owner calls `requeue_failed_task`; prior execution rows/events remain as history. |
+| Retry claimed | New execution `running` | `running` | `claim_task` creates a new execution ID and increments the attempt number. |
+| Lease expires before retry cap | Old execution `expired` | `running`, then a new running attempt | A later `claim_task` expires/fences the old execution and creates a new attempt after configured backoff. |
+| Lease expires at retry cap | Old execution `expired` | `failed` | `claim_task` terminally fails the task when the configured attempt cap is reached. |
+| Explicit cancellation | Active execution `failed` | `cancelled` | `cancel_task` remains terminal; cancellation is not retryable failure. |
+| Review workflow handoff | `submitted` | `submitted` | Separate review route; not a failure or final acceptance. |
+| Successful pilot implementation completion | `succeeded` | `accepted` | `complete_execution` requires the current execution fence and lease and is limited to implementation tasks with `requires_review=false`. |
 
-The task CHECK constraint requires a running task to have an assigned worker, current execution, and lease; every non-running task must clear current execution and lease. Execution attempts are unique per task and attempt number. Event rows retain task/execution/worker linkage.
+## RPC behavior
 
-## Minimal API proposal (not deployed)
+### `fail_execution(p_task_id, p_execution_id, p_worker_id, p_error_code, p_error_message, p_idempotency_key)`
 
-### 1. `fail_execution(p_task_id, p_execution_id, p_worker_id, p_error_code, p_error_message, p_idempotency_key)`
+- Validates the task, Worker actor, task/execution relationship, current execution ID, running state and unexpired lease.
+- Rejects stale, superseded, expired, mismatched and non-running executions.
+- Sanitizes control characters and common bearer/API-key/token/secret/password patterns; limits stored error text to 2,000 characters.
+- Atomically updates execution/task to `failed`, clears the current execution and lease, records bounded failure events and stores an idempotent response.
+- A repeated request with the same idempotency key and payload replays the original response; key reuse with different arguments conflicts.
 
-One atomic transaction should:
+### `requeue_failed_task(p_task_id, p_worker_id, p_reason, p_idempotency_key)`
 
-1. Load the task and resolve its project; authenticate with `private.assert_worker_actor`.
-2. Validate the idempotency key and hash all semantic request arguments. Replays with the same key and same hash return the original response; key reuse with different arguments raises `IDEMPOTENCY_CONFLICT`.
-3. Call `private.assert_current_execution` before mutation. This must reject a superseded execution, expired lease, non-running task/execution, or wrong worker.
-4. Update only the fenced execution from `running` to `failed`, setting `finished_at`, a bounded/sanitized `error_message`, and optionally a structured error payload in `result`.
-5. Update the task from `running` to `failed`, clear `current_execution_id` and `lease_until`, and set `completed_at/updated_at`.
-6. Append `execution_failed` and `task_failed` events with bounded error metadata (never credentials, tokens, or full environment dumps).
-7. Persist the idempotent response in the same transaction.
+- Requires project-owner authorization and an active Worker belonging to the same project.
+- Accepts only `failed` tasks with no current execution or lease.
+- Preserves prior execution history and appends a `task_requeued` event.
+- Reads `requirements.retry.max_attempts` (default 3, allowed 1–10) and `requirements.retry.backoff_seconds` (default 0, allowed 0–86,400).
+- Rejects retries after the cap or before backoff elapses; idempotency is enforced.
 
-The RPC must not accept a task ID/execution ID pair unless they belong together. It must not allow a worker to fail another worker's execution. A late failure report after lease expiry/reclaim must fail fencing and must not overwrite the newer attempt.
+### `claim_task(p_project_id, p_worker_id, p_lease_seconds, p_idempotency_key)`
 
-### 2. `requeue_failed_task(p_task_id, p_worker_id, p_reason, p_idempotency_key)`
+- Requires an active Worker in the selected project and a lease between 60 and 600 seconds.
+- Claims atomically using `FOR UPDATE SKIP LOCKED`.
+- Reclaims expired leases after `requirements.retry.backoff_seconds`; the old execution is marked `expired` and fenced.
+- When an expired execution has reached `max_attempts`, marks the task `failed` rather than creating an unbounded new attempt.
+- A failed task is not silently selected again; an owner must explicitly requeue it.
 
-Keep retry explicit rather than automatically retrying every failure:
+## Verification evidence
 
-1. Require project-owner authorization (or a separately specified retry permission); verify the worker belongs to the project and is active.
-2. Lock the task row and allow only `status='failed'`. Reject cancelled, submitted, accepted, rejected, pending, or running tasks.
-3. Apply a configurable retry/attempt limit and optional backoff at the orchestration layer. The database already has monotonically increasing attempt numbers through `max(attempt)+1` in `claim_task`.
-4. Set task to `pending`; clear assigned worker, current execution, lease, result, and completed timestamp as appropriate. Preserve all prior execution rows and events as immutable history.
-5. Append `task_requeued` with reason and prior attempt count; persist idempotency in the same transaction.
-6. A subsequent ordinary `claim_task` creates a fresh execution ID and incremented attempt. Old execution IDs remain fenced.
+### Isolated CI
 
-Do not make `claim_task` silently select all failed tasks: explicit retry is auditable and avoids retry storms.
+- PostgreSQL 17 lifecycle/failure-recovery integration: [run 45076451313](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45076451313) — success on exact head `88d55ed25809f7263f31fef93c91e563e5957502`. It exercised failure persistence/atomic rollback, wrong-Worker fencing, idempotency replay/conflict, retry history/cap/backoff, lease-expiry fencing/reclaim, cancellation separation, two-session fail-vs-reclaim race, lifecycle harness and two-session claim race.
+- Shell static checks: [run 45076451262](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45076451262) — success on the same exact head.
 
-## Required tests before deployment
+### Production verification
 
-- Happy path: claim → fail current execution → assert execution/task are failed and lease/current execution are cleared.
-- Idempotency: same key/same payload replays; same key/different payload conflicts.
-- Fencing: old execution cannot fail after lease expiry and a new claim; wrong worker, mismatched task/execution, non-running execution, and expired lease are rejected without writes.
-- Atomicity: injected event/idempotency write failure rolls back both task and execution state.
-- Retry: only failed task can be requeued; old execution history remains; next claim increments attempt and creates a new execution ID.
-- Retry idempotency and retry limit/backoff behavior.
-- Cancellation remains cancelled even though its active execution is marked failed; submitted/rejected/accepted are not requeued by this API.
-- Two-connection race between fail and reclaim must result in exactly one winning transition, enforced by row locks and the current-execution fence.
+- Supabase migration history contains `20261122221942_failure_reporting_retry`.
+- Live RPC inventory confirms `fail_execution` and `requeue_failed_task` are installed alongside the existing claim/heartbeat/complete RPCs.
+- A transaction-scoped production smoke test executed heartbeat → fail → owner requeue → retry claim (attempt 2, new execution ID) → complete. The transaction was rolled back; a follow-up query confirmed zero persisted smoke-test tasks.
+- A real project task was also failed through `fail_execution` with `OWNER_APPROVAL_REQUIRED`; the task and execution both persisted as failed. It was not requeued because the remaining production data cleanup requires separate Owner authorization.
+- A previously expired root task at attempt 6 was terminally failed by `claim_task` under the default three-attempt cap. This verifies bounded recovery, not a successful retry of that old task.
 
-## Deployment boundary
+### Post-deployment advisor findings
 
-This contract is documentation for implementation and acceptance planning. The current task explicitly forbids production schema changes or deployment. Implement the RPCs and integration tests in a reviewed migration/isolated database first, run Supabase advisors, and obtain explicit authorization before applying any production migration.
+- Security Advisor reports 22 authenticated SECURITY DEFINER function warnings, compared with 20 before deployment. The two additional findings are the new failure/requeue RPCs. They are revoked from `PUBLIC` and `anon`; owner/worker checks remain mandatory. This is acceptable only within the documented trusted owner-MCP pilot and remains a gate before non-owner/public exposure.
+- The existing `operation_requests` RLS-without-policy INFO finding remains fail-closed.
+- Leaked-password protection remains disabled and must be reviewed before end-user password Auth rollout.
+- Performance Advisor reports unused-index INFO findings; no indexes were changed.
+
+## Operational boundaries
+
+- No table schema, RLS policy, project registration, Worker identity, or Auth configuration was changed by this migration.
+- No Edge Function, background daemon, or scheduled job was deployed. The shared MCP pilot uses active ChatGPT Coordinator/Executor sessions; discovery runs during an active session. A persistent background service is not a prerequisite for this pilot.
+- `fail_execution` and `requeue_failed_task` do not themselves create an always-running Worker. They provide durable, fenced state transitions to the existing shared executor model.
+- The production project-config cleanup is tracked separately. Do not remove legacy governance/task-activation/merge-authority keys until the reversible cleanup is separately authorized and its before/after evidence and rollback are recorded.
