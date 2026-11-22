@@ -18,7 +18,6 @@ for value in "$SUPABASE_OWNER_ID" "$SUPABASE_PROJECT_ID" "$SHARED_WORKER_ID"; do
   [[ "$value" =~ $uuid_re ]] || { echo "Expected UUID environment values" >&2; exit 2; }
 done
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 \
   -v owner_id="$SUPABASE_OWNER_ID" \
   -v project_id="$SUPABASE_PROJECT_ID" \
