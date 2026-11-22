@@ -24,7 +24,7 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 
 - A ChatGPT conversation is temporary. Do not create, track, heartbeat, identify, or report on individual sessions.
 - All sessions work as one shared executor through the user's already-authorized Supabase MCP connection.
-- Use the single project Worker record with key `shared-executor`. Its UUID is a stable database routing reference, not a session ID or identity credential.
+- Use the Worker selected by the project's routing metadata. The current pilot uses one `shared-executor` row per project, but that key is not a platform-wide requirement; different projects may route to different Worker keys and task types.
 - Do not create separate Supabase Auth users or bind Worker identities for this pilot.
 - Supabase is the source of truth for task state. GitHub is the source of truth for code and durable project documents.
 
