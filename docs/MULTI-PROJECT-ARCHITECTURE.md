@@ -96,6 +96,10 @@ Hard boundaries:
 - Web sessions validate through GitHub Actions on the exact PR head SHA. Do not claim local Godot commands ran.
 - Stop and request a product decision when the correct player-facing behaviour is not already approved.
 
+## Shared task-pool semantics
+
+The user-facing workflow is project-agnostic. A new conversation does not receive a project name or a bespoke objective; it inspects every active registered project's queue. The logical shared pool is the union of project-scoped queues, not a cross-project table that erases ownership boundaries. For each project, the coordinator resolves that project's own active `shared-executor` Worker and calls `list_tasks`/`claim_task` with the matching project and Worker IDs. The claimed task's `project_id` determines repository routing. Atomic claim is authoritative; never infer claim success from a prior queue listing. If no eligible task exists across all active projects, report an empty pool and stop. Never create work from an unapproved Issue or invent a task.
+
 ## Session routing and execution
 
 1. Read the RAE session entry point and inspect registered projects in Supabase.
