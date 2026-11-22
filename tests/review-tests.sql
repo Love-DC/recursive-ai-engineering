@@ -1,0 +1,8 @@
+-- Integration test specification.
+-- Submit Original Task E1 and create Review R1; assert fixed target triple.
+-- Register artifacts on E1 and verify get_task(R1) returns only artifacts for that exact task_id/execution_id.
+-- Create Fix Task, submit E2, resubmit_after_fix and create R2.
+-- Assert R2 binds Original=T1, Delivery=Fix Task, Execution=E2; E1 artifacts do not appear.
+-- Attempt duplicate target creation and target mutation; both must fail.
+-- Run review_result as assigned Reviewer; verify reviewer Execution running->succeeded,
+-- Review Task->accepted, Original decision state, and latest_review_task_id updated for both decisions.
