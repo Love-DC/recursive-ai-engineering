@@ -33,6 +33,8 @@ DECLARE
   v_project uuid := current_setting('test.project_id')::uuid;
   v_worker uuid := current_setting('test.worker_id')::uuid;
   v_root jsonb;
+  v_create_replay jsonb;
+  v_create_key text := 'lifecycle-root-' || gen_random_uuid()::text;
   v_child jsonb;
   v_grandchild jsonb;
   v_root_id uuid;
@@ -52,8 +54,15 @@ BEGIN
   v_root := public.create_task(v_project,v_worker,'implementation',
     'Lifecycle test root','Disposable transaction-scoped fixture',
     '{"acceptance":["root claim and completion"]}'::jsonb,-100,false,
-    null,null,'lifecycle-root-' || gen_random_uuid()::text);
+    null,null,v_create_key);
   v_root_id := (v_root->'data'->>'id')::uuid;
+  v_create_replay := public.create_task(v_project,v_worker,'implementation',
+    'Lifecycle test root','Disposable transaction-scoped fixture',
+    '{"acceptance":["root claim and completion"]}'::jsonb,-100,false,
+    null,null,v_create_key);
+  IF (v_create_replay->'data'->>'id')::uuid <> v_root_id THEN
+    RAISE EXCEPTION 'FAIL: create_task idempotency replay changed task';
+  END IF;
   v_child := public.create_task(v_project,v_worker,'implementation',
     'Lifecycle test child','Child fixture', '{"acceptance":["child completion"]}'::jsonb,
     -90,false,v_root_id,null,'lifecycle-child-' || gen_random_uuid()::text);
