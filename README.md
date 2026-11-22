@@ -27,6 +27,8 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 
 Read [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md). A new ChatGPT conversation should read those instructions, inspect the task queue, claim a task, and work from persisted task context—not from another conversation's chat history.
 
+Before changing the system, review [Pilot Readiness and Deferred Production Gates](docs/REAL-PROJECT-READINESS.md) for the trusted-pilot boundary and outstanding expansion gates. The [Failure Reporting and Retry Contract](docs/FAILURE-RECOVERY-CONTRACT.md) records the current missing failure/requeue API and its proposed safe semantics; it is a design contract, not a deployed feature.
+
 ## Not required for the pilot
 
 - Per-session identity or Worker Auth accounts.
