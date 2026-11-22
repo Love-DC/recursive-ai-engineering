@@ -1,4 +1,4 @@
-# AI Worker Collaboration System — MVP v1.1
+# AI Worker Collaboration System — MVP v1.2
 
 A Supabase/PostgreSQL-backed task coordination system for independent GPT Worker sessions, with GitHub artifacts and a fixed-target review/fix workflow.
 
@@ -6,7 +6,7 @@ A Supabase/PostgreSQL-backed task coordination system for independent GPT Worker
 
 - Seven core tables: projects, workers, tasks, executions, artifacts, task_events, operation_requests.
 - Nineteen authenticated RPCs.
-- One project owner authorization model with logical Worker identities.
+- Owner administration plus per-Worker Supabase Auth identity binding and task-scoped authorization.
 - Database-enforced execution fencing, leases, fixed review targets, idempotency, and append-only event history.
 - GitHub remains the source of code and documents; Supabase stores task state and artifact references.
 
@@ -14,7 +14,7 @@ A Supabase/PostgreSQL-backed task coordination system for independent GPT Worker
 
 The target Supabase project is `recursive-ai-engineering` (PostgreSQL 17, ap-northeast-1). Core schema and RPC migrations have been applied. See [implementation report](reports/acceptance-test-results.md) for verified checks and known test blockers.
 
-**Current status:** One Auth user exists. The Owner console source is committed and its GitHub Actions production build passes; real browser login and live UI workflow remain unverified. Rollback-safe authenticated RPC tests pass through initial delivery, Reviewer rejection, Fix/resubmit, Reviewer acceptance, no-review completion and cancellation. A two-connection claim race, lease reclaim and stale-Execution fencing test also pass using the same Owner identity. No test project/Worker/Task records were retained. Distinct Auth-user concurrency remains pending. Logical Worker IDs are not isolated credentials; production multi-GPT use requires a per-Worker authentication boundary. No Worker credentials or Service Role Key are included in this repository.
+**Current status:** Worker identity isolation v1.2 and task-scope hardening v1.2.1 are applied. Worker RPCs bind JWT subject to the exact Worker ID; negative tests reject unbound and mismatched identities. The Owner workflow acceptance suite passes after these changes. One Auth user exists, so positive cross-Worker workflows with genuinely separate Auth users remain pending. Browser sign-in/UI acceptance, remaining A01–A63 cases, leaked-password protection and disposable-database snapshot verification remain release gates. No test records remain. No Worker credentials or Service Role Key are included in this repository.
 
 ## Real-project release gate
 
