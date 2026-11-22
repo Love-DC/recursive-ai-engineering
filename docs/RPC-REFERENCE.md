@@ -1,13 +1,14 @@
 # RPC Reference — MVP v1.2
 
-All functions are in `public`, use SECURITY DEFINER and fixed `search_path=pg_catalog, public, auth, private`. All require an authenticated caller. Owner administration RPCs validate project ownership; Worker-facing RPCs validate the authenticated subject against the exact Worker ID. Client table writes are prohibited. UUID and JSON arguments below are abbreviated; inspect PostgreSQL function identity arguments for exact deployed signatures.
+All 20 functions are in `public`, use SECURITY DEFINER and fixed `search_path=pg_catalog, public, auth, private`. All require an authenticated caller. Owner administration RPCs validate project ownership; Worker-facing RPCs validate the authenticated subject against the exact Worker ID. Client table writes are prohibited. UUID and JSON arguments below are abbreviated; inspect PostgreSQL function identity arguments for exact deployed signatures.
 
 | RPC | Purpose | Required parameters |
 |---|---|---|
 | register_project | Create/replay project | name, description, github_repo, config, idempotency_key |
 | get_project | Read owned project | project_id |
 | register_worker | Register/retrieve Worker | project_id, worker_key, display_name, description |
-| get_worker | Read own Worker or Owner-readable Worker | worker_id |\n| bind_worker_identity | Owner binds/unbinds a Worker to an existing Auth user | worker_id, auth_user_id (nullable to unbind) |
+| get_worker | Read own Worker or Owner-readable Worker | worker_id |
+| bind_worker_identity | Owner binds/unbinds a Worker to an existing Auth user | worker_id, auth_user_id (nullable to unbind) |
 | list_workers | List project Workers | project_id |
 | heartbeat_worker | Update Worker presence | worker_id |
 | create_task | Create implementation Task only | project_id, worker_id, task_type, title, description, requirements, priority, requires_review, parent_task_id, fixes_task_id, idempotency_key |
@@ -28,7 +29,15 @@ All functions are in `public`, use SECURITY DEFINER and fixed `search_path=pg_ca
 
 For a Review Task, `get_task` includes a `review_target` object with the Original Task (including business requirements), the fixed Delivery Task, the exact Delivery Execution result, and artifacts filtered by both Delivery Task ID and Delivery Execution ID. It does not substitute newer Execution artifacts.
 
-## Identity and scope rules\n\n- `bind_worker_identity` is Owner-only. The target Auth user must already exist in `auth.users`; a Worker can be bound to at most one Auth user and an Auth user to at most one Worker.\n- Worker sessions must use the Auth account bound to their Worker ID. A shared Owner session is administrative and does not test Worker isolation.\n- Worker `get_worker` reads only the caller's bound Worker. Worker `get_task` reads only Tasks assigned to that Worker. Worker `list_tasks` must specify its own Worker ID.\n- A Worker can cancel only a Task assigned to itself. `create_fix_task` and `create_review_task` remain Owner/Coordinator operations. `resubmit_after_fix` must name the Worker that produced the Fix Execution.\n- The project Owner retains administrative override.\n\n## Important rules
+## Identity and scope rules
+
+- `bind_worker_identity` is Owner-only. The target Auth user must already exist in `auth.users`; a Worker can be bound to at most one Auth user and an Auth user to at most one Worker.
+- Worker sessions must use the Auth account bound to their Worker ID. A shared Owner session is administrative and does not test Worker isolation.
+- Worker `get_worker` reads only the caller's bound Worker. Worker `get_task` reads only Tasks assigned to that Worker. Worker `list_tasks` must specify its own Worker ID.
+- A Worker can cancel only a Task assigned to itself. `create_fix_task` and `create_review_task` remain Owner/Coordinator operations. `resubmit_after_fix` must name the Worker that produced the Fix Execution.
+- The project Owner retains administrative override.
+
+## Important rules
 
 - `claim_task` accepts lease_seconds from 60 through 600. Review Tasks can only be claimed by their assigned Reviewer. Expired ordinary running Tasks can be claimed by another Worker.
 - `heartbeat_execution` uses a server-fixed 300-second lease.
