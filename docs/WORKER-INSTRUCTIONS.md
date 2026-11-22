@@ -1,46 +1,46 @@
-# GPT Worker Instructions — MVP v1.2
+# GPT Session Operating Instructions — Shared MCP Pilot
 
-## Credentials
+## Operating model
 
-- Use the Supabase project URL and publishable key with a valid authenticated owner session.
-- Never request, store, print, or use a Service Role Key, Supabase secret key, database password, or privileged connection string.
-- A logical Worker ID is a routing label, not an authentication credential.
-- Do not share credentials in prompts, GitHub files, artifacts, logs, or task results.
+- A ChatGPT conversation is temporary. Do not create, track, heartbeat, identify, or report on individual sessions.
+- All sessions work as one shared executor through the user's already-authorized Supabase MCP connection.
+- Use the single project Worker record with key `shared-executor`. Its UUID is a stable database routing reference, not a session ID or identity credential.
+- Do not create separate Supabase Auth users or bind Worker identities for this pilot.
+- Supabase is the source of truth for task state. GitHub is the source of truth for code and durable project documents.
 
-## Source of truth
+## Project references
 
-Before acting, call the appropriate RPC and read current Task/Execution state. Do not infer ownership, lease validity, or current delivery from conversation history.
+- Supabase project: `recursive-ai-engineering`
+- GitHub repository: `Love-DC/recursive-ai-engineering`
+- Shared Worker key: `shared-executor`
+- Shared Worker ID: `78953b49-db9d-4fbc-9d3c-be3421a1c975`
+- Project ID: `61e32c05-39b7-47a6-ab5c-592c8e37d72d`
 
-## Task execution
+## How to work
 
-1. The Owner registers the Worker and binds its dedicated Auth user using `bind_worker_identity`. Workers must not register or bind themselves.
-2. Claim work through `claim_task` with a fresh idempotency key.
-3. Persist the returned Task ID, Execution ID, attempt and lease.
-4. Heartbeat using `heartbeat_execution` at approximately 60-second intervals. Server lease duration is fixed at 300 seconds.
-5. Register each GitHub commit/PR/file through `add_artifact` while the Execution is current and lease-valid.
-6. For tasks requiring review, call `submit_result`.
-7. For an implementation Task with `requires_review=false`, call `complete_execution`.
-8. Never write business tables directly.
+1. Read the task queue and current task details from Supabase before acting. Never rely on another conversation's memory.
+2. Claim a task atomically with `claim_task`, using the shared Worker ID and a fresh idempotency key. A database-generated UUID is suitable for the key; it is not a session identity.
+3. Read the task requirements and relevant GitHub files.
+4. Do the work. Commit durable code/documentation changes to GitHub and record the resulting commit or file references in the task result/artifacts.
+5. If the task is too large, create child implementation tasks using `create_task` and the original task's ID as `parent_task_id`. Record the child task IDs in the parent result. Other sessions can claim those children without knowing anything about the decomposing session.
+6. For pilot tasks, set `requires_review=false` and finish with `complete_execution`. Do not introduce a review/fix workflow unless the user explicitly asks for it.
+7. If the task is complete, submit a concise result containing what changed, GitHub references, verification performed, and remaining blockers.
 
-## Fencing and retries
+## Lease behavior
 
-- Reuse the same idempotency key only for retrying the exact same logical request.
-- Use a new key for a new operation.
-- A changed payload with an existing key must be treated as IDEMPOTENCY_CONFLICT.
-- If a call returns EXECUTION_EXPIRED or EXECUTION_SUPERSEDED, stop writing with that Execution. Do not attempt to renew or reuse it.
-- Never let an older Execution overwrite a newer Execution's database state.
-- A submitted Execution is no longer writable. Missing artifacts require a new valid workflow.
+- Claim with a lease of up to 600 seconds.
+- Do not send session heartbeats or activity telemetry.
+- If work may exceed the lease, renew only to prevent another session from reclaiming the same task. This is task-lock maintenance, not session monitoring.
+- If the session disappears, another session may reclaim the task after lease expiry. The previous execution is fenced and must not write further.
 
-## Review
+## Supabase MCP execution context
 
-Review Tasks are assigned to a specific Reviewer Worker. Only that Worker may claim the Review Task. Reviewers must inspect only the fixed Delivery Task and Delivery Execution exposed by `get_task`, including exactly that Execution's artifacts. Do not substitute newer commits or artifacts.
+The pilot uses the already-authorized project-owner MCP connection; it does not provision per-session credentials. When calling owner-protected RPCs through the privileged SQL MCP tool, set the existing project's `owner_id` as `request.jwt.claim.sub` in the same SQL transaction before invoking the RPC. Keep this confined to the authenticated Supabase MCP connection; never copy credentials or privileged keys into prompts, GitHub, task results, or external clients.
 
-Call `review_result` while the Reviewer Execution is running and its lease is valid. The Reviewer Execution completes as succeeded; the Review Task becomes accepted. The decision is stored separately as accepted or rejected.
+## Boundaries
 
-## Fix workflow
-
-Fix Tasks are created only by `create_fix_task`. Submit the Fix Execution normally, then have the Coordinator call `resubmit_after_fix` to make that submitted Fix Execution the Original Task's new delivery version. Create a new Review Task for that exact version.
-
-## Cancellation
-
-Use `cancel_task`. A running Execution is marked failed and its Task lease is cleared in the same transaction. Do not directly update statuses.
+- Do not add Worker identity systems, session tracking, heartbeat monitoring, multi-account provisioning, or complex orchestration.
+- Do not create or modify Supabase schema unless the task specifically requires it.
+- Do not use Service Role keys, secret keys, database passwords, or privileged connection strings outside the connected Supabase MCP tool.
+- Do not deploy, merge, or perform external side effects without explicit user authorization.
+- If a task cannot be completed safely, persist the blocker and create a smaller actionable task rather than inventing progress.
