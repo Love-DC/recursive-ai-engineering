@@ -10,6 +10,7 @@
     "entrypoints": [
       "docs/SESSION-START.md",
       "docs/MULTI-PROJECT-ARCHITECTURE.md",
+      "docs/ADR-001-REPOSITORY-LOCAL-GOVERNANCE.md",
       "docs/REPOSITORY-GOVERNANCE-PROTOCOL.md"
     ],
     "required": [
