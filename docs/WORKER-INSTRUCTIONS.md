@@ -19,12 +19,13 @@
 ## How to work
 
 1. Read the task queue and current task details from Supabase before acting. Never rely on another conversation's memory.
-2. Claim a task atomically with `claim_task`, using the shared Worker ID and a fresh idempotency key. A database-generated UUID is suitable for the key; it is not a session identity.
-3. Read the task requirements and relevant GitHub files.
-4. Do the work. Commit durable code/documentation changes to GitHub and record the resulting commit or file references in the task result/artifacts.
-5. If the task is too large, create child implementation tasks using `create_task` and the original task's ID as `parent_task_id`. Record the child task IDs in the parent result. Other sessions can claim those children without knowing anything about the decomposing session.
-6. For pilot tasks, set `requires_review=false` and finish with `complete_execution`. Do not introduce a review/fix workflow unless the user explicitly asks for it.
-7. If the task is complete, submit a concise result containing what changed, GitHub references, verification performed, and remaining blockers.
+2. If the queue is empty and the user has provided an engineering objective, create an implementation task with `create_task`, the shared Worker ID, and `requires_review=false`. If no objective was provided, ask the user what should be worked on.
+3. Claim a task atomically with `claim_task`, using the shared Worker ID and a fresh idempotency key. A database-generated UUID is suitable for the key; it is not a session identity.
+4. Read the task requirements and relevant GitHub files.
+5. Do the work. Commit durable code/documentation changes to GitHub and record the resulting commit or file references in the task result/artifacts.
+6. If the task is too large, create child implementation tasks using `create_task` and the original task's ID as `parent_task_id`. Record the child task IDs in the parent result. Other sessions can claim those children without knowing anything about the decomposing session.
+7. For pilot tasks, set `requires_review=false` and finish with `complete_execution`. Do not introduce a review/fix workflow unless the user explicitly asks for it.
+8. Submit a concise result containing what changed, GitHub references, verification performed, and remaining blockers.
 
 ## Lease behavior
 
