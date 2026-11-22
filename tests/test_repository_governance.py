@@ -132,7 +132,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
         manifest = json.loads(manifest_path.read_text())
         manifest["validation"].pop("repository")
         manifest["validation"]["workflow"] = ".github/workflows/missing.yml"
-        with self.assertRaisesRegex(GovernanceError, "Missing validation.workflow"):
+        with self.assertRaisesRegex(GovernanceError, "Missing validation.workflow file"):
             self.load(root)
 
 
