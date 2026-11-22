@@ -4,7 +4,7 @@ import { supabase, supabaseConfigured } from './supabase'
 import './style.css'
 
 type Project = { id: string; name: string; github_repo?: string | null; description?: string | null }
-type Worker = { id: string; worker_key: string; display_name: string; status: string; last_seen_at?: string | null }
+type Worker = { id: string; worker_key: string; display_name: string; status: string; auth_user_id?: string | null; last_seen_at?: string | null }
 type Task = { id: string; title: string; task_type: string; status: string; priority: number; requires_review: boolean; created_at: string; assigned_worker_id?: string | null }
 type RpcResult<T> = { success?: boolean; data?: T; error?: string }
 const PROJECT_STORAGE_KEY = 'recursive-engine.owner-project'
@@ -33,7 +33,9 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   const [projectForm, setProjectForm] = useState({ name: '', github_repo: '', description: '' })
-  const [workerForm, setWorkerForm] = useState({ worker_key: '', display_name: '', description: '' })
+  const [workerForm, setWorkerForm] = useState({ worker_key: '', display_name: '', description: '', auth_user_id: '' })
+  const [bindingWorker, setBindingWorker] = useState<Worker | null>(null)
+  const [bindingAuthUserId, setBindingAuthUserId] = useState('')
   const [taskForm, setTaskForm] = useState({ title: '', description: '', requirements: '', priority: '100', requires_review: true })
   const [showProject, setShowProject] = useState(false)
   const [showWorker, setShowWorker] = useState(false)
@@ -131,10 +133,25 @@ export default function App() {
     if (!projectId) return
     setBusy(true)
     try {
-      await rpc<Worker>('register_worker', { p_project_id: projectId, p_worker_key: workerForm.worker_key.trim(), p_display_name: workerForm.display_name.trim(), p_description: workerForm.description.trim() || null })
+      const created = await rpc<Worker>('register_worker', { p_project_id: projectId, p_worker_key: workerForm.worker_key.trim(), p_display_name: workerForm.display_name.trim(), p_description: workerForm.description.trim() || null })
+      if (workerForm.auth_user_id.trim()) await rpc('bind_worker_identity', { p_worker_id: created.id, p_auth_user_id: workerForm.auth_user_id.trim() })
       setShowWorker(false)
-      setWorkerForm({ worker_key: '', display_name: '', description: '' })
-      notify('ok', 'Worker 已注册')
+      setWorkerForm({ worker_key: '', display_name: '', description: '', auth_user_id: '' })
+      notify('ok', workerForm.auth_user_id.trim() ? 'Worker 已注册并绑定 Auth 身份' : 'Worker 已注册；尚未绑定 Auth 身份，不能作为独立 Worker 登录执行任务')
+      await refresh()
+    } catch (error) { notify('error', messageOf(error)) }
+    finally { setBusy(false) }
+  }
+
+  async function bindWorker(event: FormEvent) {
+    event.preventDefault()
+    if (!bindingWorker || !bindingAuthUserId.trim()) return
+    setBusy(true)
+    try {
+      await rpc('bind_worker_identity', { p_worker_id: bindingWorker.id, p_auth_user_id: bindingAuthUserId.trim() })
+      notify('ok', 'Worker Auth 身份绑定成功')
+      setBindingWorker(null)
+      setBindingAuthUserId('')
       await refresh()
     } catch (error) { notify('error', messageOf(error)) }
     finally { setBusy(false) }
@@ -185,7 +202,7 @@ export default function App() {
 
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="brand"><div className="brand-mark"><Activity /></div><div><strong>Recursive Engine</strong><small>OWNER CONSOLE · MVP 1.1</small></div></div>
+      <div className="brand"><div className="brand-mark"><Activity /></div><div><strong>Recursive Engine</strong><small>OWNER CONSOLE · MVP 1.2</small></div></div>
       <div className="side-caption">WORKSPACE</div>
       <button className="side-link active"><ClipboardList size={17}/> 项目工作台</button>
       <div className="side-bottom"><div className="user-chip"><div className="avatar">{String(session.user.email ?? 'O').slice(0,1).toUpperCase()}</div><div><strong>Owner</strong><small>{session.user.email}</small></div></div><button className="side-link" onClick={signOut}><LogOut size={16}/> 退出登录</button></div>
@@ -199,11 +216,12 @@ export default function App() {
         <section className="content-grid"><div className="panel task-panel"><div className="panel-head"><div><h2>任务队列</h2><p>最新 100 条任务记录</p></div><button className="text-button" onClick={() => void refresh()}>刷新</button></div>{tasks.length === 0 ? <Empty text="暂无任务。发布第一个任务开始协作。" /> : <div className="task-list">{tasks.map(task => <button className="task-row" key={task.id} onClick={() => void inspectTask(task.id)}><div className="task-icon"><ClipboardList size={17}/></div><div className="task-info"><strong>{task.title}</strong><small>{task.task_type} · {shortId(task.id)} · {new Date(task.created_at).toLocaleString()}</small></div><Status value={task.status}/></button>)}</div>}</div>
           <div className="panel worker-panel"><div className="panel-head"><div><h2>Worker 池</h2><p>{workers.length} 个逻辑 Worker</p></div><button className="icon-button" onClick={() => setShowWorker(true)}><Plus size={17}/></button></div>{workers.length === 0 ? <Empty text="尚未注册 Worker。" /> : workers.map(worker => <div className="worker-row" key={worker.id}><div className="worker-avatar"><Bot size={17}/></div><div className="worker-info"><strong>{worker.display_name}</strong><small>{worker.worker_key}</small></div><Status value={worker.status}/></div>)}</div></section>
         {selectedTask && <section className="panel detail-panel"><div className="panel-head"><div><h2>任务详情</h2><p>{selectedTask.task?.title ?? ''} · {shortId(selectedTask.task?.id ?? '')}</p></div><button className="icon-button" onClick={() => setSelectedTask(null)}><X size={17}/></button></div><pre>{JSON.stringify(selectedTask, null, 2)}</pre></section>}
-        <p className="footnote">业务状态以 Supabase RPC 返回为准。Worker 身份目前为项目内逻辑身份，不构成独立会话隔离。</p>
+        <p className="footnote">业务状态以 Supabase RPC 返回为准。每个独立 Worker 必须绑定独立 Supabase Auth 用户；未绑定 Worker 不得启动执行会话。</p>
       </>}
     </main>
     {showProject && <Modal title="创建项目" onClose={() => setShowProject(false)}><form onSubmit={createProject}><label>项目名称<input value={projectForm.name} onChange={e => setProjectForm({...projectForm,name:e.target.value})} required maxLength={120}/></label><label>GitHub 仓库（可选）<input value={projectForm.github_repo} onChange={e => setProjectForm({...projectForm,github_repo:e.target.value})} placeholder="owner/repository"/></label><label>项目说明<textarea value={projectForm.description} onChange={e => setProjectForm({...projectForm,description:e.target.value})}/></label><div className="modal-actions"><button type="button" className="secondary" onClick={() => setShowProject(false)}>取消</button><button className="primary" disabled={busy}>{busy ? '创建中…' : '创建项目'}</button></div></form></Modal>}
-    {showWorker && <Modal title="注册 Worker" onClose={() => setShowWorker(false)}><form onSubmit={createWorker}><label>Worker Key<input value={workerForm.worker_key} onChange={e => setWorkerForm({...workerForm,worker_key:e.target.value})} placeholder="worker-architect" required/></label><label>显示名称<input value={workerForm.display_name} onChange={e => setWorkerForm({...workerForm,display_name:e.target.value})} placeholder="Architect" required/></label><label>职责说明<textarea value={workerForm.description} onChange={e => setWorkerForm({...workerForm,description:e.target.value})}/></label><div className="modal-actions"><button type="button" className="secondary" onClick={() => setShowWorker(false)}>取消</button><button className="primary" disabled={busy}>{busy ? '保存中…' : '注册 Worker'}</button></div></form></Modal>}
+    {showWorker && <Modal title="注册 Worker" onClose={() => setShowWorker(false)}><form onSubmit={createWorker}><label>Worker Key<input value={workerForm.worker_key} onChange={e => setWorkerForm({...workerForm,worker_key:e.target.value})} placeholder="worker-architect" required/></label><label>显示名称<input value={workerForm.display_name} onChange={e => setWorkerForm({...workerForm,display_name:e.target.value})} placeholder="Architect" required/></label><label>职责说明<textarea value={workerForm.description} onChange={e => setWorkerForm({...workerForm,description:e.target.value})}/></label><label>Supabase Auth 用户 UUID（可稍后绑定）<input value={workerForm.auth_user_id} onChange={e => setWorkerForm({...workerForm,auth_user_id:e.target.value})} placeholder="已有 Auth 用户 UUID" /></label><div className="modal-actions"><button type="button" className="secondary" onClick={() => setShowWorker(false)}>取消</button><button className="primary" disabled={busy}>{busy ? '保存中…' : '注册 Worker'}</button></div></form></Modal>}
+    {bindingWorker && <Modal title={'绑定身份：' + bindingWorker.display_name} onClose={() => { setBindingWorker(null); setBindingAuthUserId('') }}><form onSubmit={bindWorker}><label>现有 Supabase Auth 用户 UUID<input value={bindingAuthUserId} onChange={e => setBindingAuthUserId(e.target.value)} required placeholder="Auth 用户 UUID"/></label><p className="muted">该用户必须已存在于 Supabase Auth。一个 Auth 用户只能绑定一个 Worker。</p><div className="modal-actions"><button type="button" className="secondary" onClick={() => { setBindingWorker(null); setBindingAuthUserId('') }}>取消</button><button className="primary" disabled={busy}>{busy ? '绑定中…' : '绑定身份'}</button></div></form></Modal>}
     {showTask && <Modal title="发布实现任务" onClose={() => setShowTask(false)}><form onSubmit={createTask}><label>任务标题<input value={taskForm.title} onChange={e => setTaskForm({...taskForm,title:e.target.value})} required/></label><label>任务描述<textarea value={taskForm.description} onChange={e => setTaskForm({...taskForm,description:e.target.value})} required/></label><label>验收要求（JSON）<textarea className="code-input" value={taskForm.requirements} onChange={e => setTaskForm({...taskForm,requirements:e.target.value})} placeholder={'{\n  "acceptance": ["..."]\n}'}/></label><label>优先级<input type="number" value={taskForm.priority} onChange={e => setTaskForm({...taskForm,priority:e.target.value})}/></label><label className="check-label"><input type="checkbox" checked={taskForm.requires_review} onChange={e => setTaskForm({...taskForm,requires_review:e.target.checked})}/> 需要 Reviewer 审核</label><div className="modal-actions"><button type="button" className="secondary" onClick={() => setShowTask(false)}>取消</button><button className="primary" disabled={busy || workers.length === 0}>{busy ? '发布中…' : '发布任务'}</button></div></form></Modal>}
   </div>
 }
