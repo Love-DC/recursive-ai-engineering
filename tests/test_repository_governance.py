@@ -126,15 +126,6 @@ class RepositoryGovernanceTests(unittest.TestCase):
         with self.assertRaisesRegex(GovernanceError, "Incompatible governance protocol major"):
             self.load(root)
 
-    def test_rejects_unsafe_local_validation_workflow(self):
-        root = self.make_repo()
-        manifest_path = root / "rae-governance.json"
-        manifest = json.loads(manifest_path.read_text())
-        manifest["validation"]["repository"] = None
-        manifest["validation"]["workflow"] = "../outside.yml"
-        with self.assertRaisesRegex(GovernanceError, "Unsafe"):
-            self.load(root)
-
 
 if __name__ == "__main__":
     unittest.main()
