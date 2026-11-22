@@ -1,6 +1,6 @@
 # Owner Console
 
-Browser-based Owner console for MVP v1.1. It uses Supabase Auth and the project's publishable key; all business reads/writes go through the existing authenticated RPCs.
+Browser-based Owner console for MVP v1.2. It uses Supabase Auth and the project's publishable key; all business reads/writes go through the existing authenticated RPCs.
 
 ## Local run
 
@@ -15,7 +15,7 @@ Do not enable public sign-up for this Owner-only console. Do not add service_rol
 
 - Email/password sign-in and sign-out.
 - Register a project through `register_project`.
-- Register logical Workers through `register_worker`.
+- Register Workers through `register_worker`.\n- Bind an existing Supabase Auth user to a Worker through the Owner-only `bind_worker_identity` RPC; each Worker must use its own Auth user to execute.
 - Create implementation Tasks through `create_task`.
 - List Workers and Tasks; inspect full Task, Execution, artifact and review context through `get_task`.
 
@@ -29,4 +29,4 @@ Build command: `npm run build`; output directory: `dist`.
 
 ## Current boundary
 
-The console does not create Worker credentials or run GPT Workers. Workers authenticate with a valid user session and use the documented RPC protocol. The current database identity model is a single project Owner with logical Worker IDs; it does not cryptographically isolate separate GPT sessions. Do not treat the console as proof of end-to-end acceptance until authenticated workflow and independent-session tests pass.
+The console does not create Supabase Auth users or run GPT Workers. Create each Worker Auth user through Supabase Auth, then bind that existing user's UUID in the Worker registration/binding dialog. Workers authenticate with their own user session and use the documented RPC protocol. Owner sessions retain administrative override and must not be reused as Worker sessions. Browser sign-in and end-to-end tests with multiple independent Auth users remain release gates.
