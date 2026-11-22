@@ -19,6 +19,7 @@ jobs:
           bash -n scripts/test-claim-concurrency.sh
           bash -n scripts/test-task-lifecycle.sh
           bash -n scripts/test-failure-recovery.sh
+          bash -n scripts/test-fail-reclaim-race.sh
 
       - name: Install ShellCheck
         run: |
