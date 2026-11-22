@@ -6,7 +6,7 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 
 - A conversation is disposable and is not tracked as a Worker identity.
 - All conversations use the user's already-authorized Supabase MCP connection.
-- One stable `shared-executor` Worker row is used as a database routing reference; it does not identify individual sessions.
+- Each project has project-scoped Worker routing rows; worker keys can differ by repository and task type. A Worker row is a routing reference, not an individual session identity.
 - Supabase stores project and task state. GitHub stores code, documents and commit history.
 - Large tasks can be decomposed into child tasks. Any fresh conversation can claim the next available task.
 - Pilot implementation tasks use `requires_review=false`; the separate Reviewer/Fixer workflow is not a startup requirement.
