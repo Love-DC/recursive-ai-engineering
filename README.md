@@ -5,7 +5,7 @@ A Supabase/PostgreSQL-backed task coordination system for independent GPT Worker
 ## Scope
 
 - Seven core tables: projects, workers, tasks, executions, artifacts, task_events, operation_requests.
-- Nineteen authenticated RPCs.
+- Twenty authenticated RPCs.
 - Owner administration plus per-Worker Supabase Auth identity binding and task-scoped authorization.
 - Database-enforced execution fencing, leases, fixed review targets, idempotency, and append-only event history.
 - GitHub remains the source of code and documents; Supabase stores task state and artifact references.
