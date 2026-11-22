@@ -1,0 +1,19 @@
+{
+  "protocol": "rae.repository-governance",
+  "protocol_version": "1.0.0",
+  "project": "alternate-fixture",
+  "compatibility": { "min_coordinator_version": "1.0.0" },
+  "governance": {
+    "agent_instructions": "AGENTS.md",
+    "entrypoints": ["docs/ALTERNATE_START.md"],
+    "required": ["docs/ENGINEERING.md"],
+    "rule_sets": [
+      { "id": "alternate-engineering", "path": "docs/ENGINEERING.md", "priority": 80 }
+    ]
+  },
+  "validation": {
+    "provider": "github-actions",
+    "workflow": ".github/workflows/alternate-validation.yml"
+  },
+  "conflicts": []
+}

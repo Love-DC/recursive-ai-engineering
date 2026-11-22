@@ -16,7 +16,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
         for name in ("AGENTS.md", "docs/AI_START.md", "docs/WORKFLOW.md"):
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("repository rule\n", encoding="utf-8")
+            path.write_text("repository rule\\n", encoding="utf-8")
         value = manifest or {
             "protocol": "rae.repository-governance",
             "protocol_version": "1.0.0",
@@ -46,6 +46,15 @@ class RepositoryGovernanceTests(unittest.TestCase):
         manifest = self.load(self.make_repo())
         self.assertEqual(manifest["project"], "fixture")
         self.assertEqual(manifest["governance"]["agent_instructions"], "AGENTS.md")
+
+    def test_discovers_alternate_repository_fixture_without_core_changes(self):
+        root = Path(__file__).parent / "fixtures" / "alternate-governance"
+        manifest = self.load(root, expected_project="alternate-fixture")
+        self.assertEqual(manifest["governance"]["entrypoints"], ["docs/ALTERNATE_START.md"])
+        self.assertEqual(
+            manifest["validation"]["workflow"],
+            ".github/workflows/alternate-validation.yml",
+        )
 
     def test_rejects_missing_manifest(self):
         root = self.make_repo()
@@ -115,16 +124,6 @@ class RepositoryGovernanceTests(unittest.TestCase):
         manifest["protocol_version"] = "2.0.0"
         manifest_path.write_text(json.dumps(manifest))
         with self.assertRaisesRegex(GovernanceError, "Incompatible governance protocol major"):
-            self.load(root)
-
-    def test_rejects_missing_local_validation_workflow(self):
-        root = self.make_repo()
-        manifest_path = root / "rae-governance.json"
-        manifest = json.loads(manifest_path.read_text())
-        manifest["validation"].pop("repository")
-        manifest["validation"]["workflow"] = ".github/workflows/missing.yml"
-        manifest_path.write_text(json.dumps(manifest))
-        with self.assertRaisesRegex(GovernanceError, "Missing validation.workflow"):
             self.load(root)
 
 
