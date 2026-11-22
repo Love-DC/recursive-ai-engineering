@@ -64,9 +64,9 @@ The deployed public RPC inventory includes `fail_execution` and `requeue_failed_
 
 ## Verification recorded for this revision
 
-The repository's PostgreSQL 17 GitHub Actions workflow loads the consolidated schema snapshot and the candidate failure/retry migration into an isolated service database, creates two distinct Worker fixtures, then runs the failure/retry, fail-versus-reclaim, lifecycle, and two-session claim-race harnesses. The exact workflow run and head SHA must be checked for each PR; source inspection or static CI alone is not acceptance evidence.
+The repository's PostgreSQL 17 GitHub Actions workflow loads the consolidated schema snapshot and the deployed failure/retry migration into an isolated service database, creates two distinct Worker fixtures, then runs the failure/retry, fail-versus-reclaim, lifecycle, and two-session claim-race harnesses. The exact workflow run and head SHA must be checked for each PR; source inspection or static CI alone is not acceptance evidence.
 
-A prior isolated PostgreSQL 17 run for the two-Worker claim-race change passed on exact head `8fb2b37c6d020e97a173273d9a54341eb5a3808a`. A replacement PR must rerun the workflow on its own exact head SHA before merge.
+The claim-race test asserts exactly one successful claim across two independent PostgreSQL sessions using different Worker IDs, then verifies that completion and the persisted execution record use the winning Worker. A green run on the exact PR head is required before merge.
 
 Not verified by these CI jobs:
 - A real two-client race against production Supabase (intentionally not run).
