@@ -30,7 +30,7 @@ The database foundation and all 19 RPC definitions have been deployed. Schema an
 | anon RPC denial | Transactional role test passed | PASS |
 | Schema acceptance assertions | Executed, no exceptions | PASS |
 | Auth user provisioned | Count = 1 | PASS |
-| Owner console source committed | `console/` Vite/React app and Supabase RPC integration | IMPLEMENTED, BUILD NOT VERIFIED |
+| Owner console source committed | `console/` Vite/React app and Supabase RPC integration | IMPLEMENTED |
 | Live project/Worker/Task records | Counts = 0 / 0 / 0 | NOT STARTED |
 | Transactional authenticated RPC workflow | Project/Worker/Task reads; cross-owner read denial; project idempotency replay/conflict; claim/heartbeat; artifact; submit; self-review, duplicate-review and assigned-Reviewer claim guards; Reviewer reject; Fix/resubmit; Reviewer accept; no-review completion; running-task cancellation. Executed as `authenticated` with an existing Auth user's JWT subject; all writes rolled back. | PASS (RPC-level, not browser UI) |
 | Concurrent claim race | Two separate SQL connections called `claim_task` simultaneously with different Worker IDs and the same authenticated Owner JWT. Exactly one claimed the Task; the other received `task: null`. | PASS (separate DB sessions; same Auth identity) |
@@ -41,7 +41,7 @@ The database foundation and all 19 RPC definitions have been deployed. Schema an
 
 ## Owner console progress
 
-A Vite/React Owner console is committed under `console/`. It supports password sign-in, project registration, Worker registration, implementation Task creation, task queue listing and `get_task` inspection. It uses only the Supabase publishable key in the browser and existing authenticated RPCs. Live catalog inspection confirmed the console's `get_project`, `list_workers`, `list_tasks`, `create_task`, `register_worker` and `get_task` argument names. A TypeScript task-form reset mismatch was fixed in commit `3ad2ec9`. The GitHub Actions build workflow exists, but a successful build has not yet been observed. The console does not launch GPT Workers. Vercel remains optional and is not connected.
+A Vite/React Owner console is committed under `console/`. It supports password sign-in, project registration, Worker registration, implementation Task creation, task queue listing and `get_task` inspection. It uses only the Supabase publishable key in the browser and existing authenticated RPCs. Live catalog inspection confirmed the console's `get_project`, `list_workers`, `list_tasks`, `create_task`, `register_worker` and `get_task` argument names. A TypeScript task-form reset mismatch was fixed in commit `3ad2ec9`. GitHub Actions build succeeded on commit `89bf5da`; [workflow run](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45052216112). Browser login and live UI workflow remain unverified. The console does not launch GPT Workers. Vercel remains optional and is not connected.
 
 ## Deployed migrations
 
@@ -68,7 +68,7 @@ A consolidated, current database snapshot is committed at `supabase/migrations/d
 
 ## Known implementation limitations requiring follow-up before Worker onboarding
 
-1. Run the Owner console build in a verified CI environment and complete the real browser login/project creation flow.
+1. Complete the real browser login, project creation and task creation flow in the Owner console.
 2. Run concurrency and Reviewer tests with genuinely independent Auth-user identities. The claim race has been exercised with two separate database sessions sharing one Owner JWT; it proves the row-lock behavior but not identity isolation.
 3. Exercise remaining A01–A63 cases, including cross-project access denial and additional lease/cancellation edge cases.
 4. Validate Review RPC lock ordering under independent Auth sessions.
