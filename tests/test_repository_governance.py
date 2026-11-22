@@ -63,6 +63,13 @@ class RepositoryGovernanceTests(unittest.TestCase):
         with self.assertRaisesRegex(GovernanceError, "Stale repository revision"):
             load_governance(self.make_repo(), expected_sha=SHA, actual_sha="b" * 40)
 
+    def test_rejects_mismatched_project_key(self):
+        with self.assertRaisesRegex(GovernanceError, "Manifest project mismatch"):
+            load_governance(
+                self.make_repo(), expected_sha=SHA, actual_sha=SHA,
+                expected_project="another-project"
+            )
+
     def test_rejects_incompatible_coordinator_version(self):
         root = self.make_repo()
         manifest_path = root / "rae-governance.json"
