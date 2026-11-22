@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation baseline: MVP v1.2. The seven-table, nineteen-RPC baseline now includes per-Worker Supabase Auth identity binding and task-scoped authorization.
+Implementation baseline: MVP v1.2. The seven-table, 20-RPC baseline now includes per-Worker Supabase Auth identity binding and task-scoped authorization.
 
 ## Architecture
 
@@ -58,7 +58,8 @@ After rejection: a dedicated Fix Task references the Original Task through `fixe
 - Internal helpers live in the unexposed `private` schema and have no client EXECUTE grants.
 - Direct client writes to business tables are revoked.
 - RLS is enabled on all seven tables; operation_requests has no client policy or table grants.
-- `workers.auth_user_id` is unique and references `auth.users(id)`. Owner binds/unbinds identities via `bind_worker_identity`; credentials are never stored in Worker rows.\n- Worker sessions can inspect only their own Worker record and assigned tasks; Worker cancellation is limited to tasks assigned to that Worker. Fix-task orchestration remains Owner-only.
+- `workers.auth_user_id` is unique and references `auth.users(id)`. Owner binds/unbinds identities via `bind_worker_identity`; credentials are never stored in Worker rows.
+- Worker sessions can inspect only their own Worker record and assigned tasks; Worker cancellation is limited to tasks assigned to that Worker. Fix-task and Review-task orchestration remain Owner-only; an autonomous Coordinator Worker cannot currently create those tasks.
 
 ## Known limits and outstanding validation
 
