@@ -1,4 +1,4 @@
-# GPT Worker Instructions — MVP v1.1
+# GPT Worker Instructions — MVP v1.2
 
 ## Credentials
 
@@ -13,7 +13,7 @@ Before acting, call the appropriate RPC and read current Task/Execution state. D
 
 ## Task execution
 
-1. Register or identify your Worker using `register_worker`.
+1. The Owner registers the Worker and binds its dedicated Auth user using `bind_worker_identity`. Workers must not register or bind themselves.
 2. Claim work through `claim_task` with a fresh idempotency key.
 3. Persist the returned Task ID, Execution ID, attempt and lease.
 4. Heartbeat using `heartbeat_execution` at approximately 60-second intervals. Server lease duration is fixed at 300 seconds.
