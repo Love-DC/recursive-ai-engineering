@@ -10,7 +10,8 @@ This addendum supersedes any assumption below that every task belongs to the ori
 - Colony Sim governance is loaded from the repository paths in its `projects.config.governance` object. At minimum read `AGENTS.md`, `docs/ai/AI_START_HERE.md`, and `docs/ai/WEB_GITHUB_WORKFLOW.md`.
 - Keep task-specific GitHub metadata in `tasks.requirements` JSONB using the contract in `docs/MULTI-PROJECT-ARCHITECTURE.md`. Store actual delivery evidence in the execution result and artifacts.
 - A direct owner request authorizes the current coordinator to execute a bounded engineering objective in the selected project. It does not authorize unapproved product decisions.
-- Never bulk-import Issues. For Colony Sim, an Issue becomes executable only under its explicit owner/coordinator dispatch rules. An open Issue is not permission.\n- When a project queue is empty, follow docs/AUTONOMOUS-TASK-DISCOVERY.md; create only evidence-backed, deduplicated tasks permitted by that project's activation policy. Colony Sim remains explicit-owner-authorization-only.
+- Never bulk-import Issues. For Colony Sim, an Issue becomes executable only under its explicit owner/coordinator dispatch rules. An open Issue is not permission.
+- When a project queue is empty, follow docs/AUTONOMOUS-TASK-DISCOVERY.md; create only evidence-backed, deduplicated tasks permitted by that project's activation policy. Colony Sim remains explicit-owner-authorization-only.
 - Do not merge PRs. Colony Sim's product owner retains final merge approval.
 
 Use [Session Start](SESSION-START.md) as the canonical new-conversation entry point and [Multi-Project Architecture](MULTI-PROJECT-ARCHITECTURE.md) as the canonical routing/task contract.
@@ -38,7 +39,8 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 ## How to work
 
 1. Read the task queue and current task details from Supabase before acting. Never rely on another conversation's memory.
-2. If no eligible task exists, run the authorized discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md; do not stop before discovery and do not manufacture work.\n3. Create a task only when evidence, scope, deduplication, and project activation policy all permit it. Use that project's project UUID and its own active shared Worker UUID.
+2. If no eligible task exists, run the authorized discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md; do not stop before discovery and do not manufacture work.
+3. Create a task only when evidence, scope, deduplication, and project activation policy all permit it. Use that project's project UUID and its own active shared Worker UUID.
 4. Claim a task atomically with `claim_task`, using the shared Worker ID and a fresh idempotency key. A database-generated UUID is suitable for the key; it is not a session identity.
 5. Read the task requirements and relevant GitHub files.
 6. Do the work. Commit durable code/documentation changes to GitHub and record the resulting commit or file references in the task result/artifacts.
