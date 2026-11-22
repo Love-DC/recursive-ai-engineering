@@ -87,7 +87,7 @@ The user-facing workflow is project-agnostic. A new conversation does not receiv
 
 ## Autonomous task discovery
 
-Workers inspect their authorized project's code, docs, tests, CI, and read-only operational signals when no eligible work is queued. Findings must include durable evidence, impact, risk, acceptance criteria, validation, and a stable project-scoped deduplication fingerprint. Only findings permitted by the project's task_activation policy may be created as executable tasks. Colony Sim remains explicit_owner_authorization_only; an open Issue is backlog, never authorization. See docs/AUTONOMOUS-TASK-DISCOVERY.md for the candidate contract, noise limits, authority matrix, and pilot limitations.
+Workers inspect their authorized project's code, docs, tests, CI, and read-only operational signals when no eligible work is queued. Findings must include durable evidence, impact, risk, acceptance criteria, validation, and a stable project-scoped deduplication fingerprint. Only findings permitted by the target repository's local activation policy may be created as executable tasks. An open Issue is backlog, never authorization unless the repository's own rules define a valid activation path. See docs/AUTONOMOUS-TASK-DISCOVERY.md for the candidate contract, noise limits, authority matrix, and pilot limitations.
 
 ## Session routing and execution
 
