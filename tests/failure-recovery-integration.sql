@@ -3,13 +3,6 @@
 BEGIN;
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
 
-INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
-INSERT INTO public.projects(id,name,owner_id,status)
-VALUES ('00000000-0000-4000-8000-000000000002','failure-recovery-test','00000000-0000-4000-8000-000000000001','active');
-INSERT INTO public.workers(id,project_id,worker_key,display_name,status,auth_user_id)
-VALUES
- ('00000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000002','test-worker-a','Test Worker A','active','00000000-0000-4000-8000-000000000001'),
- ('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000002','test-worker-b','Test Worker B','active',NULL);
 
 CREATE OR REPLACE FUNCTION public.test_reject_execution_failed_event()
 RETURNS trigger
