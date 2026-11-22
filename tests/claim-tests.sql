@@ -1,0 +1,9 @@
+-- Integration test specification. Must run from two independent authenticated DB/API sessions.
+-- 1. Create one pending implementation task.
+-- 2. In parallel, call claim_task with different Workers and different idempotency keys.
+-- 3. Assert only one response contains that task_id and only one executions row is running.
+-- 4. Force lease_until into the past in a privileged disposable test fixture.
+-- 5. Claim from a different Worker; assert old Execution=expired, new Execution=running,
+--    and Task.current_execution_id points to the new Execution.
+-- 6. Repeat for task_type=review; assert only the assigned Reviewer can reclaim it.
+-- This file intentionally does not simulate concurrency sequentially.
