@@ -12,7 +12,7 @@ Autonomy means initiative within a declared project boundary—not authority to 
 
 Run this loop at session start when no eligible task exists, and after completing a task when the current objective permits continued work:
 
-1. **Resolve scope.** Read the active project row, its repository, project-scoped active shared-executor Worker, and repository governance manifest at the pinned SHA. Never infer or reuse another project's IDs.
+1. **Resolve scope.** Read the active project row, its repository, project-scoped active Worker selected by routing metadata, and repository governance manifest at the pinned SHA. Never infer or reuse another project's IDs.
 2. **Inspect evidence.** Review configured project-state and architecture docs, recent relevant commits/PR/CI results, test coverage, TODO/FIXME markers with context, dependency/security reports where available, and read-only operational health. Inspect only sources allowed by project policy.
 3. **Form candidates.** Each candidate must name a concrete observed condition, exact evidence (file/line, commit, CI run, or query result), project impact, bounded proposed change, risk class, acceptance criteria, and validation plan. Do not create speculative tasks from vague preferences.
 4. **Classify authority.** Apply task activation and governance rules from the repository's manifest and referenced documents before creating anything. Never infer a permissive default. If the finding needs product, security, data, or production approval, record it as a proposal/report and stop at the decision gate.
