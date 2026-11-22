@@ -181,7 +181,7 @@ BEGIN
   v_now := clock_timestamp();
   v_reason_for_storage := left(v_reason,1000);
   UPDATE public.tasks
-    SET status='pending',assigned_worker_id=NULL,current_execution_id=NULL,
+    SET status='pending',assigned_worker_id=CASE WHEN v_task.task_type='review' THEN v_task.assigned_worker_id ELSE NULL END,current_execution_id=NULL,
         lease_until=NULL,result=NULL,completed_at=NULL,updated_at=v_now
     WHERE id=p_task_id AND status='failed';
 
@@ -258,7 +258,7 @@ BEGIN
       UPDATE public.executions SET status='expired',finished_at=v_now
         WHERE id=v_expired.current_execution_id AND task_id=v_expired.id AND status='running';
       UPDATE public.tasks
-        SET status='failed',assigned_worker_id=NULL,current_execution_id=NULL,lease_until=NULL,
+        SET status='failed',assigned_worker_id=CASE WHEN task_type='review' THEN assigned_worker_id ELSE NULL END,current_execution_id=NULL,lease_until=NULL,
             result=jsonb_build_object('error_code','LEASE_RETRY_LIMIT_REACHED'),
             updated_at=v_now,completed_at=v_now
         WHERE id=v_expired.id AND status='running';
