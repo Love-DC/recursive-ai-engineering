@@ -1,37 +1,44 @@
-# AI Worker Collaboration System — MVP v1.2
+# AI Worker Collaboration System — Shared MCP Pilot
 
-A Supabase/PostgreSQL-backed task coordination system for independent GPT Worker sessions, with GitHub artifacts and a fixed-target review/fix workflow.
+A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversations, with GitHub as the durable code and documentation store.
 
-## Scope
+## Pilot operating model
 
-- Seven core tables: projects, workers, tasks, executions, artifacts, task_events, operation_requests.
-- Twenty authenticated RPCs.
-- Owner administration plus per-Worker Supabase Auth identity binding and task-scoped authorization.
-- Database-enforced execution fencing, leases, fixed review targets, idempotency, and append-only event history.
-- GitHub remains the source of code and documents; Supabase stores task state and artifact references.
+- A conversation is disposable and is not tracked as a Worker identity.
+- All conversations use the user's already-authorized Supabase MCP connection.
+- One stable `shared-executor` Worker row is used as a database routing reference; it does not identify individual sessions.
+- Supabase stores project and task state. GitHub stores code, documents and commit history.
+- Large tasks can be decomposed into child tasks. Any fresh conversation can claim the next available task.
+- Pilot implementation tasks use `requires_review=false`; the separate Reviewer/Fixer workflow is not a startup requirement.
 
-## Current implementation status
+## Current pilot setup
 
-The target Supabase project is `recursive-ai-engineering` (PostgreSQL 17, ap-northeast-1). Core schema and RPC migrations have been applied. See [implementation report](reports/acceptance-test-results.md) for verified checks and known test blockers.
+- Supabase project: `recursive-ai-engineering` (PostgreSQL 17, ap-northeast-1).
+- Project ID: `61e32c05-39b7-47a6-ab5c-592c8e37d72d`.
+- Shared Worker ID: `78953b49-db9d-4fbc-9d3c-be3421a1c975`.
+- GitHub repository: `Love-DC/recursive-ai-engineering`.
+- Seven core tables and 20 public RPCs are deployed.
+- The create → claim → complete RPC smoke test passed using the shared Worker and was rolled back; no test task was left behind.
+- Live project and shared Worker records have been initialized. No pilot task has been created yet.
 
-**Current status:** Worker identity isolation v1.2 and task-scope hardening v1.2.1 are applied. Worker RPCs bind JWT subject to the exact Worker ID; negative tests reject unbound and mismatched identities. The Owner workflow acceptance suite passes after these changes. One Auth user exists, so positive cross-Worker workflows with genuinely separate Auth users remain pending. Browser sign-in/UI acceptance, independent Auth-user positive tests, remaining A01–A63 cases, Coordinator orchestration authorization, leaked-password protection and disposable-database snapshot verification remain release gates. No test records remain. No Worker credentials or Service Role Key are included in this repository.
+## Start here
 
-## Real-project release gate
+Read [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md). A new ChatGPT conversation should read those instructions, inspect the task queue, claim a task, and work from persisted task context—not from another conversation's chat history.
 
-See [Real-Project Readiness](docs/REAL-PROJECT-READINESS.md). Do not onboard real repositories or start autonomous Workers until every no-go item is verified.
+## Not required for the pilot
 
-## Repository layout
+- Per-session identity or Worker Auth accounts.
+- Session heartbeats, presence dashboards or activity tracking.
+- Separate Coordinator/Implementer/Reviewer/Fixer accounts.
+- Browser console deployment.
+- Automated review/fix orchestration.
 
-- `console/` — Vite/React Owner console (local run and deployment instructions in `console/README.md`)
-- `supabase/migrations/` — database migrations
-- `tests/` — schema, security, workflow and concurrency tests
-- `docs/MVP-v1.1.md` — implementation baseline and design decisions
-- `docs/WORKER-INSTRUCTIONS.md` — Worker operating rules
-- `docs/RPC-REFERENCE.md` — RPC interface reference
-- `reports/acceptance-test-results.md` — actual verification record
+The Owner console remains available for later use, but the pilot can be operated directly through the connected Supabase MCP and GitHub MCP tools.
 
-## Security
+## Production hardening deferred
 
-Workers must use an authenticated user session and publishable client key only. Never distribute a Supabase Service Role Key, secret key, database password, or privileged database connection string to a GPT Worker.
+The existing v1.2 database includes identity-isolation and review/fix machinery. Those features are not prerequisites for the shared-owner MCP pilot. Before exposing the system to untrusted users or non-owner clients, separately review RPC authorization, Auth configuration, backup/restore, and independent-identity testing.
 
-All business writes must go through the explicitly granted RPCs. Direct table INSERT/UPDATE/DELETE is revoked for `anon` and `authenticated`.
+## Security boundary
+
+The pilot assumes every participating ChatGPT conversation has the user's authorized Supabase MCP access. That access is the trust boundary. Do not copy Service Role keys, secret keys, database passwords, or privileged connection strings into prompts, GitHub files, or external clients. Do not deploy, merge, or perform external side effects without explicit user authorization.
