@@ -28,11 +28,13 @@ declare
   v_fix jsonb; v_fix_claim jsonb; v_fix_submit jsonb; v_resubmit jsonb;
   v_review2 jsonb; v_review_claim2 jsonb; v_accept jsonb;
   v_noreview jsonb; v_noreview_claim jsonb; v_complete jsonb;
+  v_cancel_task jsonb; v_cancel_claim jsonb; v_cancel_result jsonb; v_cancel_read jsonb;
   v_workers_read jsonb; v_tasks_read jsonb; v_task_read jsonb; v_heartbeat jsonb;
   v_project_id uuid; v_owner_worker_id uuid; v_reviewer_worker_id uuid;
   v_task_id uuid; v_exec_id uuid; v_review_id uuid; v_review_exec_id uuid;
   v_fix_id uuid; v_fix_exec_id uuid; v_review2_id uuid; v_review2_exec_id uuid;
   v_noreview_id uuid; v_noreview_exec_id uuid;
+  v_cancel_id uuid; v_cancel_exec_id uuid;
   v_issues jsonb := '[{"id":"I1","description":"Add missing validation"}]'::jsonb;
 begin
   v_project := public.register_project(
@@ -44,6 +46,12 @@ begin
   if (v_project->'data'->>'id') is distinct from (v_project_replay->'data'->>'id') then
     raise exception 'FAIL: register_project idempotent replay';
   end if;
+  begin
+    perform public.register_project('different payload','transactional test only',null,'{}'::jsonb,v_key);
+    raise exception 'FAIL: idempotency conflict was not rejected';
+  exception when others then
+    if sqlerrm not like '%IDEMPOTENCY_CONFLICT%' then raise; end if;
+  end;
   v_project_id := (v_project->'data'->>'id')::uuid;
 
   v_owner_worker := public.register_worker(v_project_id,'coordinator','Coordinator','acceptance');
@@ -85,10 +93,22 @@ begin
     raise exception 'FAIL: task read RPCs';
   end if;
 
+  begin
+    perform public.create_review_task(v_task_id,v_task_id,v_exec_id,v_owner_worker_id,v_key||'-self-review');
+    raise exception 'FAIL: self-review was not rejected';
+  exception when others then
+    if sqlerrm not like '%REVIEWER_CANNOT_REVIEW_OWN_EXECUTION%' then raise; end if;
+  end;
   v_review_task := public.create_review_task(
     v_task_id,v_task_id,v_exec_id,v_reviewer_worker_id,v_key||'-review1'
   );
   v_review_id := (v_review_task->'data'->>'id')::uuid;
+  begin
+    perform public.create_review_task(v_task_id,v_task_id,v_exec_id,v_reviewer_worker_id,v_key||'-duplicate-review');
+    raise exception 'FAIL: duplicate review was not rejected';
+  exception when others then
+    if sqlerrm not like '%REVIEW_ALREADY_EXISTS%' then raise; end if;
+  end;
   v_review_claim := public.claim_task(v_project_id,v_reviewer_worker_id,300,v_key||'-review-claim1');
   v_review_exec_id := (v_review_claim->'data'->>'execution_id')::uuid;
   if (v_review_claim->'data'->>'task_id')::uuid <> v_review_id then
@@ -157,7 +177,22 @@ begin
     raise exception 'FAIL: complete_execution';
   end if;
 
-  raise notice 'PASS: project/Worker/Task reads; project idempotency; claim/heartbeat; artifact; submit; Reviewer rejection; Fix/resubmit; Reviewer acceptance; no-review completion';
+  v_cancel_task := public.create_task(
+    v_project_id,v_owner_worker_id,'implementation','Cancel running acceptance',
+    'test cancellation','{}'::jsonb,100,true,null,null,v_key||'-cancel-task'
+  );
+  v_cancel_id := (v_cancel_task->'data'->>'id')::uuid;
+  v_cancel_claim := public.claim_task(v_project_id,v_owner_worker_id,300,v_key||'-cancel-claim');
+  v_cancel_exec_id := (v_cancel_claim->'data'->>'execution_id')::uuid;
+  v_cancel_result := public.cancel_task(v_cancel_id,v_owner_worker_id,'acceptance cancellation',v_key||'-cancel');
+  v_cancel_read := public.get_task(v_cancel_id);
+  if v_cancel_result->'data'->>'status' <> 'cancelled'
+    or v_cancel_read->'data'->'task'->>'status' <> 'cancelled'
+    or v_cancel_read->'data'->'executions'->0->>'status' <> 'failed' then
+    raise exception 'FAIL: cancel running task must fail Execution and clear lease';
+  end if;
+
+  raise notice 'PASS: project/Worker/Task reads; idempotency replay/conflict; claim/heartbeat; artifact; submit; self-review/duplicate-review guards; Reviewer rejection; Fix/resubmit; Reviewer acceptance; no-review completion; cancel-running';
 end
 $mvp$;
 
