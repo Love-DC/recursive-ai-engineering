@@ -1,5 +1,15 @@
 # Task Lifecycle Test Coverage
 
+## Credential-free static checks (GitHub Actions)
+
+The workflow `.github/workflows/shell-static-checks.yml` runs on every push and pull request. It:
+
+- Runs `bash -n` against both lifecycle and two-connection concurrency scripts.
+- Runs ShellCheck at warning severity against both scripts.
+- Requires no Supabase credentials, database URL, GitHub secrets, or database access.
+
+These checks validate shell syntax and common shell defects only. They do **not** execute either script, validate SQL against a live database, prove transactional behavior, or simulate concurrent PostgreSQL sessions.
+
 ## Running the transactional integration harness
 
 The harness is `scripts/test-task-lifecycle.sh`. It requires `psql` and an owner-authorized PostgreSQL connection to the intended Supabase project. Set:
