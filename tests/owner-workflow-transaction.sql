@@ -21,13 +21,14 @@ set local role authenticated;
 do $mvp$
 declare
   v_key text := 'acceptance-' || gen_random_uuid()::text;
-  v_project jsonb; v_project_replay jsonb;
+  v_project jsonb; v_project_replay jsonb; v_project_read jsonb;
   v_owner_worker jsonb; v_reviewer_worker jsonb;
   v_task jsonb; v_claim jsonb; v_submit jsonb; v_artifact jsonb;
   v_review_task jsonb; v_review_claim jsonb; v_reject jsonb;
   v_fix jsonb; v_fix_claim jsonb; v_fix_submit jsonb; v_resubmit jsonb;
   v_review2 jsonb; v_review_claim2 jsonb; v_accept jsonb;
   v_noreview jsonb; v_noreview_claim jsonb; v_complete jsonb;
+  v_workers_read jsonb; v_tasks_read jsonb; v_task_read jsonb; v_heartbeat jsonb;
   v_project_id uuid; v_owner_worker_id uuid; v_reviewer_worker_id uuid;
   v_task_id uuid; v_exec_id uuid; v_review_id uuid; v_review_exec_id uuid;
   v_fix_id uuid; v_fix_exec_id uuid; v_review2_id uuid; v_review2_exec_id uuid;
@@ -49,6 +50,11 @@ begin
   v_reviewer_worker := public.register_worker(v_project_id,'reviewer','Reviewer','acceptance');
   v_owner_worker_id := (v_owner_worker->'data'->>'id')::uuid;
   v_reviewer_worker_id := (v_reviewer_worker->'data'->>'id')::uuid;
+  v_project_read := public.get_project(v_project_id);
+  v_workers_read := public.list_workers(v_project_id);
+  if v_project_read->'data'->>'id' <> v_project_id::text or jsonb_array_length(v_workers_read->'data') <> 2 then
+    raise exception 'FAIL: project/worker read RPCs';
+  end if;
 
   v_task := public.create_task(
     v_project_id,v_owner_worker_id,'implementation','Acceptance implementation',
@@ -61,6 +67,7 @@ begin
   if (v_claim->'data'->>'task_id')::uuid <> v_task_id then
     raise exception 'FAIL: initial claim';
   end if;
+  v_heartbeat := public.heartbeat_execution(v_task_id,v_exec_id,v_owner_worker_id,v_key||'-heartbeat');
 
   v_artifact := public.add_artifact(
     v_task_id,v_exec_id,v_owner_worker_id,'report','acceptance artifact',
@@ -71,6 +78,11 @@ begin
   );
   if v_submit->'data'->>'status' <> 'submitted' then
     raise exception 'FAIL: submit_result';
+  end if;
+  v_tasks_read := public.list_tasks(v_project_id,null,null,100,null);
+  v_task_read := public.get_task(v_task_id);
+  if jsonb_array_length(v_tasks_read->'data') <> 1 or v_task_read->'data'->'task'->>'id' <> v_task_id::text then
+    raise exception 'FAIL: task read RPCs';
   end if;
 
   v_review_task := public.create_review_task(
@@ -145,7 +157,7 @@ begin
     raise exception 'FAIL: complete_execution';
   end if;
 
-  raise notice 'PASS: project idempotency; Worker registration; claim; artifact; submit; Reviewer rejection; Fix; resubmit; Reviewer acceptance; no-review completion';
+  raise notice 'PASS: project/Worker/Task reads; project idempotency; claim/heartbeat; artifact; submit; Reviewer rejection; Fix/resubmit; Reviewer acceptance; no-review completion';
 end
 $mvp$;
 
