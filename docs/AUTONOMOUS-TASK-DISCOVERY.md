@@ -6,7 +6,7 @@
 
 A Worker must not treat an empty queue as the end of useful work. It should inspect the project it is authorized to work on, identify evidence-backed engineering opportunities, turn eligible findings into bounded tasks in that same project's Supabase queue, and then return to the normal atomic claim/execute/verify workflow.
 
-Autonomy means initiative within a declared project boundary—not authority to make product decisions, bypass approvals, deploy, merge, or turn arbitrary backlog into permission.
+Autonomy means initiative within a declared project boundary—not authority to make product decisions, bypass risk gates, deploy production systems, or turn arbitrary backlog into permission. The AI coordinator is authorized to independently review and merge eligible engineering PRs under the project's review checklist; leaf Workers hand off PRs and do not merge their own work.
 
 ## Discovery loop
 
@@ -79,7 +79,7 @@ This contract makes discovery an explicit Worker responsibility during a live se
 - [ ] Project activation policy gates task creation; Colony Sim backlog remains owner-authorized only.
 - [ ] Approval-gated work is reported, not silently converted to executable tasks.
 - [ ] Created tasks are claimed atomically and completed with normal execution evidence.
-- [ ] No scheduler, schema change, deployment, or merge is implied by this pilot contract.
+- [ ] No scheduler, schema change, or production deployment is implied by this discovery pilot. Engineering PR review and merge are handled by the AI coordinator under the standing project authorization.
 
 ## Repeatable pilot acceptance procedure
 
@@ -95,3 +95,20 @@ Run these cases against a disposable or transaction-rolled-back task fixture whe
 | Project routing | An authorized candidate belongs to another project whose policy permits creation | Task is written only with that project's project UUID and matching active Worker UUID |
 
 For a positive RAE case, verify the new row with project-scoped list_tasks/get_task, then claim it through claim_task and confirm the returned task_id/project_id and execution_id. Do not complete a fixture task unless the test is explicitly intended to exercise the full lifecycle. For negative cases, verify that task counts and existing task states remain unchanged. Record inspected sources, candidate fingerprints, created task IDs, and any skipped approval-gated proposals in the run result.
+
+## AI engineering PR review and merge authority
+
+The project owner has delegated routine engineering PR review and merge to the AI project coordinator. This is a standing project-level authorization, not a per-PR approval request.
+
+The leaf Worker opens a PR and reports exact head SHA, changed paths, acceptance evidence, and CI. The coordinator performs an independent review pass (separate from implementation) and owns requested changes, re-review, merge, and post-merge verification.
+
+The coordinator may merge when all of the following are true:
+
+- The PR is within an authorized engineering task and does not introduce an unapproved product/design decision.
+- The PR targets the configured integration branch and the current head SHA is verified.
+- All required checks for that exact head SHA have completed successfully.
+- The diff, tests, scope, security-sensitive changes, and rollback implications have been reviewed.
+- No unresolved blocking review threads or merge conflicts remain.
+- The resulting merge commit and post-merge CI are verified and recorded.
+
+If a check fails, request changes or repair within scope, then review the new head. If the change crosses a product, security, credential, production deployment, or irreversible data boundary, stop only at that boundary and create a specific decision request. Do not ask the owner to approve routine engineering PRs one by one.
