@@ -1,0 +1,5 @@
+-- Integration test specification.
+-- For every side-effecting RPC, repeat exact request with same idempotency key and assert identical response.
+-- Reuse same key with changed parameters and assert IDEMPOTENCY_CONFLICT.
+-- Send concurrent duplicate calls with same key from separate sessions and assert one side effect/event.
+-- Verify failed business operations leave no operation_requests success record.
