@@ -10,6 +10,7 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 - Supabase stores project and task state. GitHub stores code, documents and commit history.
 - Large tasks can be decomposed into child tasks. Any fresh conversation can claim the next available task.
 - Pilot implementation tasks use `requires_review=false`; the separate Reviewer/Fixer workflow is not a startup requirement.
+- Autonomous discovery runs during an active Coordinator/Worker session. The shared MCP pilot does not depend on a deployed background daemon or scheduled job.
 
 ## Current pilot setup
 
@@ -18,15 +19,16 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 - Database `public.projects.id`: `61e32c05-39b7-47a6-ab5c-592c8e37d72d`.
 - Shared Worker ID: `78953b49-db9d-4fbc-9d3c-be3421a1c975`.
 - GitHub repository: `Love-DC/recursive-ai-engineering`.
-- Seven core tables and 20 public RPCs are deployed.
+- Seven core tables and 22 public RPCs are deployed.
 - The create → claim → complete RPC smoke test passed using the shared Worker and was rolled back.
+- The failure → owner requeue → retry claim → complete transaction smoke test also passed and was rolled back; no smoke-test task remains in the queue.
+- The deployed failure/retry migration is recorded as `20261122221942_failure_reporting_retry`; see [Failure Reporting and Retry Contract](docs/FAILURE-RECOVERY-CONTRACT.md) for production behavior and evidence.
 - The first formal root task (`dedafaf5-6abb-4d66-9c0d-7622cebfcb2f`) has been created and claimed; three bounded child tasks were created and completed in the initial execution run.
 - The task lifecycle and owner-MCP SQL examples are documented in `docs/WORKER-INSTRUCTIONS.md`; query Supabase for live task state.
 
 ## Start here
 
 - [Autonomous Task Discovery & Generation](docs/AUTONOMOUS-TASK-DISCOVERY.md): evidence-based discovery, project authorization, deduplication, and empty-queue behavior.
-
 - [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the coordinator route and execute it.
 - [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, and task metadata.
 - [Repository-local governance protocol](docs/REPOSITORY-GOVERNANCE-PROTOCOL.md): pinned-SHA discovery, compatibility checks, conflict handling, and repository-owned CI routing.
@@ -34,7 +36,7 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 
 The platform currently registers two projects: `recursive-ai-engineering` and `colony-sim` (`Love-DC/colony-sim`). Each has its own Supabase project row and project-scoped Worker routing records (the current pilot uses `shared-executor` for both; this is not a platform-wide requirement). Task state remains isolated by `project_id`; code, Issues, PRs, CI, and project governance remain in the target repository.
 
-Before changing the system, review [Pilot Readiness and Deferred Production Gates](docs/REAL-PROJECT-READINESS.md) for the trusted-pilot boundary and outstanding expansion gates. The [Failure Reporting and Retry Contract](docs/FAILURE-RECOVERY-CONTRACT.md) records the current missing failure/requeue API and its proposed safe semantics; it is a design contract, not a deployed feature.
+Before changing the system, review [Pilot Readiness and Deferred Production Gates](docs/REAL-PROJECT-READINESS.md) for the trusted-pilot boundary and outstanding expansion gates. The [Failure Reporting and Retry Contract](docs/FAILURE-RECOVERY-CONTRACT.md) documents the deployed RPCs, retry semantics, and verified production evidence.
 
 ## Not required for the pilot
 
@@ -43,6 +45,7 @@ Before changing the system, review [Pilot Readiness and Deferred Production Gate
 - Separate Coordinator/Implementer/Reviewer/Fixer accounts.
 - Browser console deployment.
 - Automated review/fix orchestration.
+- A persistent background Coordinator daemon or timer.
 
 The Owner console remains available for later use, but the pilot can be operated directly through the connected Supabase MCP and GitHub MCP tools.
 
