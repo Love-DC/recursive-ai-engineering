@@ -91,4 +91,13 @@ echo "$state" | jq -e \
   --arg new_id "$new_execution_id" \
   '.task_status=="running" and .old_execution_status=="expired" and .new_execution_status=="running" and .new_attempt==2 and .current_execution_id==$new_id' >/dev/null
 
+psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<SQL
+SELECT set_config('request.jwt.claim.sub', '$SUPABASE_OWNER_ID', false);
+SELECT public.complete_execution(
+  '$task_id','$new_execution_id','$SHARED_WORKER_ID',
+  '{"summary":"fail/reclaim race fixture complete"}'::jsonb,
+  'fail-reclaim-race-complete-' || md5(clock_timestamp()::text)
+);
+SQL
+
 echo "PASS: concurrent fail/reclaim race produced one valid transition and a fenced stale failure."
