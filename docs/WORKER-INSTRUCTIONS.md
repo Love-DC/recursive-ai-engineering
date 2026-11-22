@@ -140,4 +140,4 @@ select public.list_tasks(
 
 Live inspection of `claim_task` confirms row-level `FOR UPDATE SKIP LOCKED`, deterministic priority/creation ordering, expired-lease recovery, and operation idempotency. `complete_execution` verifies the current execution fence and persists the execution result, accepted task status, and task events. A sequential create → claim → complete run has passed in this project. A truly simultaneous multi-client race was not run in this session; the locking guarantee is supported by the deployed function definition, not claimed as a live race-test result.
 
-A completed child task and three pending child tasks were persisted under root task `dedafaf5-6abb-4d66-9c0d-7622cebfcb2f` on 2026-11-23. Query Supabase for current state; do not rely on this snapshot.
+A completed child task and three child tasks (all three were subsequently completed in this run) were persisted under root task `dedafaf5-6abb-4d66-9c0d-7622cebfcb2f` on 2026-11-23. Query Supabase for current state; do not rely on this snapshot.
