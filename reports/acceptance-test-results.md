@@ -41,7 +41,7 @@ The database foundation and 20 public RPCs (the original 19 plus `bind_worker_id
 | Concurrent claim race | Two separate SQL connections called `claim_task` simultaneously with different Worker IDs and the same authenticated Owner JWT. Exactly one claimed the Task; the other received `task: null`. | PASS (separate DB sessions; same Auth identity) |
 | Lease expiry/reclaim | Forced the test Task lease into the past; second Worker reclaimed it as attempt 2. | PASS |
 | Stale Execution fencing | Heartbeat from attempt 1 after attempt 2 reclaimed the Task was rejected with `EXECUTION_SUPERSEDED`. | PASS |
-| Worker identity negative tests | Unbound Worker and mismatched JWT subject denied for claim; mismatched subject denied for Worker read. Bound test Worker was associated with existing Owner Auth UUID, while test JWT used a different subject. All test data rolled back. | PASS (negative) |
+| Worker identity negative tests | Unbound Worker and mismatched JWT subject denied for claim; mismatched subject denied for Worker read; non-owner identity rebind denied; unique Auth-user-to-Worker binding enforced. Bound test Worker was associated with existing Owner Auth UUID, while test JWT used a different subject. All test data rolled back. | PASS (negative + uniqueness) |
 | Independent Auth-user concurrency | Only one Auth user exists; positive claim/review workflows with genuinely separate Auth identities are not yet available. | NOT RUN |
 | Cross-identity Reviewer workflow | Reviewer rejection/fix/acceptance passed in the transactional RPC suite; separate Auth-user identity isolation was not tested. | PARTIAL |
 
