@@ -37,4 +37,5 @@ begin
   execute 'reset role';
   raise notice 'PASS: mismatched Auth subject and unbound Worker denied for claim and Worker read';
 end;
+$setup$;
 rollback;
