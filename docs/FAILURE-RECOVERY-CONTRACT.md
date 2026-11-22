@@ -43,6 +43,10 @@ The new RPCs are `SECURITY DEFINER` functions with a fixed search path. Execute 
 - Reads `requirements.retry.max_attempts` (default 3, allowed 1–10) and `requirements.retry.backoff_seconds` (default 0, allowed 0–86,400).
 - Rejects retries after the cap or before backoff elapses; idempotency is enforced.
 
+### Repair-child handoff after a failure
+
+The Coordinator can create or link a repair child using the existing `create_task` contract; a new RPC is not required. Set `parent_task_id` to the failed task, include `source_failure_execution_id` and `error_code` in `requirements`, and derive the idempotency key from the source execution ID (for example, `repair-child-for-failure-<execution-uuid>`). Repeating the same call returns the same child task ID. The integration harness verifies exactly one child exists, claims it, completes it, and preserves the failed source execution as history. This is a task-discovery/handoff operation, not an automatic production Worker or daemon.
+
 ### `claim_task(p_project_id, p_worker_id, p_lease_seconds, p_idempotency_key)`
 
 - Requires an active Worker in the selected project and a lease between 60 and 600 seconds.
