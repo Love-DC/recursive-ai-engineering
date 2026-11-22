@@ -3,10 +3,10 @@
 This addendum supersedes any assumption below that every task belongs to the original RAE project. Before creating, claiming, or completing work, resolve the target project and its project-scoped worker from live Supabase data.
 
 - Query `public.projects` and select the active row by `config->>'project_key'` or canonical `github_repo`.
-- Query `public.workers` for `project_id = <selected project UUID>`, `worker_key = 'shared-executor'`, and `status = 'active'`.
+- Query active `public.workers` rows for the selected `project_id`. Select the Worker matching the task's required worker key or the project's `config.worker_routing` mapping. If no explicit route exists, use the sole active Worker only when exactly one is available; if multiple candidates remain, stop and request routing configuration. Never select a Worker from another project.
 - Use that exact project UUID and worker UUID for every task RPC. Never reuse the RAE worker UUID for Colony Sim or vice versa.
-- RAE project key/repository: `recursive-ai-engineering` / `Love-DC/recursive-ai-engineering`.
-- Colony Sim project key/repository: `colony-sim` / `Love-DC/colony-sim`.
+- RAE project key/repository: `recursive-ai-engineering` / `Love-DC/recursive-ai-engineering` (current pilot Worker key: `shared-executor`).
+- Colony Sim project key/repository: `colony-sim` / `Love-DC/colony-sim` (current pilot Worker key: `shared-executor`).
 - Governance is discovered from the target repository's root `rae-governance.json` at the task's pinned base SHA. Validate it with `scripts/repository_governance.py` when a local checkout is available; web sessions must perform equivalent structural checks by fetching the manifest and every declared file at the exact pinned SHA. Read every declared instruction, entrypoint, and required rule file at that same SHA. Do not read or depend on `projects.config.governance`; it is a deprecated compatibility fallback only until all repositories publish manifests.
 - Keep task-specific GitHub metadata in `tasks.requirements` JSONB using the contract in `docs/MULTI-PROJECT-ARCHITECTURE.md`. Store actual delivery evidence in the execution result and artifacts.
 - A direct owner request authorizes the current coordinator to execute a bounded engineering objective in the selected project. It does not authorize unapproved product decisions.
