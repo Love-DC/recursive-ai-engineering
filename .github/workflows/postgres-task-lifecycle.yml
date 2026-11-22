@@ -1,0 +1,90 @@
+name: PostgreSQL task lifecycle integration
+
+on:
+  push:
+    branches:
+      - main
+      - "rae/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      SUPABASE_OWNER_ID: 00000000-0000-4000-8000-000000000001
+      SUPABASE_PROJECT_ID: 00000000-0000-4000-8000-000000000002
+      SHARED_WORKER_ID: 00000000-0000-4000-8000-000000000003
+      SECOND_WORKER_ID: 00000000-0000-4000-8000-000000000004
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client jq
+
+      - name: Prepare isolated Supabase-compatible PostgreSQL fixture
+        run: |
+          set -euo pipefail
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE SCHEMA auth;
+          CREATE TABLE auth.users (id uuid PRIMARY KEY);
+          CREATE FUNCTION auth.uid()
+          RETURNS uuid
+          LANGUAGE sql
+          STABLE
+          AS $function$
+            SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
+          $function$;
+          SQL
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/database-schema.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611230003_failure_reporting_retry.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
+          INSERT INTO public.projects(id,name,owner_id,status)
+          VALUES ('00000000-0000-4000-8000-000000000002','failure-recovery-test','00000000-0000-4000-8000-000000000001','active');
+          INSERT INTO public.workers(id,project_id,worker_key,display_name,status,auth_user_id)
+          VALUES
+            ('00000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000002','test-worker-a','Test Worker A','active','00000000-0000-4000-8000-000000000001'),
+            ('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000002','test-worker-b','Test Worker B','active',NULL);
+          SQL
+
+      - name: Run failure reporting and bounded retry integration tests
+        env:
+          FAILURE_RECOVERY_TEST_ALLOW_MUTATIONS: "YES"
+        run: bash scripts/test-failure-recovery.sh
+
+      - name: Run two-session fail versus lease-reclaim race
+        run: bash scripts/test-fail-reclaim-race.sh
+
+      - name: Run task lifecycle integration harness
+        env:
+          TASK_LIFECYCLE_TEST_ALLOW_MUTATIONS: "YES"
+        run: bash scripts/test-task-lifecycle.sh
+
+      - name: Run two-session atomic claim race
+        run: bash scripts/test-claim-concurrency.sh

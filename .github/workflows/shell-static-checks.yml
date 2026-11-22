@@ -18,6 +18,8 @@ jobs:
         run: |
           bash -n scripts/test-claim-concurrency.sh
           bash -n scripts/test-task-lifecycle.sh
+          bash -n scripts/test-failure-recovery.sh
+          bash -n scripts/test-fail-reclaim-race.sh
 
       - name: Install ShellCheck
         run: |
@@ -26,4 +28,4 @@ jobs:
 
       - name: Run ShellCheck
         run: |
-          shellcheck --severity=warning scripts/test-claim-concurrency.sh scripts/test-task-lifecycle.sh
+          shellcheck --severity=warning scripts/test-claim-concurrency.sh scripts/test-task-lifecycle.sh scripts/test-failure-recovery.sh scripts/test-fail-reclaim-race.sh

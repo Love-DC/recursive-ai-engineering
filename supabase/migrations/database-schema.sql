@@ -20,101 +20,103 @@ create table public.tasks (id uuid not null default gen_random_uuid(), project_i
 
 create table public.workers (id uuid not null default gen_random_uuid(), project_id uuid not null, worker_key text not null, display_name text not null, description text, status text not null default 'active'::text, last_seen_at timestamp with time zone, created_at timestamp with time zone not null default now());
 
-alter table public.artifacts add constraint artifacts_execution_id_task_id_fkey FOREIGN KEY (execution_id, task_id) REFERENCES executions(id, task_id) ON DELETE RESTRICT;
 
 alter table public.artifacts add constraint artifacts_pkey PRIMARY KEY (id);
-
-alter table public.artifacts add constraint artifacts_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE;
-
 alter table public.executions add constraint executions_attempt_check CHECK ((attempt > 0));
-
 alter table public.executions add constraint executions_id_task_id_key UNIQUE (id, task_id);
-
 alter table public.executions add constraint executions_pkey PRIMARY KEY (id);
-
 alter table public.executions add constraint executions_status_check CHECK ((status = ANY (ARRAY['running'::text, 'submitted'::text, 'succeeded'::text, 'failed'::text, 'expired'::text, 'superseded'::text])));
-
 alter table public.executions add constraint executions_task_id_attempt_key UNIQUE (task_id, attempt);
-
-alter table public.executions add constraint executions_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE;
-
-alter table public.executions add constraint executions_worker_id_fkey FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE RESTRICT;
-
 alter table public.operation_requests add constraint operation_requests_pkey PRIMARY KEY (id);
-
-alter table public.operation_requests add constraint operation_requests_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
-
 alter table public.operation_requests add constraint operation_requests_project_id_operation_idempotency_key_key UNIQUE (project_id, operation, idempotency_key);
-
 alter table public.projects add constraint projects_id_owner_id_key UNIQUE (id, owner_id);
-
-alter table public.projects add constraint projects_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
-
 alter table public.projects add constraint projects_pkey PRIMARY KEY (id);
-
 alter table public.projects add constraint projects_status_check CHECK ((status = ANY (ARRAY['active'::text, 'archived'::text])));
-
-alter table public.task_events add constraint task_events_execution_id_fkey FOREIGN KEY (execution_id) REFERENCES executions(id) ON DELETE RESTRICT;
-
 alter table public.task_events add constraint task_events_pkey PRIMARY KEY (id);
-
-alter table public.task_events add constraint task_events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
-
-alter table public.task_events add constraint task_events_task_id_project_id_fkey FOREIGN KEY (task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE CASCADE;
-
-alter table public.task_events add constraint task_events_worker_id_project_id_fkey FOREIGN KEY (worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
-
-alter table public.tasks add constraint fk_tasks_current_execution FOREIGN KEY (current_execution_id, id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
-
-alter table public.tasks add constraint fk_tasks_latest_delivery_execution FOREIGN KEY (latest_delivery_execution_id, latest_delivery_task_id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
-
-alter table public.tasks add constraint fk_tasks_latest_review_same_project FOREIGN KEY (latest_review_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
-
-alter table public.tasks add constraint fk_tasks_review_delivery_execution FOREIGN KEY (review_target_execution_id, review_target_delivery_task_id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
-
-alter table public.tasks add constraint fk_tasks_review_delivery_same_project FOREIGN KEY (review_target_delivery_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
-
-alter table public.tasks add constraint fk_tasks_review_original_same_project FOREIGN KEY (review_target_original_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
-
-alter table public.tasks add constraint tasks_assigned_worker_id_project_id_fkey FOREIGN KEY (assigned_worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
-
 alter table public.tasks add constraint tasks_check CHECK ((((status = 'running'::text) AND (assigned_worker_id IS NOT NULL) AND (current_execution_id IS NOT NULL) AND (lease_until IS NOT NULL)) OR ((status <> 'running'::text) AND (current_execution_id IS NULL) AND (lease_until IS NULL))));
-
 alter table public.tasks add constraint tasks_check1 CHECK ((((task_type = 'review'::text) AND (review_target_original_task_id IS NOT NULL) AND (review_target_delivery_task_id IS NOT NULL) AND (review_target_execution_id IS NOT NULL) AND (requires_review = false) AND (fixes_task_id IS NULL)) OR ((task_type <> 'review'::text) AND (review_target_original_task_id IS NULL) AND (review_target_delivery_task_id IS NULL) AND (review_target_execution_id IS NULL) AND (review_decision IS NULL) AND (review_evidence IS NULL))));
-
 alter table public.tasks add constraint tasks_check2 CHECK (((task_type = 'fix'::text) = (fixes_task_id IS NOT NULL)));
-
 alter table public.tasks add constraint tasks_check3 CHECK (((status <> 'accepted'::text) OR (task_type = 'review'::text) OR (latest_review_task_id IS NOT NULL) OR ((task_type = 'implementation'::text) AND (requires_review = false))));
-
 alter table public.tasks add constraint tasks_check4 CHECK (((task_type <> 'review'::text) OR (assigned_worker_id IS NOT NULL)));
-
-alter table public.tasks add constraint tasks_created_by_worker_id_project_id_fkey FOREIGN KEY (created_by_worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
-
-alter table public.tasks add constraint tasks_fixes_task_id_project_id_fkey FOREIGN KEY (fixes_task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE RESTRICT;
-
 alter table public.tasks add constraint tasks_id_project_id_key UNIQUE (id, project_id);
-
-alter table public.tasks add constraint tasks_parent_task_id_project_id_fkey FOREIGN KEY (parent_task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE RESTRICT;
-
 alter table public.tasks add constraint tasks_pkey PRIMARY KEY (id);
-
-alter table public.tasks add constraint tasks_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
-
 alter table public.tasks add constraint tasks_review_decision_check CHECK ((review_decision = ANY (ARRAY['accepted'::text, 'rejected'::text])));
-
 alter table public.tasks add constraint tasks_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'running'::text, 'submitted'::text, 'accepted'::text, 'rejected'::text, 'failed'::text, 'cancelled'::text])));
-
 alter table public.tasks add constraint tasks_task_type_check CHECK ((task_type = ANY (ARRAY['implementation'::text, 'review'::text, 'fix'::text])));
-
 alter table public.workers add constraint workers_id_project_id_key UNIQUE (id, project_id);
-
 alter table public.workers add constraint workers_pkey PRIMARY KEY (id);
-
+alter table public.workers add constraint workers_project_id_worker_key_key UNIQUE (project_id, worker_key);
+alter table public.workers add constraint workers_status_check CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text])));
+alter table public.artifacts add constraint artifacts_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE;
+alter table public.artifacts add constraint artifacts_execution_id_task_id_fkey FOREIGN KEY (execution_id, task_id) REFERENCES executions(id, task_id) ON DELETE RESTRICT;
+alter table public.executions add constraint executions_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE;
+alter table public.executions add constraint executions_worker_id_fkey FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE RESTRICT;
+alter table public.operation_requests add constraint operation_requests_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+alter table public.projects add constraint projects_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
+alter table public.task_events add constraint task_events_execution_id_fkey FOREIGN KEY (execution_id) REFERENCES executions(id) ON DELETE RESTRICT;
+alter table public.task_events add constraint task_events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+alter table public.task_events add constraint task_events_task_id_project_id_fkey FOREIGN KEY (task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE CASCADE;
+alter table public.task_events add constraint task_events_worker_id_project_id_fkey FOREIGN KEY (worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
+alter table public.tasks add constraint fk_tasks_current_execution FOREIGN KEY (current_execution_id, id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint fk_tasks_latest_delivery_execution FOREIGN KEY (latest_delivery_execution_id, latest_delivery_task_id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint fk_tasks_latest_review_same_project FOREIGN KEY (latest_review_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint fk_tasks_review_delivery_execution FOREIGN KEY (review_target_execution_id, review_target_delivery_task_id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint fk_tasks_review_delivery_same_project FOREIGN KEY (review_target_delivery_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint fk_tasks_review_original_same_project FOREIGN KEY (review_target_original_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint tasks_assigned_worker_id_project_id_fkey FOREIGN KEY (assigned_worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
+alter table public.tasks add constraint tasks_created_by_worker_id_project_id_fkey FOREIGN KEY (created_by_worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
+alter table public.tasks add constraint tasks_fixes_task_id_project_id_fkey FOREIGN KEY (fixes_task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE RESTRICT;
+alter table public.tasks add constraint tasks_parent_task_id_project_id_fkey FOREIGN KEY (parent_task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE RESTRICT;
+alter table public.tasks add constraint tasks_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
 alter table public.workers add constraint workers_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
 
-alter table public.workers add constraint workers_project_id_worker_key_key UNIQUE (project_id, worker_key);
 
-alter table public.workers add constraint workers_status_check CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text])));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 CREATE INDEX idx_artifacts_execution ON public.artifacts USING btree (task_id, execution_id);
 
@@ -192,7 +194,7 @@ CREATE OR REPLACE FUNCTION private.add_event(p_project_id uuid, p_task_id uuid, 
 AS $function$
   insert into public.task_events(project_id,task_id,execution_id,worker_id,event_type,payload)
   values (p_project_id,p_task_id,p_execution_id,p_worker_id,p_event_type,coalesce(p_payload,'{}'::jsonb))
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.assert_current_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid)
@@ -229,7 +231,7 @@ begin
     raise exception using errcode='55000', message='EXECUTION_SUPERSEDED';
   end if;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.assert_owner(p_project_id uuid)
@@ -249,7 +251,7 @@ begin
     raise exception using errcode='42501', message='PROJECT_FORBIDDEN';
   end if;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.guard_artifact_immutable_fields()
@@ -264,7 +266,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.guard_event_project_consistency()
@@ -285,7 +287,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.guard_task_immutable_fields()
@@ -303,7 +305,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.idempotency_get(p_project_id uuid, p_operation text, p_key text, p_hash text)
@@ -331,7 +333,7 @@ begin
   end if;
   return null;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.idempotency_put(p_project_id uuid, p_operation text, p_key text, p_hash text, p_response jsonb)
@@ -342,7 +344,7 @@ CREATE OR REPLACE FUNCTION private.idempotency_put(p_project_id uuid, p_operatio
 AS $function$
   insert into public.operation_requests(project_id,operation,idempotency_key,request_hash,response)
   values (p_project_id,p_operation,p_key,p_hash,p_response)
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.request_hash(p_payload jsonb)
@@ -352,7 +354,7 @@ CREATE OR REPLACE FUNCTION private.request_hash(p_payload jsonb)
  SET search_path TO 'pg_catalog'
 AS $function$
   select encode(sha256(convert_to(p_payload::text, 'UTF8')), 'hex')
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.add_artifact(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_artifact_type text, p_name text, p_github_repo text, p_github_path text, p_commit_sha text, p_pr_url text, p_external_url text, p_metadata jsonb, p_idempotency_key text)
@@ -383,7 +385,7 @@ begin
   perform private.idempotency_put(v_project,'add_artifact',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.cancel_task(p_task_id uuid, p_worker_id uuid, p_reason text, p_idempotency_key text)
@@ -420,7 +422,7 @@ begin
   perform private.idempotency_put(v_task.project_id,'cancel_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.claim_task(p_project_id uuid, p_worker_id uuid, p_lease_seconds integer, p_idempotency_key text)
@@ -480,7 +482,7 @@ begin
   perform private.idempotency_put(p_project_id,'claim_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.complete_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_result jsonb, p_idempotency_key text)
@@ -513,7 +515,7 @@ begin
   perform private.idempotency_put(v_task.project_id,'complete_execution',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.create_fix_task(p_original_task_id uuid, p_review_task_id uuid, p_title text, p_description text, p_requirements jsonb, p_worker_id uuid, p_idempotency_key text)
@@ -553,7 +555,7 @@ begin
   perform private.idempotency_put(v_original.project_id,'create_fix_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.create_review_task(p_original_task_id uuid, p_delivery_task_id uuid, p_delivery_execution_id uuid, p_reviewer_worker_id uuid, p_idempotency_key text)
@@ -618,7 +620,7 @@ begin
   perform private.idempotency_put(v_original.project_id,'create_review_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.create_task(p_project_id uuid, p_worker_id uuid, p_task_type text, p_title text, p_description text, p_requirements jsonb, p_priority integer, p_requires_review boolean, p_parent_task_id uuid, p_fixes_task_id uuid, p_idempotency_key text)
@@ -650,7 +652,7 @@ begin
   perform private.idempotency_put(p_project_id,'create_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_project(p_project_id uuid)
@@ -665,7 +667,7 @@ begin
   select * into v_row from public.projects where id=p_project_id;
   return jsonb_build_object('success',true,'data',to_jsonb(v_row));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_task(p_task_id uuid)
@@ -700,7 +702,7 @@ begin
   ) into v_data from public.tasks t where t.id=p_task_id;
   return jsonb_build_object('success',true,'data',v_data);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_worker(p_worker_id uuid)
@@ -716,7 +718,7 @@ begin
   perform private.assert_owner(v_row.project_id);
   return jsonb_build_object('success',true,'data',to_jsonb(v_row));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.heartbeat_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_idempotency_key text)
@@ -742,7 +744,7 @@ begin
   perform private.idempotency_put(v_project,'heartbeat_execution',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.heartbeat_worker(p_worker_id uuid)
@@ -761,7 +763,7 @@ begin
   if not found then raise exception using errcode='55000',message='WORKER_INACTIVE'; end if;
   return jsonb_build_object('success',true,'data',jsonb_build_object('worker_id',p_worker_id,'last_seen_at',clock_timestamp()));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.list_tasks(p_project_id uuid, p_status text, p_worker_id uuid, p_limit integer, p_cursor timestamp with time zone)
@@ -788,7 +790,7 @@ begin
   ) x;
   return jsonb_build_object('success',true,'data',v_data);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.list_workers(p_project_id uuid)
@@ -804,7 +806,7 @@ begin
   from public.workers w where w.project_id=p_project_id;
   return jsonb_build_object('success',true,'data',v_data);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.register_project(p_name text, p_description text, p_github_repo text, p_config jsonb, p_idempotency_key text)
@@ -854,7 +856,7 @@ begin
   values(v_id,'register_project',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.register_worker(p_project_id uuid, p_worker_key text, p_display_name text, p_description text)
@@ -872,7 +874,7 @@ begin
   select * into v_row from public.workers where project_id=p_project_id and worker_key=p_worker_key;
   return jsonb_build_object('success',true,'data',to_jsonb(v_row));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resubmit_after_fix(p_original_task_id uuid, p_fix_task_id uuid, p_fix_execution_id uuid, p_worker_id uuid, p_idempotency_key text)
@@ -911,7 +913,7 @@ begin
   perform private.idempotency_put(v_original.project_id,'resubmit_after_fix',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.review_result(p_review_task_id uuid, p_execution_id uuid, p_reviewer_worker_id uuid, p_decision text, p_review jsonb, p_idempotency_key text)
@@ -979,7 +981,7 @@ begin
   perform private.idempotency_put(v_project,'review_result',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.submit_result(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_result jsonb, p_idempotency_key text)
@@ -1016,7 +1018,7 @@ begin
   perform private.idempotency_put(v_task.project_id,'submit_result',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE TRIGGER trg_artifact_execution_immutable BEFORE UPDATE ON artifacts FOR EACH ROW EXECUTE FUNCTION private.guard_artifact_immutable_fields();
