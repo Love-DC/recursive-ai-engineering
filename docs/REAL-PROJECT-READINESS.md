@@ -1,46 +1,45 @@
-# Real-Project Readiness Gate
+# Pilot Readiness and Deferred Production Gates
 
-This document separates the MVP v1.2 database workflow from production onboarding. Passing database RPC tests alone is not permission to connect real project repositories or start autonomous Workers.
+## Current decision
 
-## Verified so far
+The shared-owner Supabase MCP pilot is ready to begin for this repository under the user's already-authorized ChatGPT connections.
 
-- Seven core tables and 20 public RPCs are deployed.
-- Catalog audit confirms all 20 public RPCs are SECURITY DEFINER with fixed `search_path=pg_catalog, public, auth, private`; `authenticated` can execute them, while `anon` and `PUBLIC` cannot.
-- Direct client table writes are not granted. `operation_requests` has RLS enabled, no client policies, and no client table grants; the Advisor's RLS-without-policy INFO notice is intentional default-deny.
-- A rollback-safe authenticated RPC suite passes project/Worker/Task reads, owner-boundary denial, idempotency replay/conflict, claim/heartbeat, artifact registration, submit, review rejection, Fix/resubmit, review acceptance, no-review completion and running-task cancellation.
-- Two concurrent database connections produced exactly one successful claim for the same Task.
-- Expired lease reclaim advanced to attempt 2; the previous Execution was fenced with `EXECUTION_SUPERSEDED`.
-- Worker identity isolation v1.2 and task-scope hardening v1.2.1 are applied and recorded in Supabase migration history.
-- Negative identity tests deny an unbound Worker and a JWT subject that does not match the Worker bound to another Auth user.
-- Owner workflow tests were rerun successfully after identity changes.
-- Current live business data is zero: projects, workers, tasks, executions, artifacts and operation_requests all contain zero rows.
+This is deliberately narrower than a public or independently authenticated multi-user deployment. Do not confuse the deferred production gates below with prerequisites for the pilot.
 
-## No-go items
+## Pilot conditions
 
-- [x] Owner Console production build verified by GitHub Actions (runs 45053374989 and 45053468980).
-- [ ] Real browser sign-in, project creation and task creation verified with the provisioned Owner account.
-- [x] Worker RPC authorization binds the authenticated subject to the exact Worker ID; Owner retains administrative override. Negative mismatch and unbound-Worker tests pass.
-- [ ] Distinct Auth-user identities provisioned for Coordinator, Implementer, Reviewer and Fixer; positive multi-identity workflows remain untested.
-- [ ] Claim/reclaim and Reviewer workflow tested with genuinely independent Auth-user identities.
-- [ ] Remaining A01–A63 edge cases completed, including cross-project denial, idempotency edge cases, lease fencing, cancellation and review-lock contention.
-- [ ] Coordinator orchestration model finalized. Review/Fix task creation currently remains Owner-only; an autonomous Coordinator Worker cannot yet create these tasks.
-- [ ] Supabase leaked-password protection enabled.
-- [ ] SECURITY DEFINER RPC design reviewed and accepted for production. The Advisor flags all 20 because authenticated clients can invoke them; catalog checks confirm no anon/PUBLIC EXECUTE and fixed search_path, but function-level authorization still needs continued review.
-- [x] Security Advisor rechecked after identity changes; RLS default-deny and SECURITY DEFINER notices documented. Leaked-password protection remains a separate no-go.
-- [ ] Consolidated schema snapshot applied to a disposable empty PostgreSQL 17 database and compared against the deployed catalog.
-- [ ] Backup/restore and rollback procedure documented and tested.
+- Use the single project `recursive-ai-engineering`.
+- Use the single shared Worker row with key `shared-executor`; it is a routing reference, not a session identity.
+- All ChatGPT conversations use the user's existing authorized Supabase MCP connection.
+- Do not provision separate Worker Auth users or track individual sessions.
+- Keep pilot tasks to implementation work with `requires_review=false`.
+- Use Supabase task state for handoff and GitHub commits/files for durable work.
+- A new conversation must be able to continue from task records and repository files alone.
+- The create → claim → complete RPC smoke test passed and was rolled back. No smoke-test task remains.
 
-## Pilot rollout
+## Deferred—not pilot blockers
 
-Only after every no-go item passes:
+These items are required only before expanding beyond the trusted owner-MCP pilot to independent/untrusted clients or more complex workflows:
 
-1. Create a dedicated pilot project, not a production-critical repository.
-2. Use separate Auth identities for Coordinator, Implementer, Reviewer and Fixer.
-3. Limit the pilot to one low-risk task at a time.
-4. Require human approval for repository writes, merges, deployment and external side effects.
-5. Review event history, artifacts, execution fencing and rejected deliveries after every task.
-6. Expand concurrency only after repeated successful pilot runs.
+- Browser-based Owner Console acceptance.
+- Separate Auth-user identity isolation and cross-identity tests.
+- Autonomous Coordinator review/fix authorization.
+- Full A01–A63 edge-case suite.
+- Leaked-password protection review for end-user Auth.
+- SECURITY DEFINER RPC review for exposure to non-owner clients.
+- Disposable-database migration snapshot verification.
+- Backup/restore and rollback exercise.
 
-## Hosting
+## Pilot stop conditions
 
-Vercel is optional. The Owner Console can remain local during MVP validation. Hosting choice does not solve Worker authentication or execution isolation.
+Pause the affected task—not the whole project—if:
+- a task cannot be read or claimed through the connected MCP tools;
+- a task's current execution has expired or been superseded;
+- required code changes cannot be verified;
+- a requested action would deploy, merge, or cause an external side effect without explicit user authorization.
+
+## Expansion boundary
+
+The pilot assumes participating conversations have the user's trusted Supabase MCP access. Do not expose this operating model to untrusted users or public clients. Before doing so, implement and verify a proper non-owner authentication and authorization boundary.
+
+Vercel and the Owner Console remain optional. They are not required to start the shared MCP pilot.
