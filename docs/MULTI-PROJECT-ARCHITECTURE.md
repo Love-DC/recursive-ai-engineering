@@ -10,7 +10,8 @@ Turn Recursive AI Engineering (RAE) into a multi-project task execution platform
 |---|---|
 | Cross-project orchestration, decomposition, task leases, execution history | RAE + Supabase |
 | Project code, technical rules, design decisions, Issues, branches, PRs, CI | The target GitHub repository |
-| Product/game design approval | Colony Sim product owner |\n| Engineering PR review and merge | AI project coordinator after independent review and exact-head validation |
+| Product/game design approval | Colony Sim product owner |
+| Engineering PR review and merge | AI project coordinator after independent review and exact-head validation |
 | Durable task execution state | Supabase task pool |
 | Durable code and reviewable delivery | GitHub commits and PRs |
 
