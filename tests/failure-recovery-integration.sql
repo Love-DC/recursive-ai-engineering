@@ -134,7 +134,7 @@ BEGIN
     ),
     1,false,v_task_id,null,'repair-child-for-failure-' || v_exec2::text);
   v_repair_id := (v_repair_task->'data'->>'id')::uuid;
-  IF v_repair_id IS NULL OR v_repair_replay->'data'->>'id' <> v_repair_id::text THEN
+  IF v_repair_id IS NULL OR v_repair_replay->'data'->>'id' IS DISTINCT FROM v_repair_id::text THEN
     RAISE EXCEPTION 'FAIL: repair child idempotency replay returned a different task: % / %',
       v_repair_task,v_repair_replay;
   END IF;
@@ -148,7 +148,7 @@ BEGIN
   END IF;
   v_repair_claim := public.claim_task(v_project,v_worker,600,
     'repair-child-claim-' || v_exec2::text);
-  IF v_repair_claim->'data'->>'task_id' <> v_repair_id::text THEN
+  IF v_repair_claim->'data'->>'task_id' IS DISTINCT FROM v_repair_id::text THEN
     RAISE EXCEPTION 'FAIL: repair child was not the task claimed: %',v_repair_claim;
   END IF;
   v_repair_exec := (v_repair_claim->'data'->>'execution_id')::uuid;
