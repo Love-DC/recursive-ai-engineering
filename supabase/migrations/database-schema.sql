@@ -54,7 +54,7 @@ alter table public.projects add constraint projects_pkey PRIMARY KEY (id);
 
 alter table public.projects add constraint projects_status_check CHECK ((status = ANY (ARRAY['active'::text, 'archived'::text])));
 
-alter table public.task_events add constraint task_events_execution_id_task_id_fkey FOREIGN KEY (execution_id, task_id) REFERENCES executions(id, task_id) ON DELETE RESTRICT;
+alter table public.task_events add constraint task_events_execution_id_fkey FOREIGN KEY (execution_id) REFERENCES executions(id) ON DELETE RESTRICT;
 
 alter table public.task_events add constraint task_events_pkey PRIMARY KEY (id);
 
@@ -261,6 +261,27 @@ begin
   if new.task_id is distinct from old.task_id
     or new.execution_id is distinct from old.execution_id then
     raise exception using errcode = '23514', message = 'ARTIFACT_EXECUTION_IMMUTABLE';
+  end if;
+  return new;
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION private.guard_event_project_consistency()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'pg_catalog', 'public', 'auth', 'private'
+AS $function$
+declare v_execution_project uuid;
+begin
+  if new.execution_id is not null then
+    select t.project_id into v_execution_project
+    from public.executions e join public.tasks t on t.id=e.task_id
+    where e.id=new.execution_id;
+    if v_execution_project is null or v_execution_project is distinct from new.project_id then
+      raise exception using errcode='23514', message='EVENT_EXECUTION_PROJECT_MISMATCH';
+    end if;
   end if;
   return new;
 end;
@@ -993,6 +1014,8 @@ $function$
 
 CREATE TRIGGER trg_artifact_execution_immutable BEFORE UPDATE ON artifacts FOR EACH ROW EXECUTE FUNCTION private.guard_artifact_immutable_fields();
 
+CREATE TRIGGER trg_event_project_consistency BEFORE INSERT ON task_events FOR EACH ROW EXECUTE FUNCTION private.guard_event_project_consistency();
+
 CREATE TRIGGER trg_review_target_immutable BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION private.guard_task_immutable_fields();
 
 create policy artifacts_owner_read on public.artifacts as PERMISSIVE for SELECT to authenticated using ((EXISTS ( SELECT 1
@@ -1106,6 +1129,8 @@ revoke all on function private.assert_current_execution(uuid, uuid, uuid) from p
 revoke all on function private.assert_owner(uuid) from public, anon, authenticated;
 
 revoke all on function private.guard_artifact_immutable_fields() from public, anon, authenticated;
+
+revoke all on function private.guard_event_project_consistency() from public, anon, authenticated;
 
 revoke all on function private.guard_task_immutable_fields() from public, anon, authenticated;
 
