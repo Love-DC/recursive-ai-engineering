@@ -12,10 +12,10 @@ Autonomy means initiative within a declared project boundary—not authority to 
 
 Run this loop at session start when no eligible task exists, and after completing a task when the current objective permits continued work:
 
-1. **Resolve scope.** Read the active project row, its repository, project-scoped active shared-executor Worker, governance config, and task activation policy. Never infer or reuse another project's IDs.
+1. **Resolve scope.** Read the active project row, its repository, project-scoped active shared-executor Worker, and repository governance manifest at the pinned SHA. Never infer or reuse another project's IDs.
 2. **Inspect evidence.** Review configured project-state and architecture docs, recent relevant commits/PR/CI results, test coverage, TODO/FIXME markers with context, dependency/security reports where available, and read-only operational health. Inspect only sources allowed by project policy.
 3. **Form candidates.** Each candidate must name a concrete observed condition, exact evidence (file/line, commit, CI run, or query result), project impact, bounded proposed change, risk class, acceptance criteria, and validation plan. Do not create speculative tasks from vague preferences.
-4. **Classify authority.** Apply the project's task_activation and governance rules before creating anything. If a project has no explicit task_activation config, use its repository's documented governance contract; never infer a permissive default for an external project. If the finding needs product, security, data, or production approval, record it as a proposal/report and stop at the decision gate.
+4. **Classify authority.** Apply task activation and governance rules from the repository's manifest and referenced documents before creating anything. Never infer a permissive default. If the finding needs product, security, data, or production approval, record it as a proposal/report and stop at the decision gate.
 5. **Deduplicate.** Compare candidate fingerprint and affected scope against all non-terminal tasks and recent task events in that project. Reuse/update an existing task where supported; never create a second active task for the same root cause. A fingerprint should be stable across scans (project key + normalized issue signature + affected paths or failing check).
 6. **Control noise.** Create at most three new discovery tasks per project per scan, one per distinct root cause. Skip low-impact style-only churn, unsupported claims, already-fixed findings, and candidates without reproducible evidence. If no candidate passes, leave the queue empty and report what was inspected.
 7. **Publish.** For an eligible candidate, call the project's create_task using that project's UUID and its own active Worker UUID. Store discovery source, evidence references, fingerprint, risk/authority classification, impact, acceptance criteria, validation plan, and originating scan timestamp in requirements. Use an idempotency key derived from scan/candidate identity; never reuse a key for different arguments.
@@ -30,9 +30,9 @@ Run this loop at session start when no eligible task exists, and after completin
 | Refactor, performance or architecture proposal | Create an investigation/proposal task; implementation needs an explicit bounded engineering basis | Proposal only unless explicitly authorized |
 | Product behavior, game design, UX, business rules | Proposal only; owner decision required | Proposal only; product owner decision required |
 | Security policy, credentials, RLS/auth, data deletion/migration, production deploy | Report and request explicit authorization | Report and request explicit authorization |
-| GitHub Issue/backlog item | An Issue is evidence/input, not by itself an authorization token; apply RAE project policy | Open Issue is backlog, not permission; Colony Sim requires exact owner/coordinator dispatch and READY activation as documented |
+| GitHub Issue/backlog item | An Issue is evidence/input, not by itself an authorization token; apply this repository's local activation policy | An Issue is evidence/input, not by itself an authorization token; apply that repository's local activation policy |
 
-**Colony Sim remains explicit_owner_authorization_only.** No discovery scan may bulk-import, auto-claim, or execute Colony Sim Issues. The project's own governance always overrides this generic loop.
+No discovery scan may bulk-import, auto-claim, or execute Issues unless the target repository's own governance explicitly authorizes that action. The repository's own governance is authoritative for project-level activation.
 
 ## Candidate record
 
@@ -76,7 +76,7 @@ This contract makes discovery an explicit Worker responsibility during a live se
 - [ ] Duplicate active/recent root causes are suppressed using a stable project-scoped fingerprint.
 - [ ] Per-scan task creation is capped and low-value findings are skipped.
 - [ ] Project routing uses that project's own project UUID and Worker UUID.
-- [ ] Project activation policy gates task creation; Colony Sim backlog remains owner-authorized only.
+- [ ] The repository-local project activation policy gates task creation.
 - [ ] Approval-gated work is reported, not silently converted to executable tasks.
 - [ ] Created tasks are claimed atomically and completed with normal execution evidence.
 - [ ] No scheduler, schema change, or production deployment is implied by this discovery pilot. Engineering PR review and merge are handled by the AI coordinator under the standing project authorization.
@@ -91,7 +91,7 @@ Run these cases against a disposable or transaction-rolled-back task fixture whe
 | Duplicate scan | Repeat the same finding with the same fingerprint while its task is non-terminal | No second active task is created; report the existing task ID |
 | Unsupported candidate | A vague TODO or speculative refactor with no demonstrated impact or validation | No task is created; finding is omitted or recorded as a proposal |
 | Approval-gated change | A candidate requires product, security, auth/RLS, data migration, or production approval | No executable task is created; report the specific owner decision required |
-| External backlog | An open Colony Sim Issue without an exact owner/coordinator dispatch and valid READY activation | No Colony Sim task is created or claimed |
+| External backlog | An open Issue without the authorization required by that repository's governance | No task is created or claimed |
 | Project routing | An authorized candidate belongs to another project whose policy permits creation | Task is written only with that project's project UUID and matching active Worker UUID |
 
 For a positive RAE case, verify the new row with project-scoped list_tasks/get_task, then claim it through claim_task and confirm the returned task_id/project_id and execution_id. Do not complete a fixture task unless the test is explicitly intended to exercise the full lifecycle. For negative cases, verify that task counts and existing task states remain unchanged. Record inspected sources, candidate fingerprints, created task IDs, and any skipped approval-gated proposals in the run result.
