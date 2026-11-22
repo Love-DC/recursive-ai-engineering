@@ -10,9 +10,26 @@ begin
     values(v_bound,v_project,'bound-worker','Bound Worker',v_owner);
   insert into public.workers(id,project_id,worker_key,display_name)
     values(v_unbound,v_project,'unbound-worker','Unbound Worker');
+  perform set_config('request.jwt.claim.sub',v_owner::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_owner::text,'role','authenticated')::text,true);
+  execute 'set local role authenticated';
+
+  begin
+    perform public.bind_worker_identity(v_unbound,v_owner);
+    raise exception 'FAIL: one Auth user was bound to two Workers';
+  exception when unique_violation then
+    raise notice 'PASS: Auth identity uniqueness enforced';
+  end;
+
   perform set_config('request.jwt.claim.sub',v_fake::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_fake::text,'role','authenticated')::text,true);
-  execute 'set local role authenticated';
+
+  begin
+    perform public.bind_worker_identity(v_bound,v_fake);
+    raise exception 'FAIL: non-owner changed Worker identity binding';
+  exception when insufficient_privilege then
+    if sqlerrm <> 'PROJECT_FORBIDDEN' then raise; end if;
+  end;
 
   begin
     perform public.claim_task(v_project,v_bound,120,'bound-worker-impersonation');
@@ -35,7 +52,7 @@ begin
     if sqlerrm <> 'WORKER_IDENTITY_MISMATCH' then raise; end if;
   end;
   execute 'reset role';
-  raise notice 'PASS: mismatched Auth subject and unbound Worker denied for claim and Worker read';
+  raise notice 'PASS: unique Auth binding; non-owner binding denied; mismatched Auth subject and unbound Worker denied for claim and Worker read';
 end;
 $setup$;
 rollback;
