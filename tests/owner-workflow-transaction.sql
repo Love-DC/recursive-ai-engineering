@@ -30,13 +30,15 @@ declare
   v_noreview jsonb; v_noreview_claim jsonb; v_complete jsonb;
   v_cancel_task jsonb; v_cancel_claim jsonb; v_cancel_result jsonb; v_cancel_read jsonb;
   v_workers_read jsonb; v_tasks_read jsonb; v_task_read jsonb; v_heartbeat jsonb;
-  v_project_id uuid; v_owner_worker_id uuid; v_reviewer_worker_id uuid;
+  v_project_id uuid; v_owner_id uuid; v_owner_worker_id uuid; v_reviewer_worker_id uuid;
   v_task_id uuid; v_exec_id uuid; v_review_id uuid; v_review_exec_id uuid;
   v_fix_id uuid; v_fix_exec_id uuid; v_review2_id uuid; v_review2_exec_id uuid;
   v_noreview_id uuid; v_noreview_exec_id uuid;
   v_cancel_id uuid; v_cancel_exec_id uuid;
   v_issues jsonb := '[{"id":"I1","description":"Add missing validation"}]'::jsonb;
 begin
+  v_owner_id := auth.uid();
+  if v_owner_id is null then raise exception 'FAIL: test requires authenticated Owner JWT'; end if;
   v_project := public.register_project(
     'MVP rollback acceptance', 'transactional test only', null, '{}'::jsonb, v_key
   );
@@ -58,6 +60,16 @@ begin
   v_reviewer_worker := public.register_worker(v_project_id,'reviewer','Reviewer','acceptance');
   v_owner_worker_id := (v_owner_worker->'data'->>'id')::uuid;
   v_reviewer_worker_id := (v_reviewer_worker->'data'->>'id')::uuid;
+  perform set_config('request.jwt.claim.sub',gen_random_uuid()::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('request.jwt.claim.sub'),'role','authenticated')::text,true);
+  begin
+    perform public.get_project(v_project_id);
+    raise exception 'FAIL: cross-owner project read was not denied';
+  exception when others then
+    if sqlerrm not like '%PROJECT_FORBIDDEN%' then raise; end if;
+  end;
+  perform set_config('request.jwt.claim.sub',v_owner_id::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_owner_id::text,'role','authenticated')::text,true);
   v_project_read := public.get_project(v_project_id);
   v_workers_read := public.list_workers(v_project_id);
   if v_project_read->'data'->>'id' <> v_project_id::text or jsonb_array_length(v_workers_read->'data') <> 2 then
