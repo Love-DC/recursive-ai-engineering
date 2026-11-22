@@ -1,3 +1,22 @@
+# Multi-project routing — authoritative addendum
+
+This addendum supersedes any assumption below that every task belongs to the original RAE project. Before creating, claiming, or completing work, resolve the target project and its project-scoped worker from live Supabase data.
+
+- Query `public.projects` and select the active row by `config->>'project_key'` or canonical `github_repo`.
+- Query `public.workers` for `project_id = <selected project UUID>`, `worker_key = 'shared-executor'`, and `status = 'active'`.
+- Use that exact project UUID and worker UUID for every task RPC. Never reuse the RAE worker UUID for Colony Sim or vice versa.
+- RAE project key/repository: `recursive-ai-engineering` / `Love-DC/recursive-ai-engineering`.
+- Colony Sim project key/repository: `colony-sim` / `Love-DC/colony-sim`.
+- Colony Sim governance is loaded from the repository paths in its `projects.config.governance` object. At minimum read `AGENTS.md`, `docs/ai/AI_START_HERE.md`, and `docs/ai/WEB_GITHUB_WORKFLOW.md`.
+- Keep task-specific GitHub metadata in `tasks.requirements` JSONB using the contract in `docs/MULTI-PROJECT-ARCHITECTURE.md`. Store actual delivery evidence in the execution result and artifacts.
+- A direct owner request authorizes the current coordinator to execute a bounded engineering objective in the selected project. It does not authorize unapproved product decisions.
+- Never bulk-import Issues. For Colony Sim, an Issue becomes executable only under its explicit owner/coordinator dispatch rules. An open Issue is not permission.
+- Do not merge PRs. Colony Sim's product owner retains final merge approval.
+
+Use [Session Start](SESSION-START.md) as the canonical new-conversation entry point and [Multi-Project Architecture](MULTI-PROJECT-ARCHITECTURE.md) as the canonical routing/task contract.
+
+---
+
 # GPT Session Operating Instructions — Shared MCP Pilot
 
 ## Operating model

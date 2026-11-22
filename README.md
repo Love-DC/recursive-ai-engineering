@@ -25,7 +25,11 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 
 ## Start here
 
-Read [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md). A new ChatGPT conversation should read those instructions, inspect the task queue, claim a task, and work from persisted task context—not from another conversation's chat history.
+- [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the coordinator route and execute it.
+- [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, task metadata, and governance adapters.
+- [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md): Supabase task lifecycle and owner-MCP operating details.
+
+The platform currently registers two projects: `recursive-ai-engineering` and `colony-sim` (`Love-DC/colony-sim`). Each has its own Supabase project row and project-scoped `shared-executor` worker. Task state remains isolated by `project_id`; code, Issues, PRs, CI, and project governance remain in the target repository.
 
 Before changing the system, review [Pilot Readiness and Deferred Production Gates](docs/REAL-PROJECT-READINESS.md) for the trusted-pilot boundary and outstanding expansion gates. The [Failure Reporting and Retry Contract](docs/FAILURE-RECOVERY-CONTRACT.md) records the current missing failure/requeue API and its proposed safe semantics; it is a design contract, not a deployed feature.
 
