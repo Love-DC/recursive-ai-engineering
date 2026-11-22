@@ -28,7 +28,8 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 - [Autonomous Task Discovery & Generation](docs/AUTONOMOUS-TASK-DISCOVERY.md): evidence-based discovery, project authorization, deduplication, and empty-queue behavior.
 
 - [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the coordinator route and execute it.
-- [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, and task metadata.\n- [Repository-local governance protocol](docs/REPOSITORY-GOVERNANCE-PROTOCOL.md): pinned-SHA discovery, compatibility checks, conflict handling, and repository-owned CI routing.
+- [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, and task metadata.
+- [Repository-local governance protocol](docs/REPOSITORY-GOVERNANCE-PROTOCOL.md): pinned-SHA discovery, compatibility checks, conflict handling, and repository-owned CI routing.
 - [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md): Supabase task lifecycle and owner-MCP operating details.
 
 The platform currently registers two projects: `recursive-ai-engineering` and `colony-sim` (`Love-DC/colony-sim`). Each has its own Supabase project row and project-scoped `shared-executor` worker. Task state remains isolated by `project_id`; code, Issues, PRs, CI, and project governance remain in the target repository.
