@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Activity, Bot, CheckCircle2, CircleAlert, ClipboardList, FolderPlus, LogOut, Plus, RefreshCw, ShieldCheck, Users, X } from 'lucide-react'
 import { supabase, supabaseConfigured } from './supabase'
 import './style.css'
@@ -34,7 +34,7 @@ export default function App() {
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   const [projectForm, setProjectForm] = useState({ name: '', github_repo: '', description: '' })
   const [workerForm, setWorkerForm] = useState({ worker_key: '', display_name: '', description: '' })
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', requirements: '', worker_id: '', priority: '100', requires_review: true })
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', requirements: '', priority: '100', requires_review: true })
   const [showProject, setShowProject] = useState(false)
   const [showWorker, setShowWorker] = useState(false)
   const [showTask, setShowTask] = useState(false)
@@ -84,7 +84,7 @@ export default function App() {
     done: tasks.filter(t => t.status === 'accepted').length,
   }), [tasks])
 
-  async function signIn(event: React.FormEvent) {
+  async function signIn(event: FormEvent) {
     event.preventDefault()
     if (!supabase) return
     setAuthBusy(true)
@@ -208,7 +208,7 @@ export default function App() {
   </div>
 }
 
-function Stat({label,value,icon}:{label:string;value:number;icon:React.ReactNode}) { return <div className="stat-card"><div className="stat-icon">{icon}</div><span>{label}</span><strong>{value}</strong></div> }
+function Stat({label,value,icon}:{label:string;value:number;icon:ReactNode}) { return <div className="stat-card"><div className="stat-icon">{icon}</div><span>{label}</span><strong>{value}</strong></div> }
 function Status({value}:{value:string}) { return <span className={`status status-${value}`}>{statusLabel(value)}</span> }
 function Empty({text}:{text:string}) { return <div className="empty-state">{text}</div> }
 function Modal({title,children,onClose}:{title:string;children:React.ReactNode;onClose:()=>void}) { return <div className="modal-backdrop" onMouseDown={e => { if(e.target===e.currentTarget) onClose() }}><section className="modal"><div className="modal-head"><h2>{title}</h2><button className="icon-button" onClick={onClose}><X size={17}/></button></div>{children}</section></div> }
