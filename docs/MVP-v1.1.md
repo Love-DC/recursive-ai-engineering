@@ -1,14 +1,14 @@
-# AI Worker Collaboration System — MVP v1.1
+# AI Worker Collaboration System — MVP v1.2
 
 ## Status
 
-Implementation baseline: MVP v1.1 plus the five mandatory pre-implementation corrections. The database currently has seven core tables and nineteen public RPCs.
+Implementation baseline: MVP v1.2. The seven-table, nineteen-RPC baseline now includes per-Worker Supabase Auth identity binding and task-scoped authorization.
 
 ## Architecture
 
 Supabase PostgreSQL is authoritative for projects, Workers, Tasks, Execution state, leases, review decisions, artifacts and events. GitHub stores code and deliverables. A GPT conversation's chat history is not authoritative state.
 
-The identity model uses one Supabase project owner and logical Worker IDs. It does not cryptographically distinguish GPT sessions that share the same Auth user.
+Each Worker may be bound to one distinct `auth.users.id` through the Owner-only `bind_worker_identity` RPC. Worker-facing RPCs validate `auth.uid()` against the exact Worker ID. The project Owner retains administrative override. Unbound Workers and mismatched Auth subjects are denied.
 
 ## Seven core tables
 
@@ -53,13 +53,13 @@ After rejection: a dedicated Fix Task references the Original Task through `fixe
 ## Security model
 
 - Public API functions are SECURITY DEFINER with fixed `search_path`.
-- Every business RPC validates `auth.uid()` and project ownership.
+- Owner-only administrative RPCs validate project ownership. Worker RPCs validate project ownership or exact Worker/Auth binding, depending on the operation.
 - Only explicitly granted public RPC signatures are executable by `authenticated`; `anon` and PUBLIC are revoked per function.
 - Internal helpers live in the unexposed `private` schema and have no client EXECUTE grants.
 - Direct client writes to business tables are revoked.
 - RLS is enabled on all seven tables; operation_requests has no client policy or table grants.
-- Logical Worker IDs are not authentication credentials. Shared-owner sessions can still claim another logical Worker ID; this is an accepted MVP limitation.
+- `workers.auth_user_id` is unique and references `auth.users(id)`. Owner binds/unbinds identities via `bind_worker_identity`; credentials are never stored in Worker rows.\n- Worker sessions can inspect only their own Worker record and assigned tasks; Worker cancellation is limited to tasks assigned to that Worker. Fix-task orchestration remains Owner-only.
 
 ## Known limits and outstanding validation
 
-One Auth user has been provisioned. The Owner console source is committed under `console/`, but its build and real browser login flow remain unverified. A rollback-safe RPC-level workflow test passed under a simulated authenticated Owner JWT context, covering ownership denial, idempotency replay/conflict, claim/heartbeat, artifact registration, submit, Reviewer rejection, Fix/resubmit, Reviewer acceptance, no-review completion and running-task cancellation. A two-connection claim race, lease-expiry reclaim and stale-Execution fencing test also passed using the same Owner identity. Test records were rolled back or deleted. Distinct Auth-user concurrency remains untested. The current logical Worker IDs are not cryptographically isolated; per-Worker authentication is a prerequisite for production multi-GPT use. See the acceptance report.
+One Auth user has been provisioned. The Owner console source is committed under `console/`, but its real browser login flow remains unverified. Worker identity isolation migrations are deployed and recorded. A rollback-safe RPC-level workflow test passed under a simulated authenticated Owner JWT context, covering ownership denial, idempotency replay/conflict, claim/heartbeat, artifact registration, submit, Reviewer rejection, Fix/resubmit, Reviewer acceptance, no-review completion and running-task cancellation. A two-connection claim race, lease-expiry reclaim and stale-Execution fencing test also passed using the same Owner identity. Test records were rolled back or deleted. Negative tests now prove unbound and mismatched Auth subjects cannot claim or inspect another Worker. Positive end-to-end workflows across genuinely separate Auth users remain untested because only one Auth user exists. See the acceptance report.
