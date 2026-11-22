@@ -12,7 +12,7 @@ This addendum supersedes any assumption below that every task belongs to the ori
 - A direct owner request authorizes the current coordinator to execute a bounded engineering objective in the selected project. It does not authorize unapproved product decisions.
 - Never bulk-import Issues. For Colony Sim, an Issue becomes executable only under its explicit owner/coordinator dispatch rules. An open Issue is not permission.
 - When a project queue is empty, follow docs/AUTONOMOUS-TASK-DISCOVERY.md; create only evidence-backed, deduplicated tasks permitted by that project's activation policy. Colony Sim remains explicit-owner-authorization-only.
-- Do not merge PRs. Colony Sim's product owner retains final merge approval.
+- A leaf Worker does not merge its own PR or sibling PRs. The AI coordinator owns independent review and merge of eligible engineering-only PRs after the review checklist and exact-head CI pass. Product-owner approval remains required for product/design decisions, not routine engineering merges.
 
 Use [Session Start](SESSION-START.md) as the canonical new-conversation entry point and [Multi-Project Architecture](MULTI-PROJECT-ARCHITECTURE.md) as the canonical routing/task contract.
 
@@ -64,7 +64,7 @@ The pilot uses the already-authorized project-owner MCP connection; it does not 
 - Do not add Worker identity systems, session tracking, heartbeat monitoring, multi-account provisioning, or complex orchestration.
 - Do not create or modify Supabase schema unless the task specifically requires it.
 - Do not use Service Role keys, secret keys, database passwords, or privileged connection strings outside the connected Supabase MCP tool.
-- Do not deploy, merge, or perform external side effects without explicit user authorization.
+- Do not deploy production systems or perform other high-impact external side effects without explicit authorization. Routine engineering PR review/merge is covered by the standing owner authorization recorded in the project governance; follow the coordinator review checklist.
 - If a task cannot be completed safely, persist the blocker and create a smaller actionable task rather than inventing progress.
 
 
