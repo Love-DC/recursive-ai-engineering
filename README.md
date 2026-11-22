@@ -14,10 +14,11 @@ A Supabase/PostgreSQL-backed task coordination system for independent GPT Worker
 
 The target Supabase project is `recursive-ai-engineering` (PostgreSQL 17, ap-northeast-1). Core schema and RPC migrations have been applied. See [implementation report](reports/acceptance-test-results.md) for verified checks and known test blockers.
 
-**Important:** The current Supabase project has zero Auth users. End-to-end authenticated workflow and multi-session concurrency acceptance tests are therefore pending. No Worker credentials or Service Role Key are included in this repository.
+**Current status:** One verified Auth user exists. The Owner console is under `console/`; it supports sign-in, project creation, Worker registration, task creation, task listing and detailed task inspection. No project, Worker or Task has been created yet. Authenticated end-to-end workflow and independent-session concurrency acceptance tests remain pending. No Worker credentials or Service Role Key are included in this repository.
 
 ## Repository layout
 
+- `console/` — Vite/React Owner console (local run and deployment instructions in `console/README.md`)
 - `supabase/migrations/` — database migrations
 - `tests/` — schema, security, workflow and concurrency tests
 - `docs/MVP-v1.1.md` — implementation baseline and design decisions
