@@ -60,10 +60,14 @@ A Vite/React Owner console is committed under `console/`. It supports password s
 7. `mvp_v1_1_idempotency_and_review_lock_fixes`
 8. `mvp_v1_1_event_cross_task_execution_reference`
 9. `mvp_v1_1_review_context_query`
+10. `worker_identity_isolation_v1_2`
+11. `worker_task_scope_v1_2_1`
 
 The initial covering-index migration attempt failed because one index already existed; it was corrected with an idempotent migration and the corrected migration succeeded. No schema state was lost.
 
 ## Security Advisor notes
+
+A subsequent health Advisor check returned no lints. The security and performance Advisor findings below were rechecked after the Worker identity migrations.
 
 - `operation_requests` has RLS enabled and intentionally has no client policy or client table grant. This is default-deny by design.
 - Supabase Advisor reports 20 authenticated SECURITY DEFINER RPCs as warnings because they are callable via the API. Catalog checks confirm all 20 have fixed `search_path`, `authenticated` grants, and no `anon`/`PUBLIC` EXECUTE grants. Their owner guards were exercised by the transactional workflow test, but they still require ongoing manual security review.
