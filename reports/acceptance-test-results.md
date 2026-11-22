@@ -44,6 +44,7 @@ The database foundation and all 19 RPC definitions have been deployed. Schema an
 6. `mvp_v1_1_remaining_fk_index`
 7. `mvp_v1_1_idempotency_and_review_lock_fixes`
 8. `mvp_v1_1_event_cross_task_execution_reference`
+9. `mvp_v1_1_review_context_query`
 
 The initial covering-index migration attempt failed because one index already existed; it was corrected with an idempotent migration and the corrected migration succeeded. No schema state was lost.
 
@@ -61,8 +62,8 @@ A consolidated, current database snapshot is committed at `supabase/migrations/d
 2. Fix and test idempotent replay on `register_project` with an authenticated owner; its deterministic project UUID is derived from owner + idempotency key.
 3. Exercise all A01–A63 acceptance cases, especially duplicate review creation, rejected/accepted latest_review_task_id updates, no-review completion, cancel-running behavior, and expired-lease fencing.
 4. Run two genuinely independent authenticated sessions for claim_task and lease/reclaim concurrency. Sequential SQL scripts are not substitutes.
-5. Review the Review RPC lock acquisition sequence under concurrent activity before production Worker use.
-6. Add the complete consolidated migration source to the repository and verify it can recreate an empty disposable Supabase database before calling the repository handoff complete.
+5. Validate the Review RPC lock order under genuine concurrent sessions before production Worker use.
+6. Verify the consolidated migration by applying it to an empty disposable PostgreSQL 17 database before production handoff.
 
 ## Credential boundary
 
