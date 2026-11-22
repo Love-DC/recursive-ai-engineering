@@ -23,7 +23,7 @@ The current schema already scopes `projects`, `workers`, `tasks`, `executions`, 
 
 Each registered project has:
 - One `public.projects` row with its canonical repository and project-specific configuration.
-- One active `shared-executor` worker row in that project. This is a stable database routing record, not a ChatGPT session identity.
+- One or more active Worker rows in that project. Worker keys and routing may differ by project and task type; a Worker UUID is a project-scoped routing identifier, not a ChatGPT session identity.
 - Tasks created and claimed only within that project ID.
 - Project-specific rules and GitHub metadata carried in the task's JSON requirements and result/artifact records.
 
@@ -31,14 +31,18 @@ Do not share a Worker UUID across projects. The stable worker key may be the sam
 
 ## Project configuration contract
 
-Use `public.projects.github_repo` as the canonical `owner/repository` identifier. Supabase configuration is limited to routing and platform execution metadata, for example:
+Use `public.projects.github_repo` as the canonical `owner/repository` identifier. Supabase configuration is limited to routing and platform execution metadata, including optional per-project Worker routing, for example:
 
 ```json
 {
   "project_key": "colony-sim",
   "default_branch": "main",
   "execution_mode": "single_owner_shared_executor",
-  "session_identity_tracking": false
+  "session_identity_tracking": false,
+  "worker_routing": {
+    "default_worker_key": "shared-executor",
+    "task_type_worker_keys": {}
+  }
 }
 ```
 
@@ -72,6 +76,8 @@ Keep the existing task schema stable. Put repository-specific task context in th
 ```
 
 The exact shape may add task-specific fields, but must never weaken project governance. Record actual PR URL, branch, head SHA, commit SHA, changed paths, test evidence, and blockers in the execution result and/or artifacts.
+
+Worker routing is separate from engineering governance. `worker_routing.default_worker_key` and `worker_routing.task_type_worker_keys` may select active Worker rows within the same project. Different repositories may use different Worker keys and task-type mappings. If routing is absent, the Coordinator may use the only active Worker for that project; ambiguous routing blocks task claim.
 
 ## Repository-local governance discovery
 
