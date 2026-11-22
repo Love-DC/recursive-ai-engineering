@@ -28,4 +28,4 @@ jobs:
 
       - name: Run ShellCheck
         run: |
-          shellcheck --severity=warning scripts/test-claim-concurrency.sh scripts/test-task-lifecycle.sh scripts/test-failure-recovery.sh
+          shellcheck --severity=warning scripts/test-claim-concurrency.sh scripts/test-task-lifecycle.sh scripts/test-failure-recovery.sh scripts/test-fail-reclaim-race.sh
