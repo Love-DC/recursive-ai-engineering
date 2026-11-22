@@ -21,6 +21,11 @@ jobs:
           bash -n scripts/test-failure-recovery.sh
           bash -n scripts/test-fail-reclaim-race.sh
 
+      - name: Validate branch cleanup Python and unit tests
+        run: |
+          python -m py_compile scripts/cleanup_branches.py
+          python -m unittest scripts.test_cleanup_branches -v
+
       - name: Install ShellCheck
         run: |
           sudo apt-get update
