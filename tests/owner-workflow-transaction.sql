@@ -29,7 +29,7 @@ declare
   v_review2 jsonb; v_review_claim2 jsonb; v_accept jsonb;
   v_noreview jsonb; v_noreview_claim jsonb; v_complete jsonb;
   v_cancel_task jsonb; v_cancel_claim jsonb; v_cancel_result jsonb; v_cancel_read jsonb;
-  v_workers_read jsonb; v_tasks_read jsonb; v_task_read jsonb; v_heartbeat jsonb;
+  v_workers_read jsonb; v_tasks_read jsonb; v_task_read jsonb; v_heartbeat jsonb; v_bind jsonb;
   v_project_id uuid; v_owner_id uuid; v_owner_worker_id uuid; v_reviewer_worker_id uuid;
   v_task_id uuid; v_exec_id uuid; v_review_id uuid; v_review_exec_id uuid;
   v_fix_id uuid; v_fix_exec_id uuid; v_review2_id uuid; v_review2_exec_id uuid;
@@ -59,6 +59,8 @@ begin
   v_owner_worker := public.register_worker(v_project_id,'coordinator','Coordinator','acceptance');
   v_reviewer_worker := public.register_worker(v_project_id,'reviewer','Reviewer','acceptance');
   v_owner_worker_id := (v_owner_worker->'data'->>'id')::uuid;
+  v_bind := public.bind_worker_identity(v_owner_worker_id,v_owner_id);
+  if v_bind->'data'->>'auth_user_id' <> v_owner_id::text then raise exception 'FAIL: Owner bind_worker_identity'; end if;
   v_reviewer_worker_id := (v_reviewer_worker->'data'->>'id')::uuid;
   perform set_config('request.jwt.claim.sub',gen_random_uuid()::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('request.jwt.claim.sub'),'role','authenticated')::text,true);
