@@ -131,7 +131,7 @@ BEGIN
 
   -- Expired execution is fenced; ordinary claim_task performs recovery.
   v_task := public.create_task(v_project,v_worker,'implementation','Expired failure fixture',
-    'Disposable transaction fixture','{"retry":{"max_attempts":3}}'::jsonb,
+    'Disposable transaction fixture','{"retry":{"max_attempts":3,"backoff_seconds":30}}'::jsonb,
     3,false,null,null,'failure-expired-create');
   v_task_id := (v_task->'data'->>'id')::uuid;
   v_claim := public.claim_task(v_project,v_worker,600,'failure-expired-claim-1');
@@ -143,10 +143,30 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '55000' THEN
     IF SQLERRM <> 'EXECUTION_EXPIRED' THEN RAISE; END IF;
   END;
+  v_claim2 := public.claim_task(v_project,v_worker,600,'failure-expired-backoff-early');
+  IF v_claim2->'data'->>'task' IS DISTINCT FROM 'null' THEN
+    RAISE EXCEPTION 'FAIL: expired lease was reclaimed before its backoff';
+  END IF;
+  UPDATE public.tasks SET lease_until=clock_timestamp()-interval '31 seconds' WHERE id=v_task_id;
   v_claim2 := public.claim_task(v_project,v_worker,600,'failure-expired-reclaim');
   IF (v_claim2->'data'->>'attempt')::integer <> 2
      OR (SELECT status FROM public.executions WHERE id=v_exec) <> 'expired' THEN
-    RAISE EXCEPTION 'FAIL: expired execution was not safely reclaimed';
+    RAISE EXCEPTION 'FAIL: expired execution was not safely reclaimed after backoff';
+  END IF;
+
+  -- Lease expirations also stop at the same configured attempt cap.
+  v_task := public.create_task(v_project,v_worker,'implementation','Lease retry cap fixture',
+    'Disposable transaction fixture','{"retry":{"max_attempts":1}}'::jsonb,
+    4,false,null,null,'failure-lease-cap-create');
+  v_task_id := (v_task->'data'->>'id')::uuid;
+  v_claim := public.claim_task(v_project,v_worker,600,'failure-lease-cap-claim');
+  v_exec := (v_claim->'data'->>'execution_id')::uuid;
+  UPDATE public.tasks SET lease_until=clock_timestamp()-interval '1 second' WHERE id=v_task_id;
+  v_claim2 := public.claim_task(v_project,v_worker,600,'failure-lease-cap-check');
+  IF v_claim2->'data'->>'task' IS DISTINCT FROM 'null'
+     OR (SELECT status FROM public.tasks WHERE id=v_task_id) <> 'failed'
+     OR (SELECT status FROM public.executions WHERE id=v_exec) <> 'expired' THEN
+    RAISE EXCEPTION 'FAIL: lease retry cap did not terminally fail the task';
   END IF;
 
   -- Cancellation remains a distinct terminal state, not a retryable failure.
