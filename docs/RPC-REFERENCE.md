@@ -24,6 +24,10 @@ All functions are in `public`, use SECURITY DEFINER and fixed `search_path=pg_ca
 | resubmit_after_fix | Set submitted Fix Execution as Original delivery | original_task_id, fix_task_id, fix_execution_id, worker_id, idempotency_key |
 | cancel_task | Cancel pending/running Task | task_id, worker_id, reason, idempotency_key |
 
+## get_task review response
+
+For a Review Task, `get_task` includes a `review_target` object with the Original Task (including business requirements), the fixed Delivery Task, the exact Delivery Execution result, and artifacts filtered by both Delivery Task ID and Delivery Execution ID. It does not substitute newer Execution artifacts.
+
 ## Important rules
 
 - `claim_task` accepts lease_seconds from 60 through 600. Review Tasks can only be claimed by their assigned Reviewer. Expired ordinary running Tasks can be claimed by another Worker.
