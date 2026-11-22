@@ -70,10 +70,14 @@ def load_governance(
 
     if not isinstance(manifest, dict) or manifest.get("protocol") != PROTOCOL:
         raise GovernanceError(f"Unsupported governance protocol; expected {PROTOCOL}")
+    if not isinstance(manifest.get("project"), str) or not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", manifest["project"]):
+        raise GovernanceError("Manifest project must be a stable lowercase project key")
     protocol_version = _version(manifest.get("protocol_version"))
     if protocol_version[0] != 1:
         raise GovernanceError("Incompatible governance protocol major version")
     compatibility = manifest.get("compatibility") or {}
+    if not isinstance(compatibility, dict):
+        raise GovernanceError("compatibility must be an object")
     minimum = _version(compatibility.get("min_coordinator_version", "1.0.0"))
     if _version(coordinator_version) < minimum:
         raise GovernanceError(
@@ -130,9 +134,12 @@ def load_governance(
         ):
             raise GovernanceError("validation.repository must be owner/repository")
         if workflow is not None:
-            candidate = Path(workflow)
-            if candidate.is_absolute() or ".." in candidate.parts:
-                raise GovernanceError("validation.workflow must be a safe repository-relative path")
+            if ci_repo is None:
+                _safe_repo_file(root, workflow, "validation.workflow")
+            else:
+                candidate = Path(workflow)
+                if candidate.is_absolute() or ".." in candidate.parts:
+                    raise GovernanceError("validation.workflow must be a safe repository-relative path")
 
     return manifest
 
