@@ -14,7 +14,7 @@ A Supabase/PostgreSQL-backed task coordination system for independent GPT Worker
 
 The target Supabase project is `recursive-ai-engineering` (PostgreSQL 17, ap-northeast-1). Core schema and RPC migrations have been applied. See [implementation report](reports/acceptance-test-results.md) for verified checks and known test blockers.
 
-**Current status:** Worker identity isolation v1.2 and task-scope hardening v1.2.1 are applied. Worker RPCs bind JWT subject to the exact Worker ID; negative tests reject unbound and mismatched identities. The Owner workflow acceptance suite passes after these changes. One Auth user exists, so positive cross-Worker workflows with genuinely separate Auth users remain pending. Browser sign-in/UI acceptance, remaining A01–A63 cases, leaked-password protection and disposable-database snapshot verification remain release gates. No test records remain. No Worker credentials or Service Role Key are included in this repository.
+**Current status:** Worker identity isolation v1.2 and task-scope hardening v1.2.1 are applied. Worker RPCs bind JWT subject to the exact Worker ID; negative tests reject unbound and mismatched identities. The Owner workflow acceptance suite passes after these changes. One Auth user exists, so positive cross-Worker workflows with genuinely separate Auth users remain pending. Browser sign-in/UI acceptance, independent Auth-user positive tests, remaining A01–A63 cases, Coordinator orchestration authorization, leaked-password protection and disposable-database snapshot verification remain release gates. No test records remain. No Worker credentials or Service Role Key are included in this repository.
 
 ## Real-project release gate
 
