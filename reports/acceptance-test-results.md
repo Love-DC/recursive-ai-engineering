@@ -42,6 +42,8 @@ The database foundation and all 19 RPC definitions have been deployed. Schema an
 4. `mvp_v1_1_execution_review_fix_rpcs`
 5. `mvp_v1_1_rpc_correctness_fixes`
 6. `mvp_v1_1_remaining_fk_index`
+7. `mvp_v1_1_idempotency_and_review_lock_fixes`
+8. `mvp_v1_1_event_cross_task_execution_reference`
 
 The initial covering-index migration attempt failed because one index already existed; it was corrected with an idempotent migration and the corrected migration succeeded. No schema state was lost.
 
@@ -50,6 +52,8 @@ The initial covering-index migration attempt failed because one index already ex
 - `operation_requests` has RLS enabled and intentionally has no client policy or client table grant. This is default-deny by design.
 - Supabase Advisor reports the 19 authenticated SECURITY DEFINER RPCs as warnings because they are callable via the API. This is intentional for the selected RPC-only write model; every public RPC has an auth.uid()/project-owner guard, fixed search_path and exact EXECUTE grants. This warning requires continued manual security review, not blanket suppression.
 - Performance Advisor initially found missing foreign-key covering indexes. Covering indexes were added, including the final created_by_worker_id/project_id index. Unused-index notices are expected before workload traffic exists.
+
+A consolidated, current database snapshot is committed at `supabase/migrations/database-schema.sql`. It is generated from the deployed catalog and is intended for an EMPTY PostgreSQL 17 database. The incremental Supabase migration history remains authoritative for the live project.
 
 ## Known implementation limitations requiring follow-up before Worker onboarding
 
