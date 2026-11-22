@@ -23,13 +23,11 @@ create table public.workers (id uuid not null default gen_random_uuid(), project
 
 alter table public.artifacts add constraint artifacts_pkey PRIMARY KEY (id);
 
-alter table public.artifacts add constraint artifacts_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE;
 
 alter table public.executions add constraint executions_attempt_check CHECK ((attempt > 0));
 
 alter table public.executions add constraint executions_id_task_id_key UNIQUE (id, task_id);
 
-alter table public.artifacts add constraint artifacts_execution_id_task_id_fkey FOREIGN KEY (execution_id, task_id) REFERENCES executions(id, task_id) ON DELETE RESTRICT;
 
 alter table public.executions add constraint executions_pkey PRIMARY KEY (id);
 
@@ -37,47 +35,32 @@ alter table public.executions add constraint executions_status_check CHECK ((sta
 
 alter table public.executions add constraint executions_task_id_attempt_key UNIQUE (task_id, attempt);
 
-alter table public.executions add constraint executions_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE;
 
-alter table public.executions add constraint executions_worker_id_fkey FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE RESTRICT;
 
 alter table public.operation_requests add constraint operation_requests_pkey PRIMARY KEY (id);
 
-alter table public.operation_requests add constraint operation_requests_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
 
 alter table public.operation_requests add constraint operation_requests_project_id_operation_idempotency_key_key UNIQUE (project_id, operation, idempotency_key);
 
 alter table public.projects add constraint projects_id_owner_id_key UNIQUE (id, owner_id);
 
-alter table public.projects add constraint projects_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
 
 alter table public.projects add constraint projects_pkey PRIMARY KEY (id);
 
 alter table public.projects add constraint projects_status_check CHECK ((status = ANY (ARRAY['active'::text, 'archived'::text])));
 
-alter table public.task_events add constraint task_events_execution_id_fkey FOREIGN KEY (execution_id) REFERENCES executions(id) ON DELETE RESTRICT;
 
 alter table public.task_events add constraint task_events_pkey PRIMARY KEY (id);
 
-alter table public.task_events add constraint task_events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
 
-alter table public.task_events add constraint task_events_task_id_project_id_fkey FOREIGN KEY (task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE CASCADE;
 
-alter table public.task_events add constraint task_events_worker_id_project_id_fkey FOREIGN KEY (worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
 
-alter table public.tasks add constraint fk_tasks_current_execution FOREIGN KEY (current_execution_id, id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
 
-alter table public.tasks add constraint fk_tasks_latest_delivery_execution FOREIGN KEY (latest_delivery_execution_id, latest_delivery_task_id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
 
-alter table public.tasks add constraint fk_tasks_latest_review_same_project FOREIGN KEY (latest_review_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
 
-alter table public.tasks add constraint fk_tasks_review_delivery_execution FOREIGN KEY (review_target_execution_id, review_target_delivery_task_id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
 
-alter table public.tasks add constraint fk_tasks_review_delivery_same_project FOREIGN KEY (review_target_delivery_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
 
-alter table public.tasks add constraint fk_tasks_review_original_same_project FOREIGN KEY (review_target_original_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
 
-alter table public.tasks add constraint tasks_assigned_worker_id_project_id_fkey FOREIGN KEY (assigned_worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
 
 alter table public.tasks add constraint tasks_check CHECK ((((status = 'running'::text) AND (assigned_worker_id IS NOT NULL) AND (current_execution_id IS NOT NULL) AND (lease_until IS NOT NULL)) OR ((status <> 'running'::text) AND (current_execution_id IS NULL) AND (lease_until IS NULL))));
 
@@ -89,17 +72,13 @@ alter table public.tasks add constraint tasks_check3 CHECK (((status <> 'accepte
 
 alter table public.tasks add constraint tasks_check4 CHECK (((task_type <> 'review'::text) OR (assigned_worker_id IS NOT NULL)));
 
-alter table public.tasks add constraint tasks_created_by_worker_id_project_id_fkey FOREIGN KEY (created_by_worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
 
-alter table public.tasks add constraint tasks_fixes_task_id_project_id_fkey FOREIGN KEY (fixes_task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE RESTRICT;
 
 alter table public.tasks add constraint tasks_id_project_id_key UNIQUE (id, project_id);
 
-alter table public.tasks add constraint tasks_parent_task_id_project_id_fkey FOREIGN KEY (parent_task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE RESTRICT;
 
 alter table public.tasks add constraint tasks_pkey PRIMARY KEY (id);
 
-alter table public.tasks add constraint tasks_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
 
 alter table public.tasks add constraint tasks_review_decision_check CHECK ((review_decision = ANY (ARRAY['accepted'::text, 'rejected'::text])));
 
@@ -111,11 +90,33 @@ alter table public.workers add constraint workers_id_project_id_key UNIQUE (id, 
 
 alter table public.workers add constraint workers_pkey PRIMARY KEY (id);
 
-alter table public.workers add constraint workers_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
 
 alter table public.workers add constraint workers_project_id_worker_key_key UNIQUE (project_id, worker_key);
 
 alter table public.workers add constraint workers_status_check CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text])));
+
+alter table public.artifacts add constraint artifacts_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE;
+alter table public.artifacts add constraint artifacts_execution_id_task_id_fkey FOREIGN KEY (execution_id, task_id) REFERENCES executions(id, task_id) ON DELETE RESTRICT;
+alter table public.executions add constraint executions_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE;
+alter table public.executions add constraint executions_worker_id_fkey FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE RESTRICT;
+alter table public.operation_requests add constraint operation_requests_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+alter table public.projects add constraint projects_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
+alter table public.task_events add constraint task_events_execution_id_fkey FOREIGN KEY (execution_id) REFERENCES executions(id) ON DELETE RESTRICT;
+alter table public.task_events add constraint task_events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+alter table public.task_events add constraint task_events_task_id_project_id_fkey FOREIGN KEY (task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE CASCADE;
+alter table public.task_events add constraint task_events_worker_id_project_id_fkey FOREIGN KEY (worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
+alter table public.tasks add constraint fk_tasks_current_execution FOREIGN KEY (current_execution_id, id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint fk_tasks_latest_delivery_execution FOREIGN KEY (latest_delivery_execution_id, latest_delivery_task_id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint fk_tasks_latest_review_same_project FOREIGN KEY (latest_review_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint fk_tasks_review_delivery_execution FOREIGN KEY (review_target_execution_id, review_target_delivery_task_id) REFERENCES executions(id, task_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint fk_tasks_review_delivery_same_project FOREIGN KEY (review_target_delivery_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint fk_tasks_review_original_same_project FOREIGN KEY (review_target_original_task_id, project_id) REFERENCES tasks(id, project_id) DEFERRABLE INITIALLY DEFERRED;
+alter table public.tasks add constraint tasks_assigned_worker_id_project_id_fkey FOREIGN KEY (assigned_worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
+alter table public.tasks add constraint tasks_created_by_worker_id_project_id_fkey FOREIGN KEY (created_by_worker_id, project_id) REFERENCES workers(id, project_id) ON DELETE RESTRICT;
+alter table public.tasks add constraint tasks_fixes_task_id_project_id_fkey FOREIGN KEY (fixes_task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE RESTRICT;
+alter table public.tasks add constraint tasks_parent_task_id_project_id_fkey FOREIGN KEY (parent_task_id, project_id) REFERENCES tasks(id, project_id) ON DELETE RESTRICT;
+alter table public.tasks add constraint tasks_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+alter table public.workers add constraint workers_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
 
 CREATE INDEX idx_artifacts_execution ON public.artifacts USING btree (task_id, execution_id);
 
