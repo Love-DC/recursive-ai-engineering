@@ -6,7 +6,7 @@
 
 ## Executive status
 
-The database foundation and all 19 RPC definitions have been deployed. Schema and permission metadata checks passed. A rollback-safe end-to-end RPC workflow test now passes under a simulated authenticated Owner JWT context. The full MVP acceptance suite is still **not passed**: the browser console build and real login flow are not verified, and independent-session concurrency/lease races remain untested. The live database currently has zero projects, zero Workers and zero Tasks; the transactional test rolled back all generated records.
+The database foundation and all 19 RPC definitions have been deployed. Schema and permission metadata checks passed. A rollback-safe end-to-end RPC workflow test now passes under a simulated authenticated Owner JWT context. The full MVP acceptance suite is still **not passed**: the browser console build and real login flow are not verified, and independent-session concurrency/lease races remain untested. The live database currently has zero projects, zero Workers and zero Tasks; transactional test data was rolled back, and the temporary concurrency project was deleted after the race/reclaim checks.
 
 ## Stage results
 
@@ -32,10 +32,12 @@ The database foundation and all 19 RPC definitions have been deployed. Schema an
 | Auth user provisioned | Count = 1 | PASS |
 | Owner console source committed | `console/` Vite/React app and Supabase RPC integration | IMPLEMENTED, BUILD NOT VERIFIED |
 | Live project/Worker/Task records | Counts = 0 / 0 / 0 | NOT STARTED |
-| Transactional authenticated RPC workflow | Project/Worker/Task reads; idempotent project creation; claim/heartbeat; artifact; submit; reject; Fix/resubmit; accept; no-review completion. Executed as `authenticated` with an existing Auth user's JWT subject; all writes rolled back. | PASS (RPC-level, not browser UI) |
-| Actual two-session claim race | Not run | NOT RUN |
-| Actual lease/reclaim race | Not run | NOT RUN |
-| Cross-session Reviewer workflow | Not run | NOT RUN |
+| Transactional authenticated RPC workflow | Project/Worker/Task reads; project idempotency replay/conflict; claim/heartbeat; artifact; submit; self-review and duplicate-review guards; Reviewer reject; Fix/resubmit; Reviewer accept; no-review completion; running-task cancellation. Executed as `authenticated` with an existing Auth user's JWT subject; all writes rolled back. | PASS (RPC-level, not browser UI) |
+| Concurrent claim race | Two separate SQL connections called `claim_task` simultaneously with different Worker IDs and the same authenticated Owner JWT. Exactly one claimed the Task; the other received `task: null`. | PASS (separate DB sessions; same Auth identity) |
+| Lease expiry/reclaim | Forced the test Task lease into the past; second Worker reclaimed it as attempt 2. | PASS |
+| Stale Execution fencing | Heartbeat from attempt 1 after attempt 2 reclaimed the Task was rejected with `EXECUTION_SUPERSEDED`. | PASS |
+| Independent Auth-user concurrency | Only one Auth user exists; distinct authenticated user identities were not available for this test. | NOT RUN |
+| Cross-identity Reviewer workflow | Reviewer rejection/fix/acceptance passed in the transactional RPC suite; separate Auth-user identity isolation was not tested. | PARTIAL |
 
 ## Owner console progress
 
@@ -67,9 +69,9 @@ A consolidated, current database snapshot is committed at `supabase/migrations/d
 ## Known implementation limitations requiring follow-up before Worker onboarding
 
 1. Run the Owner console build in a verified CI environment and complete the real browser login/project creation flow.
-2. Run two genuinely independent authenticated sessions for `claim_task`, lease expiry/reclaim and stale Execution fencing. Sequential transactional tests are not substitutes for concurrency tests.
-3. Exercise remaining A01–A63 cases, including duplicate review creation, cross-project access denial, cancel-running behavior, idempotency conflicts and lease-expiry fencing.
-4. Validate Review RPC lock ordering under genuine concurrent sessions.
+2. Run concurrency and Reviewer tests with genuinely independent Auth-user identities. The claim race has been exercised with two separate database sessions sharing one Owner JWT; it proves the row-lock behavior but not identity isolation.
+3. Exercise remaining A01–A63 cases, including cross-project access denial and additional lease/cancellation edge cases.
+4. Validate Review RPC lock ordering under independent Auth sessions.
 5. Verify the consolidated migration by applying it to an empty disposable PostgreSQL 17 database.
 6. Before real multi-GPT deployment, replace shared-owner logical Worker identity with per-Worker authentication or an equivalent isolation boundary. The current schema intentionally does not cryptographically isolate GPT sessions.
 
