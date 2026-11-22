@@ -43,7 +43,7 @@ jobs:
               `Commit: ${context.sha}`,
               `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               ''
-            ].join('\\n');
+            ].join('\n');
             let sha;
             try {
               const existing = await github.rest.repos.getContent({
