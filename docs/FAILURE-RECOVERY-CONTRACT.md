@@ -3,6 +3,13 @@
 **Status:** Proposed contract only; no production RPC, schema, grant, or deployment change was made.  
 **Inspection date:** 2026-11-23
 
+## Implementation candidate (not deployed)
+
+A review candidate is being developed in `supabase/migrations/202611230003_failure_reporting_retry.sql`.
+It adds fenced `fail_execution`, owner-authorized `requeue_failed_task`, and bounded lease-expiry recovery in `claim_task`, using the existing tables and RLS without changing table structure or policies.
+
+This candidate is not deployed. The live production RPC inventory remains unchanged until a separate Owner-approved deployment. Isolated PostgreSQL 17 CI is being added to apply the consolidated snapshot plus this migration and exercise the failure/retry contract. Until that CI passes, the candidate is not considered validated.
+
 ## Current deployed behavior (verified)
 
 The live database currently exposes `claim_task`, `complete_execution`, and `cancel_task`, but no `fail_execution` or general retry/requeue RPC.
