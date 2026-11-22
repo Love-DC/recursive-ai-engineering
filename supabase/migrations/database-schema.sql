@@ -20,7 +20,6 @@ create table public.tasks (id uuid not null default gen_random_uuid(), project_i
 
 create table public.workers (id uuid not null default gen_random_uuid(), project_id uuid not null, worker_key text not null, display_name text not null, description text, status text not null default 'active'::text, last_seen_at timestamp with time zone, created_at timestamp with time zone not null default now());
 
-alter table public.artifacts add constraint artifacts_execution_id_task_id_fkey FOREIGN KEY (execution_id, task_id) REFERENCES executions(id, task_id) ON DELETE RESTRICT;
 
 alter table public.artifacts add constraint artifacts_pkey PRIMARY KEY (id);
 
@@ -29,6 +28,8 @@ alter table public.artifacts add constraint artifacts_task_id_fkey FOREIGN KEY (
 alter table public.executions add constraint executions_attempt_check CHECK ((attempt > 0));
 
 alter table public.executions add constraint executions_id_task_id_key UNIQUE (id, task_id);
+
+alter table public.artifacts add constraint artifacts_execution_id_task_id_fkey FOREIGN KEY (execution_id, task_id) REFERENCES executions(id, task_id) ON DELETE RESTRICT;
 
 alter table public.executions add constraint executions_pkey PRIMARY KEY (id);
 
