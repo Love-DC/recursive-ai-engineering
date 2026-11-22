@@ -31,28 +31,18 @@ Do not share a Worker UUID across projects. The stable worker key may be the sam
 
 ## Project configuration contract
 
-Use `public.projects.github_repo` as the canonical `owner/repository` identifier. Store the following in `public.projects.config`:
+Use `public.projects.github_repo` as the canonical `owner/repository` identifier. Supabase configuration is limited to routing and platform execution metadata, for example:
 
 ```json
 {
-  "execution_mode": "single_owner_shared_executor",
-  "session_identity_tracking": false,
   "project_key": "colony-sim",
   "default_branch": "main",
-  "governance": {
-    "agent_instructions": "AGENTS.md",
-    "ai_entrypoint": "docs/ai/AI_START_HERE.md",
-    "web_workflow": "docs/ai/WEB_GITHUB_WORKFLOW.md",
-    "issue_dispatch": "docs/ai/ISSUE_BASED_WORKER_DISPATCH.md",
-    "product_decisions": "docs/ai/DECISIONS.md",
-    "project_state": "docs/ai/PROJECT_STATE.md"
-  },
-  "task_source": "github_issues",
-  "task_activation": "explicit_owner_authorization_only",
-  "delivery": "pull_request",
-  "merge_authority": "ai_coordinator_after_review"
+  "execution_mode": "single_owner_shared_executor",
+  "session_identity_tracking": false
 }
 ```
+
+Do not store governance file paths, CI workflow names, review policy, task activation policy, product decisions, acceptance criteria, or release rules in Supabase. Those belong to the target repository's root `rae-governance.json` and its referenced files. During migration, legacy governance keys may be read only as a deprecated fallback; a valid repository manifest always takes precedence. Remove legacy keys only after the compatibility reader is deployed and all active repositories have passed manifest validation.
 
 Never store credentials, access tokens, database passwords, or privileged connection strings in project config, task requirements, GitHub, or prompts.
 
@@ -83,19 +73,13 @@ Keep the existing task schema stable. Put repository-specific task context in th
 
 The exact shape may add task-specific fields, but must never weaken project governance. Record actual PR URL, branch, head SHA, commit SHA, changed paths, test evidence, and blockers in the execution result and/or artifacts.
 
-## Colony Sim governance adapter
+## Repository-local governance discovery
 
-Every Colony Sim task must load and follow the target repository's current rules at its pinned base SHA. At minimum, inspect `AGENTS.md`, `docs/ai/AI_START_HERE.md`, and `docs/ai/WEB_GITHUB_WORKFLOW.md`; coordinators also read the dispatch and development protocol documents required by those entry points.
+Every target repository must publish a root `rae-governance.json`. Before planning or dispatching a task, the Coordinator pins the target repository SHA, discovers and validates that manifest, and reads all declared governance files at the same SHA. The manifest defines the repository's AI instructions, engineering standards, task authorization rules, review process, CI provider/workflow, and acceptance entrypoints. RAE core must not branch on repository names or encode project-specific paths.
 
-Hard boundaries:
-- The product owner retains all game-design and player-experience decisions.
-- A direct engineering request authorizes the current coordinator conversation to investigate, decompose, and execute within approved scope.
-- Worker conversations require a direct coordinator dispatch or an exact Issue with a valid READY activation record, plus the owner's naming of that exact Issue in the Worker conversation.
-- Open Issues are backlog, not permission. Never bulk-import or auto-claim the backlog.
-- Workers use isolated task branches and deliver PRs; leaf Workers do not merge their own work.
-- The AI coordinator owns independent review and merge of eligible engineering PRs after the exact-head checklist passes. The product owner retains product/design authority, not routine engineering merge approval.
-- Web sessions validate through GitHub Actions on the exact PR head SHA. Do not claim local Godot commands ran.
-- Stop and request a product decision when the correct player-facing behaviour is not already approved.
+Missing manifests/files, incompatible protocol versions, conflicting rule declarations, semantic policy conflicts, or stale SHAs block execution. The Coordinator must report the exact source and ask the Owner when a conflict cannot be resolved by an explicit repository-local precedence rule. See [Repository-local governance discovery protocol](REPOSITORY-GOVERNANCE-PROTOCOL.md).
+
+The Colony Sim manifest identifies `Love-DC/colony-sim-ci` as an independent validation repository. Its workflow is not a Colony Sim subdirectory and must be invoked only through its documented exact-HEAD trigger. Product-owner authority, explicit Worker dispatch, and independent Coordinator review remain enforced by Colony Sim's own repository documents.
 
 ## Shared task-pool semantics
 
