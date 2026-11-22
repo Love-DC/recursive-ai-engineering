@@ -11,6 +11,7 @@ Turn Recursive AI Engineering (RAE) into a multi-project task execution platform
 | Cross-project orchestration, decomposition, task leases, execution history | RAE + Supabase |
 | Project code, technical rules, design decisions, Issues, branches, PRs, CI | The target GitHub repository |
 | Product/game design approval | Colony Sim product owner |
+| Engineering PR review and merge | AI project coordinator after independent review and exact-head validation |
 | Durable task execution state | Supabase task pool |
 | Durable code and reviewable delivery | GitHub commits and PRs |
 
@@ -49,7 +50,7 @@ Use `public.projects.github_repo` as the canonical `owner/repository` identifier
   "task_source": "github_issues",
   "task_activation": "explicit_owner_authorization_only",
   "delivery": "pull_request",
-  "merge_authority": "product_owner"
+  "merge_authority": "ai_coordinator_after_review"
 }
 ```
 
@@ -91,14 +92,18 @@ Hard boundaries:
 - A direct engineering request authorizes the current coordinator conversation to investigate, decompose, and execute within approved scope.
 - Worker conversations require a direct coordinator dispatch or an exact Issue with a valid READY activation record, plus the owner's naming of that exact Issue in the Worker conversation.
 - Open Issues are backlog, not permission. Never bulk-import or auto-claim the backlog.
-- Workers use isolated task branches and deliver PRs. Workers do not merge.
-- The product owner retains final merge approval.
+- Workers use isolated task branches and deliver PRs; leaf Workers do not merge their own work.
+- The AI coordinator owns independent review and merge of eligible engineering PRs after the exact-head checklist passes. The product owner retains product/design authority, not routine engineering merge approval.
 - Web sessions validate through GitHub Actions on the exact PR head SHA. Do not claim local Godot commands ran.
 - Stop and request a product decision when the correct player-facing behaviour is not already approved.
 
 ## Shared task-pool semantics
 
-The user-facing workflow is project-agnostic. A new conversation does not receive a project name or a bespoke objective; it inspects every active registered project's queue. The logical shared pool is the union of project-scoped queues, not a cross-project table that erases ownership boundaries. For each project, the coordinator resolves that project's own active `shared-executor` Worker and calls `list_tasks`/`claim_task` with the matching project and Worker IDs. The claimed task's `project_id` determines repository routing. Atomic claim is authoritative; never infer claim success from a prior queue listing. If no eligible task exists across all active projects, report an empty pool and stop. Never create work from an unapproved Issue or invent a task.
+The user-facing workflow is project-agnostic. A new conversation does not receive a project name or a bespoke objective; it inspects every active registered project's queue. The logical shared pool is the union of project-scoped queues, not a cross-project table that erases ownership boundaries. For each project, the coordinator resolves that project's own active `shared-executor` Worker and calls `list_tasks`/`claim_task` with the matching project and Worker IDs. The claimed task's `project_id` determines repository routing. Atomic claim is authoritative; never infer claim success from a prior queue listing. If a project's queue is empty, run the authorized evidence-based discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md. A candidate may be written only to that same project's queue after deduplication and authority checks. If no candidate qualifies, report an empty queue. Never create work from an unapproved Issue or invent a task.
+
+## Autonomous task discovery
+
+Workers inspect their authorized project's code, docs, tests, CI, and read-only operational signals when no eligible work is queued. Findings must include durable evidence, impact, risk, acceptance criteria, validation, and a stable project-scoped deduplication fingerprint. Only findings permitted by the project's task_activation policy may be created as executable tasks. Colony Sim remains explicit_owner_authorization_only; an open Issue is backlog, never authorization. See docs/AUTONOMOUS-TASK-DISCOVERY.md for the candidate contract, noise limits, authority matrix, and pilot limitations.
 
 ## Session routing and execution
 
@@ -108,7 +113,7 @@ The user-facing workflow is project-agnostic. A new conversation does not receiv
 4. For a direct owner objective, create a root task in the target project's task pool. Decompose only at real responsibility, ownership, interface, or validation boundaries.
 5. Execute the root task in the current coordinator conversation by default. Additional conversations are optional, not required.
 6. Claim and complete tasks using the target project's worker UUID and project UUID. Never use the RAE project/worker IDs for a different repository.
-7. Commit to a task branch and open a PR in the target repository. Never merge without explicit owner approval.
+7. Commit to a task branch and open a PR in the target repository. The AI coordinator reviews and merges engineering-only PRs after all checks pass; escalate only product/design or explicitly high-risk decisions.
 8. Persist task results and GitHub references in Supabase, then report the PR, exact head SHA, actual CI evidence, and any remaining owner decisions.
 
 ## Explicit limitations
