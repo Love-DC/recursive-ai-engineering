@@ -674,7 +674,7 @@ CREATE OR REPLACE FUNCTION public.get_task(p_task_id uuid)
  SECURITY DEFINER
  SET search_path TO 'pg_catalog', 'public', 'auth', 'private'
 AS $function$
-declare v_task public.tasks%rowtype; v_project uuid; v_data jsonb;
+declare v_task public.tasks%rowtype; v_data jsonb;
 begin
   select * into v_task from public.tasks where id=p_task_id;
   if not found then raise exception using errcode='P0002',message='TASK_NOT_FOUND'; end if;
@@ -686,6 +686,13 @@ begin
       coalesce((select jsonb_agg(to_jsonb(a) order by a.created_at)
         from public.artifacts a where a.task_id=t.review_target_delivery_task_id and a.execution_id=t.review_target_execution_id),'[]'::jsonb)
       else coalesce((select jsonb_agg(to_jsonb(a) order by a.created_at) from public.artifacts a where a.task_id=t.id),'[]'::jsonb) end,
+    'review_target',case when t.task_type='review' then jsonb_build_object(
+      'original_task',(select to_jsonb(o) from public.tasks o where o.id=t.review_target_original_task_id),
+      'delivery_task',(select to_jsonb(d) from public.tasks d where d.id=t.review_target_delivery_task_id),
+      'delivery_execution',(select to_jsonb(e) from public.executions e where e.id=t.review_target_execution_id and e.task_id=t.review_target_delivery_task_id),
+      'artifacts',coalesce((select jsonb_agg(to_jsonb(a) order by a.created_at)
+        from public.artifacts a where a.task_id=t.review_target_delivery_task_id and a.execution_id=t.review_target_execution_id),'[]'::jsonb)
+    ) else null end,
     'review_history',coalesce((select jsonb_agg(to_jsonb(r) order by r.created_at)
       from public.tasks r where r.task_type='review' and r.review_target_original_task_id=t.id),'[]'::jsonb),
     'fix_tasks',coalesce((select jsonb_agg(to_jsonb(f) order by f.created_at)
