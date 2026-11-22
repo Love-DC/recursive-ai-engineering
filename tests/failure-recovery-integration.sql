@@ -131,6 +131,10 @@ BEGIN
   END;
   UPDATE public.executions SET finished_at=clock_timestamp()-interval '61 seconds' WHERE id=v_exec;
   PERFORM public.requeue_failed_task(v_task_id,v_worker,'Backoff elapsed','failure-backoff-late');
+  v_claim2 := public.claim_task(v_project,v_worker,600,'failure-backoff-claim-after-requeue');
+  v_exec2 := (v_claim2->'data'->>'execution_id')::uuid;
+  PERFORM public.complete_execution(v_task_id,v_exec2,v_worker,
+    '{"summary":"backoff retry fixture complete"}'::jsonb,'failure-backoff-complete');
 
   -- Expired execution is fenced; ordinary claim_task performs recovery.
   v_task := public.create_task(v_project,v_worker,'implementation','Expired failure fixture',
