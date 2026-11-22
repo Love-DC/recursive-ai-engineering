@@ -1,0 +1,7 @@
+-- Integration test specification using authenticated RPC sessions.
+-- Verify valid heartbeat_execution extends lease.
+-- Expire lease in disposable test fixture and assert heartbeat_execution,
+-- submit_result, add_artifact and complete_execution all reject with EXECUTION_EXPIRED.
+-- Reclaim task with a second Worker and assert old Execution writes reject as superseded.
+-- Race lease-expired reclaim against submit_result using two independent sessions;
+-- assert exactly one transaction commits a valid terminal/current state.
