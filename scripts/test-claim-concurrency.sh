@@ -21,6 +21,19 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 run_key="$(openssl rand -hex 16 2>/dev/null || printf '%s-%s' "$(date +%s)" "$$")"
 
+pending_count="$(
+  psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
+with auth as (
+  select set_config('request.jwt.claim.sub', '$SUPABASE_OWNER_ID', true)
+)
+select count(*) from public.tasks where project_id = '$SUPABASE_PROJECT_ID' and status = 'pending';
+SQL
+)"
+if [[ "$pending_count" != "0" ]]; then
+  echo "Refusing concurrency probe: $pending_count pending task(s) could be leased as collateral." >&2
+  exit 2
+fi
+
 task_id="$(
   psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
 with auth as (
