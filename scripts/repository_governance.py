@@ -50,6 +50,7 @@ def load_governance(
     expected_sha: str,
     actual_sha: str,
     coordinator_version: str = "1.0.0",
+    expected_project: str | None = None,
 ) -> dict[str, Any]:
     """Load manifest and verify compatibility, file presence, conflicts and SHA."""
     if not SHA_RE.fullmatch(expected_sha or "") or not SHA_RE.fullmatch(actual_sha or ""):
@@ -72,6 +73,10 @@ def load_governance(
         raise GovernanceError(f"Unsupported governance protocol; expected {PROTOCOL}")
     if not isinstance(manifest.get("project"), str) or not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", manifest["project"]):
         raise GovernanceError("Manifest project must be a stable lowercase project key")
+    if expected_project is not None and manifest["project"] != expected_project:
+        raise GovernanceError(
+            f"Manifest project mismatch: expected {expected_project}, found {manifest['project']}"
+        )
     protocol_version = _version(manifest.get("protocol_version"))
     if protocol_version[0] != 1:
         raise GovernanceError("Incompatible governance protocol major version")
@@ -150,6 +155,7 @@ def main() -> int:
     parser.add_argument("--expected-sha", required=True)
     parser.add_argument("--actual-sha", required=True)
     parser.add_argument("--coordinator-version", default="1.0.0")
+    parser.add_argument("--expected-project")
     args = parser.parse_args()
     try:
         manifest = load_governance(
@@ -157,6 +163,7 @@ def main() -> int:
             expected_sha=args.expected_sha.lower(),
             actual_sha=args.actual_sha.lower(),
             coordinator_version=args.coordinator_version,
+            expected_project=args.expected_project,
         )
     except GovernanceError as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False), file=sys.stderr)
