@@ -62,4 +62,4 @@ After rejection: a dedicated Fix Task references the Original Task through `fixe
 
 ## Known limits and outstanding validation
 
-The Supabase target currently has zero Auth users. Authenticated happy-path tests, full review/fix workflow tests, and real concurrent-session tests cannot be truthfully marked passed until an owner Auth account is provisioned and two independent authenticated sessions are available. See the acceptance report.
+One Auth user has now been provisioned. The Owner console is being added under `console/`. No project or Worker has yet been created, so authenticated happy-path tests, full review/fix workflow tests, and real concurrent-session tests remain pending. Two independent authenticated sessions are still required for concurrency acceptance. See the acceptance report.
