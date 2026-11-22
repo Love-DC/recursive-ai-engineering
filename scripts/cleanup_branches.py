@@ -159,7 +159,7 @@ def delete_branch(repository: str, branch: str) -> None:
     run(["gh", "api", "--method", "DELETE", f"repos/{repository}/git/refs/{ref}"])
 
 
-def print_report(candidates: list[Candidate], *, execute: bool) -> None:
+def print_report(candidates: list[Candidate], *, execute: bool, repository: str) -> None:
     print("Branch cleanup plan")
     print("===================")
     for item in candidates:
@@ -172,14 +172,8 @@ def print_report(candidates: list[Candidate], *, execute: bool) -> None:
         print("Dry run only. No branches were deleted.")
         return
     for item in eligible:
-        delete_branch_from_report(item)
+        delete_branch(repository, item.branch)
     print(f"Deleted: {len(eligible)} branch(es).")
-
-
-def delete_branch_from_report(item: Candidate) -> None:
-    repository = os.environ["GITHUB_REPOSITORY"]
-    delete_branch(repository, item.branch)
-    print(f"DELETED: {item.branch}")
 
 
 def main() -> int:
@@ -198,7 +192,7 @@ def main() -> int:
     try:
         branch_names = parse_branch_names(args.branches_file.read_text(encoding="utf-8"))
         candidates = inspect_batch(args.repository, branch_names)
-        print_report(candidates, execute=args.execute)
+        print_report(candidates, execute=args.execute, repository=args.repository)
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
