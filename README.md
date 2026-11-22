@@ -32,7 +32,7 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 - [Repository-local governance protocol](docs/REPOSITORY-GOVERNANCE-PROTOCOL.md): pinned-SHA discovery, compatibility checks, conflict handling, and repository-owned CI routing.
 - [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md): Supabase task lifecycle and owner-MCP operating details.
 
-The platform currently registers two projects: `recursive-ai-engineering` and `colony-sim` (`Love-DC/colony-sim`). Each has its own Supabase project row and project-scoped `shared-executor` worker. Task state remains isolated by `project_id`; code, Issues, PRs, CI, and project governance remain in the target repository.
+The platform currently registers two projects: `recursive-ai-engineering` and `colony-sim` (`Love-DC/colony-sim`). Each has its own Supabase project row and project-scoped Worker routing records (the current pilot uses `shared-executor` for both; this is not a platform-wide requirement). Task state remains isolated by `project_id`; code, Issues, PRs, CI, and project governance remain in the target repository.
 
 Before changing the system, review [Pilot Readiness and Deferred Production Gates](docs/REAL-PROJECT-READINESS.md) for the trusted-pilot boundary and outstanding expansion gates. The [Failure Reporting and Retry Contract](docs/FAILURE-RECOVERY-CONTRACT.md) records the current missing failure/requeue API and its proposed safe semantics; it is a design contract, not a deployed feature.
 
