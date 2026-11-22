@@ -10,7 +10,7 @@ Turn Recursive AI Engineering (RAE) into a multi-project task execution platform
 |---|---|
 | Cross-project orchestration, decomposition, task leases, execution history | RAE + Supabase |
 | Project code, technical rules, design decisions, Issues, branches, PRs, CI | The target GitHub repository |
-| Product/game design approval | Colony Sim product owner |
+| Product/game design approval | Colony Sim product owner |\n| Engineering PR review and merge | AI project coordinator after independent review and exact-head validation |
 | Durable task execution state | Supabase task pool |
 | Durable code and reviewable delivery | GitHub commits and PRs |
 
@@ -49,7 +49,7 @@ Use `public.projects.github_repo` as the canonical `owner/repository` identifier
   "task_source": "github_issues",
   "task_activation": "explicit_owner_authorization_only",
   "delivery": "pull_request",
-  "merge_authority": "product_owner"
+  "merge_authority": "ai_coordinator_after_review"
 }
 ```
 
@@ -112,7 +112,7 @@ Workers inspect their authorized project's code, docs, tests, CI, and read-only 
 4. For a direct owner objective, create a root task in the target project's task pool. Decompose only at real responsibility, ownership, interface, or validation boundaries.
 5. Execute the root task in the current coordinator conversation by default. Additional conversations are optional, not required.
 6. Claim and complete tasks using the target project's worker UUID and project UUID. Never use the RAE project/worker IDs for a different repository.
-7. Commit to a task branch and open a PR in the target repository. Never merge without explicit owner approval.
+7. Commit to a task branch and open a PR in the target repository. The AI coordinator reviews and merges engineering-only PRs after all checks pass; escalate only product/design or explicitly high-risk decisions.
 8. Persist task results and GitHub references in Supabase, then report the PR, exact head SHA, actual CI evidence, and any remaining owner decisions.
 
 ## Explicit limitations
