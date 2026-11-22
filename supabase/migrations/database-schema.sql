@@ -194,7 +194,7 @@ CREATE OR REPLACE FUNCTION private.add_event(p_project_id uuid, p_task_id uuid, 
 AS $function$
   insert into public.task_events(project_id,task_id,execution_id,worker_id,event_type,payload)
   values (p_project_id,p_task_id,p_execution_id,p_worker_id,p_event_type,coalesce(p_payload,'{}'::jsonb))
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.assert_current_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid)
@@ -231,7 +231,7 @@ begin
     raise exception using errcode='55000', message='EXECUTION_SUPERSEDED';
   end if;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.assert_owner(p_project_id uuid)
@@ -251,7 +251,7 @@ begin
     raise exception using errcode='42501', message='PROJECT_FORBIDDEN';
   end if;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.guard_artifact_immutable_fields()
@@ -266,7 +266,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.guard_event_project_consistency()
@@ -287,7 +287,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.guard_task_immutable_fields()
@@ -305,7 +305,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.idempotency_get(p_project_id uuid, p_operation text, p_key text, p_hash text)
@@ -333,7 +333,7 @@ begin
   end if;
   return null;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.idempotency_put(p_project_id uuid, p_operation text, p_key text, p_hash text, p_response jsonb)
@@ -344,7 +344,7 @@ CREATE OR REPLACE FUNCTION private.idempotency_put(p_project_id uuid, p_operatio
 AS $function$
   insert into public.operation_requests(project_id,operation,idempotency_key,request_hash,response)
   values (p_project_id,p_operation,p_key,p_hash,p_response)
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.request_hash(p_payload jsonb)
@@ -354,7 +354,7 @@ CREATE OR REPLACE FUNCTION private.request_hash(p_payload jsonb)
  SET search_path TO 'pg_catalog'
 AS $function$
   select encode(sha256(convert_to(p_payload::text, 'UTF8')), 'hex')
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.add_artifact(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_artifact_type text, p_name text, p_github_repo text, p_github_path text, p_commit_sha text, p_pr_url text, p_external_url text, p_metadata jsonb, p_idempotency_key text)
@@ -385,7 +385,7 @@ begin
   perform private.idempotency_put(v_project,'add_artifact',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.cancel_task(p_task_id uuid, p_worker_id uuid, p_reason text, p_idempotency_key text)
@@ -422,7 +422,7 @@ begin
   perform private.idempotency_put(v_task.project_id,'cancel_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.claim_task(p_project_id uuid, p_worker_id uuid, p_lease_seconds integer, p_idempotency_key text)
@@ -482,7 +482,7 @@ begin
   perform private.idempotency_put(p_project_id,'claim_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.complete_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_result jsonb, p_idempotency_key text)
@@ -515,7 +515,7 @@ begin
   perform private.idempotency_put(v_task.project_id,'complete_execution',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.create_fix_task(p_original_task_id uuid, p_review_task_id uuid, p_title text, p_description text, p_requirements jsonb, p_worker_id uuid, p_idempotency_key text)
@@ -555,7 +555,7 @@ begin
   perform private.idempotency_put(v_original.project_id,'create_fix_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.create_review_task(p_original_task_id uuid, p_delivery_task_id uuid, p_delivery_execution_id uuid, p_reviewer_worker_id uuid, p_idempotency_key text)
@@ -620,7 +620,7 @@ begin
   perform private.idempotency_put(v_original.project_id,'create_review_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.create_task(p_project_id uuid, p_worker_id uuid, p_task_type text, p_title text, p_description text, p_requirements jsonb, p_priority integer, p_requires_review boolean, p_parent_task_id uuid, p_fixes_task_id uuid, p_idempotency_key text)
@@ -652,7 +652,7 @@ begin
   perform private.idempotency_put(p_project_id,'create_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_project(p_project_id uuid)
@@ -667,7 +667,7 @@ begin
   select * into v_row from public.projects where id=p_project_id;
   return jsonb_build_object('success',true,'data',to_jsonb(v_row));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_task(p_task_id uuid)
@@ -702,7 +702,7 @@ begin
   ) into v_data from public.tasks t where t.id=p_task_id;
   return jsonb_build_object('success',true,'data',v_data);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_worker(p_worker_id uuid)
@@ -718,7 +718,7 @@ begin
   perform private.assert_owner(v_row.project_id);
   return jsonb_build_object('success',true,'data',to_jsonb(v_row));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.heartbeat_execution(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_idempotency_key text)
@@ -744,7 +744,7 @@ begin
   perform private.idempotency_put(v_project,'heartbeat_execution',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.heartbeat_worker(p_worker_id uuid)
@@ -763,7 +763,7 @@ begin
   if not found then raise exception using errcode='55000',message='WORKER_INACTIVE'; end if;
   return jsonb_build_object('success',true,'data',jsonb_build_object('worker_id',p_worker_id,'last_seen_at',clock_timestamp()));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.list_tasks(p_project_id uuid, p_status text, p_worker_id uuid, p_limit integer, p_cursor timestamp with time zone)
@@ -790,7 +790,7 @@ begin
   ) x;
   return jsonb_build_object('success',true,'data',v_data);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.list_workers(p_project_id uuid)
@@ -806,7 +806,7 @@ begin
   from public.workers w where w.project_id=p_project_id;
   return jsonb_build_object('success',true,'data',v_data);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.register_project(p_name text, p_description text, p_github_repo text, p_config jsonb, p_idempotency_key text)
@@ -856,7 +856,7 @@ begin
   values(v_id,'register_project',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.register_worker(p_project_id uuid, p_worker_key text, p_display_name text, p_description text)
@@ -874,7 +874,7 @@ begin
   select * into v_row from public.workers where project_id=p_project_id and worker_key=p_worker_key;
   return jsonb_build_object('success',true,'data',to_jsonb(v_row));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resubmit_after_fix(p_original_task_id uuid, p_fix_task_id uuid, p_fix_execution_id uuid, p_worker_id uuid, p_idempotency_key text)
@@ -913,7 +913,7 @@ begin
   perform private.idempotency_put(v_original.project_id,'resubmit_after_fix',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.review_result(p_review_task_id uuid, p_execution_id uuid, p_reviewer_worker_id uuid, p_decision text, p_review jsonb, p_idempotency_key text)
@@ -981,7 +981,7 @@ begin
   perform private.idempotency_put(v_project,'review_result',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.submit_result(p_task_id uuid, p_execution_id uuid, p_worker_id uuid, p_result jsonb, p_idempotency_key text)
@@ -1018,7 +1018,7 @@ begin
   perform private.idempotency_put(v_task.project_id,'submit_result',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
-$function$
+$function$;
 
 
 CREATE TRIGGER trg_artifact_execution_immutable BEFORE UPDATE ON artifacts FOR EACH ROW EXECUTE FUNCTION private.guard_artifact_immutable_fields();
