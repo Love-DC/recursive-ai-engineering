@@ -1,0 +1,37 @@
+{
+  "protocol": "rae.repository-governance",
+  "protocol_version": "1.0.0",
+  "project": "recursive-ai-engineering",
+  "compatibility": {
+    "min_coordinator_version": "1.0.0"
+  },
+  "governance": {
+    "agent_instructions": "docs/WORKER-INSTRUCTIONS.md",
+    "entrypoints": [
+      "docs/SESSION-START.md",
+      "docs/MULTI-PROJECT-ARCHITECTURE.md",
+      "docs/REPOSITORY-GOVERNANCE-PROTOCOL.md"
+    ],
+    "required": [
+      "docs/AUTONOMOUS-TASK-DISCOVERY.md",
+      "docs/SECURITY-BOUNDARY-AUDIT.md"
+    ],
+    "rule_sets": [
+      {
+        "id": "rae-platform-security",
+        "path": "docs/SECURITY-BOUNDARY-AUDIT.md",
+        "priority": 100
+      },
+      {
+        "id": "rae-execution-contract",
+        "path": "docs/WORKER-INSTRUCTIONS.md",
+        "priority": 90
+      }
+    ]
+  },
+  "validation": {
+    "provider": "github-actions",
+    "workflow": ".github/workflows/shell-static-checks.yml"
+  },
+  "conflicts": []
+}
