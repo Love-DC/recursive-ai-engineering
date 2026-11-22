@@ -1,0 +1,29 @@
+name: Shell static checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  shell-static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Bash syntax
+        run: |
+          bash -n scripts/test-claim-concurrency.sh
+          bash -n scripts/test-task-lifecycle.sh
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck
+
+      - name: Run ShellCheck
+        run: |
+          shellcheck --severity=warning scripts/test-claim-concurrency.sh scripts/test-task-lifecycle.sh
