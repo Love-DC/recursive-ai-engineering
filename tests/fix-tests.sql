@@ -1,0 +1,6 @@
+-- Integration test specification.
+-- Reject a submitted delivery; create Fix Task via create_fix_task.
+-- Assert ordinary create_task cannot create task_type=fix or task_type=review.
+-- Submit Fix Execution E2; resubmit_after_fix updates Original latest delivery pointers.
+-- Assert Original.current_execution_id remains NULL and historical E1/E1 artifacts remain.
+-- Create new Review Task for E2 and accept it; Original becomes accepted.
