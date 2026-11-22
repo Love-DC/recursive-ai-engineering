@@ -101,6 +101,25 @@ class RepositoryGovernanceTests(unittest.TestCase):
         with self.assertRaisesRegex(GovernanceError, "unresolved rule conflicts"):
             self.load(root)
 
+    def test_rejects_unsupported_protocol_major(self):
+        root = self.make_repo()
+        manifest_path = root / "rae-governance.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["protocol_version"] = "2.0.0"
+        manifest_path.write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(GovernanceError, "Incompatible governance protocol major"):
+            self.load(root)
+
+    def test_rejects_missing_local_validation_workflow(self):
+        root = self.make_repo()
+        manifest_path = root / "rae-governance.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["validation"].pop("repository")
+        manifest["validation"]["workflow"] = ".github/workflows/missing.yml"
+        manifest_path.write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(GovernanceError, "Missing validation.workflow"):
+            self.load(root)
+
 
 if __name__ == "__main__":
     unittest.main()
