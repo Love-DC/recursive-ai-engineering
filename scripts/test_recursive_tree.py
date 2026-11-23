@@ -337,6 +337,11 @@ def main() -> int:
         "The Owner manually starts one GPT conversation at a time" in startup
         and "a daemon, or background scheduling" in startup,
     )
+    check(
+        "startup lacks Worker claim-routing safety preflight",
+        "Task-claim safety preflight" in startup
+        and "do not call `claim_task` with the reviewer Worker ID" in startup,
+    )
 
     for relative in (
         "knowledge/rae-root/index.json",
