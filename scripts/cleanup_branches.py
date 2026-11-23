@@ -83,13 +83,13 @@ def inspect_batch(repository, manifest):
     return results
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY"))
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--execute", action="store_true", help="Default is dry-run.")
     parser.add_argument("--confirmation", default="")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.repository != "Love-DC/recursive-ai-engineering":
         parser.error("Cleanup is restricted to Love-DC/recursive-ai-engineering; cross-repository mutation is disabled.")
     if args.execute and args.confirmation != CONFIRMATION:
