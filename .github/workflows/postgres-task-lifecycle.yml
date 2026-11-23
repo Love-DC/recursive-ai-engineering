@@ -90,13 +90,7 @@ jobs:
           SECOND_WORKER_ID: 00000000-0000-4000-8000-000000000004
           REVIEWER_WORKER_ID: 00000000-0000-4000-8000-000000000005
         run: |
-          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 \\
-            -v owner_id="$SUPABASE_OWNER_ID" \\
-            -v project_id="$SUPABASE_PROJECT_ID" \\
-            -v worker_a="$SHARED_WORKER_ID" \\
-            -v worker_b="$SECOND_WORKER_ID" \\
-            -v reviewer_worker="$REVIEWER_WORKER_ID" \\
-            -f tests/worker-routing-release-tests.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -v owner_id="$SUPABASE_OWNER_ID" -v project_id="$SUPABASE_PROJECT_ID" -v worker_a="$SHARED_WORKER_ID" -v worker_b="$SECOND_WORKER_ID" -v reviewer_worker="$REVIEWER_WORKER_ID" -f tests/worker-routing-release-tests.sql
 
       - name: Run failure reporting and bounded retry integration tests
         env:
