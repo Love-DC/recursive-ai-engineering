@@ -50,7 +50,7 @@ All four workflows passed on exact code head `29ce0773ded12b633aa1c6961db99c37e7
 - PR #28 old independent review task `ced35b2e-0f3e-4861-a758-79fda9291612`: cancelled because it targeted obsolete delivery execution/head.
 - PR #28 corrected delivery wrapper `012fe473-6cd2-4e3c-8f3d-f601440cb16a`: submitted.
 - PR #28 fresh independent review task `a25e383a-7449-44b3-b3c1-b605af8e48ab`: pending, assigned to `independent-reviewer`.
-- PR #29 independent review task `842d85c0-2ea5-455c-b42f-5e276d2974b4`: pending, assigned to `independent-reviewer`.
+- PR #29 superseded independent review task `842d85c0-2ea5-455c-b42f-5e276d2974b4`: cancelled; it targeted an obsolete delivery.
 - Tree lifecycle follow-up `2f49daad-f74f-4885-a193-f131360abc9b`: pending.
 - Routing implementation task `ad7cdacb-be38-467c-aa79-e1eb11ee4ace`: accepted.
 - PR #29 review wrapper task `6273ac96-9e05-4e07-a5c9-bc34bbe6b5f1`: submitted.
