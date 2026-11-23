@@ -102,3 +102,14 @@ select public.release_execution(
 Do not substitute `fail_execution`, `requeue_failed_task`, direct table updates, or `cancel_task` for an execution release. If the release RPC is not deployed, preserve the audit trail and let the lease expire; do not mutate production task rows directly.
 
 The PostgreSQL integration workflow runs `tests/worker-routing-release-tests.sql` against its isolated PostgreSQL 17 service. It covers reviewer/implementation separation, explicit and default routes, route-safe expired reclaim, review creation/claim routing, ambiguous-route fail-closed behavior, single-worker compatibility, wrong-owner denial, release idempotency, expired release, and stale-execution fencing.
+
+
+## Same-Worker multi-session concurrency
+
+The PostgreSQL workflow also runs `scripts/test-same-worker-concurrency.sh`. It starts two independent PostgreSQL sessions using the same project-scoped Worker UUID, matching the RAE model where multiple GPT conversations share one logical Worker route. The test verifies:
+
+- With two eligible tasks, the two sessions claim different tasks concurrently.
+- With one eligible task, exactly one session receives the lease and the other receives no task.
+- Both winning executions can be completed using the shared Worker route.
+
+This is separate from the distinct-Worker claim race. Passing both tests demonstrates task-level concurrency without introducing per-session Worker identities; it does not prove that ChatGPT conversations can be launched automatically.
