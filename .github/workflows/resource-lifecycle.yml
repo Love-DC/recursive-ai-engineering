@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       branch_manifest:
-        description: "Preview manifest: generated_at, task_reference_scan_complete:true, task_references:[...], repository and branches:{name:exact_sha}; {} is read-only"
+        description: "Leave {} for automatic preview of all eligible branches. To execute, supply the generated manifest and the exact confirmation phrase."
         required: true
         default: "{}"
         type: string
@@ -51,23 +51,47 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           BRANCH_MANIFEST: ${{ inputs.branch_manifest || '{}' }}
         run: |
-          printf '%s' "$BRANCH_MANIFEST" > "$RUNNER_TEMP/branch-manifest.json"
           if [ "$BRANCH_MANIFEST" = "{}" ]; then
-            {
-              echo "## Resource lifecycle preview"
-              echo "- Repository: $GITHUB_REPOSITORY"
-              echo "- No targets supplied; inventory remains read-only."
-              echo "- Supabase projects, development branches and Edge Functions are inventory-only."
-              echo "- No resources deleted."
-            } >> "$GITHUB_STEP_SUMMARY"
+            python - "$RUNNER_TEMP/inventory.json" "$RUNNER_TEMP/branch-manifest.json" "$GITHUB_REPOSITORY" <<'PY'
+          import json, sys
+          report = json.load(open(sys.argv[1], encoding="utf-8"))
+          targets = [r for r in report["resources"]
+                     if r["kind"] == "branch" and r["risk_class"] == "eligible_batch"
+                     and r["repository"] == sys.argv[3]]
+          manifest = {
+              "generated_at": report["generated_at"],
+              "task_reference_scan_complete": report["task_reference_scan_complete"],
+              "task_references": report["task_references"],
+              "repository": report["current_repository"],
+              "branches": {r["identity"]: r["evidence"]["sha"] for r in targets},
+          }
+          json.dump(manifest, open(sys.argv[2], "w", encoding="utf-8"), indent=2)
+          print(json.dumps({"automatic_preview_targets": manifest["branches"]}, indent=2))
+          PY
           else
-            python scripts/cleanup_branches.py --manifest "$RUNNER_TEMP/branch-manifest.json" | tee "$RUNNER_TEMP/preview.json"
-            {
-              echo "## Resource lifecycle preview"
-              cat "$RUNNER_TEMP/preview.json"
-              echo "- Preview is read-only. No resources deleted."
-            } >> "$GITHUB_STEP_SUMMARY"
+            printf '%s' "$BRANCH_MANIFEST" > "$RUNNER_TEMP/branch-manifest.json"
           fi
+          python - "$RUNNER_TEMP/branch-manifest.json" <<'PY'
+          import json, sys
+          manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+          print("Batch targets:", len(manifest.get("branches", {})))
+          PY
+          if python - "$RUNNER_TEMP/branch-manifest.json" <<'PY'
+          import json, sys
+          manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+          raise SystemExit(0 if manifest.get("branches") else 1)
+          PY
+          then
+            python scripts/cleanup_branches.py --manifest "$RUNNER_TEMP/branch-manifest.json" | tee "$RUNNER_TEMP/preview.json"
+          else
+            printf '{"eligible_targets":0,"deleted":0,"mode":"dry-run"}\n' | tee "$RUNNER_TEMP/preview.json"
+          fi
+          {
+            echo "## Resource lifecycle preview"
+            cat "$RUNNER_TEMP/preview.json"
+            echo "- Preview is read-only. No resources deleted."
+            echo "- Supabase projects, development branches and Edge Functions are inventory-only."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -76,6 +100,7 @@ jobs:
             ${{ runner.temp }}/inventory.json
             ${{ runner.temp }}/inventory.md
             ${{ runner.temp }}/preview.json
+            ${{ runner.temp }}/branch-manifest.json
           if-no-files-found: ignore
 
   execute:
