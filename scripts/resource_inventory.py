@@ -132,9 +132,9 @@ def render_markdown(report: dict[str, Any]) -> str:
     for r in report["resources"]:
         vals = (r["project_key"] or r["project_id"] or "Supabase account", r["platform"], r["identity"],
                 r["observed_state"], r["risk_class"], r["recommended_action"], r["reason"])
-        lines.append("| " + " | ".join(str(v).replace("|", "\\\\|").replace("\\n", " ") for v in vals) + " |")
+        lines.append("| " + " | ".join(str(v).replace("|", "\\\\|").replace("\n", " ") for v in vals) + " |")
     lines.extend(["", "No resources were deleted. ChatGPT conversation history is outside this inventory."])
-    return "\\n".join(lines) + "\\n"
+    return "\n".join(lines) + "\n"
 
 
 def main():
@@ -151,7 +151,7 @@ def main():
     report = build_report(snapshot, args.repository)
     args.json_out.parent.mkdir(parents=True, exist_ok=True)
     args.markdown_out.parent.mkdir(parents=True, exist_ok=True)
-    args.json_out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    args.json_out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     args.markdown_out.write_text(render_markdown(report), encoding="utf-8")
     print(render_markdown(report))
     return 0
