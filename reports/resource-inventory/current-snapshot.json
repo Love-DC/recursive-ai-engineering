@@ -2941,7 +2941,7 @@
       "all_pages_exhausted": true
     },
     "open_pull_requests": {
-      "Love-DC/recursive-ai-engineering": 1,
+      "Love-DC/recursive-ai-engineering": 2,
       "Love-DC/colony-sim": 28
     },
     "branch_ancestry": "RAE compare checks verified three merged ancestors: ai/guarded-batch-branch-cleanup-v2, rae/p1-claim-race-distinct-workers, rae/p1-failure-repair-child-dedupe. All other non-default RAE branches are unmerged or task/PR referenced. Colony Sim ancestry is intentionally unknown and preserved.",
