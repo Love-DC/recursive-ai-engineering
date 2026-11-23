@@ -8,6 +8,7 @@
   "governance": {
     "agent_instructions": "docs/WORKER-INSTRUCTIONS.md",
     "entrypoints": [
+      "docs/SESSION-IDENTITY.md",
       "docs/SESSION-START.md",
       "docs/MULTI-PROJECT-ARCHITECTURE.md",
       "docs/ADR-001-REPOSITORY-LOCAL-GOVERNANCE.md",
