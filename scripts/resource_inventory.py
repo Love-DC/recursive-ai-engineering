@@ -36,6 +36,10 @@ def build_report(snapshot: dict[str, Any], current_repository: str) -> dict[str,
             continue
         github = project.get("github", {})
         default = project.get("default_branch")
+        task_scan = project.get("task_reference_scan", {})
+        active_task_refs = set(task_scan.get("active_branch_refs", []))
+        task_scan_complete = task_scan.get("complete") is True
+        historical_task_refs = task_scan.get("historical_references", [])
         for branch in sorted(github.get("branches", []), key=lambda b: b.get("name", "")):
             name, sha = branch.get("name", "unknown"), branch.get("sha")
             prs = sorted(set(branch.get("open_pr_numbers") or []))
@@ -45,6 +49,10 @@ def build_report(snapshot: dict[str, Any], current_repository: str) -> dict[str,
                 risk, action, reason = PRESERVE, "preserve", "Branch is protected."
             elif prs:
                 risk, action, reason = PRESERVE, "preserve", "Referenced by open pull request(s)."
+            elif name in active_task_refs:
+                risk, action, reason = PRESERVE, "preserve", "Referenced by an active or submitted task."
+            elif not task_scan_complete:
+                risk, action, reason = PRESERVE, "preserve until verified", "Task-reference scan is incomplete; uncertain dependencies are never cleanup candidates."
             elif branch.get("protection_verified") is not True:
                 risk, action, reason = PRESERVE, "preserve until verified", "Protection state is unknown; uncertain branches are never cleanup candidates."
             elif branch.get("merged") is False:
@@ -55,9 +63,12 @@ def build_report(snapshot: dict[str, Any], current_repository: str) -> dict[str,
                 risk, action, reason = DECISION, "manual handoff", "Cross-repository mutation is disabled without a scoped credential."
             else:
                 risk, action, reason = ELIGIBLE, "batch preview only", "Merged, unprotected, unused RAE-local branch."
+            historical_refs = [item for item in historical_task_refs if item.get("branch") == name]
             add(project, "github", "branch", name, "present" if sha else "unknown", risk, action, reason,
                 {"sha": sha, "protected": branch.get("protected"), "protection_verified": branch.get("protection_verified") is True,
-                 "open_pr_numbers": prs, "merged": branch.get("merged"), "default_branch": default})
+                 "open_pr_numbers": prs, "merged": branch.get("merged"), "default_branch": default,
+                 "active_task_reference": name in active_task_refs, "task_reference_scan_complete": task_scan_complete,
+                 "historical_task_references": historical_refs})
         for pr in sorted(github.get("open_pull_requests", []), key=lambda p: int(p.get("number", 0))):
             add(project, "github", "open_pr_reference", pr.get("number", "unknown"), "open", PRESERVE,
                 "preserve referenced branch", "Open PR reference is never a cleanup target.",
@@ -86,14 +97,20 @@ def build_report(snapshot: dict[str, Any], current_repository: str) -> dict[str,
                 {"version": fn.get("version"), "project_ref": ref})
     resources.sort(key=lambda r: (r["project_key"] or "", r["platform"], r["kind"], r["identity"]))
     counts = {risk: sum(r["risk_class"] == risk for r in resources) for risk in (ELIGIBLE, DECISION, PRESERVE)}
+    current_scan = next((p.get("task_reference_scan", {}) for p in snapshot.get("registered_projects", [])
+                         if p.get("repository") == current_repository), {})
     return {"schema_version": 1, "generated_at": generated, "current_repository": current_repository,
             "dry_run_default": True, "resources": resources, "counts": counts, "deletion_performed": False,
+            "task_reference_scan_complete": current_scan.get("complete") is True,
+            "task_references": sorted(set(current_scan.get("active_branch_refs", []))),
             "collection_notes": snapshot.get("collection_notes", {})}
 
 
 def preview_batch(report: dict[str, Any], ids: list[str], now: datetime | None = None, max_age_minutes: int = 30):
     if not ids or len(ids) != len(set(ids)):
         raise ValueError("Batch must contain unique resource IDs.")
+    if report.get("task_reference_scan_complete") is not True:
+        raise ValueError("Task-reference scan is incomplete; batch preview is blocked.")
     current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     age = (current - _time(report["generated_at"])).total_seconds() / 60
     if age < 0 or age > max_age_minutes:
@@ -110,7 +127,11 @@ def preview_batch(report: dict[str, Any], ids: list[str], now: datetime | None =
             raise ValueError("Cross-repository mutation is disabled.")
         targets.append({"id": identity, "repository": row["repository"], "branch": row["identity"],
                         "expected_sha": row["evidence"].get("sha")})
-    return {"generated_at": report["generated_at"], "dry_run": True, "confirmation_required": True, "targets": targets}
+    return {"generated_at": report["generated_at"], "dry_run": True, "confirmation_required": True,
+            "task_reference_scan_complete": True, "task_references": report.get("task_references", []),
+            "repository": report["current_repository"],
+            "branches": {target["branch"]: target["expected_sha"] for target in targets},
+            "targets": targets}
 
 
 def authorize_batch(preview: dict[str, Any], confirmation: str, expected_shas: dict[str, str]):
