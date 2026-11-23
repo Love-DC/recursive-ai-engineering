@@ -22,7 +22,14 @@ def gh_json(endpoint):
 def parse_manifest(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(data, dict) or not isinstance(data.get("branches"), dict) or not data["branches"]:
-        raise ValueError("Expected {generated_at, branches:{branch: exact_sha}} manifest.")
+        raise ValueError("Expected a manifest with generated_at and exact branch SHAs.")
+    if data.get("task_reference_scan_complete") is not True:
+        raise ValueError("Task-reference scan is incomplete; cleanup is blocked.")
+    task_references = data.get("task_references")
+    if not isinstance(task_references, list) or not all(isinstance(x, str) for x in task_references):
+        raise ValueError("Manifest must include a task_references string array.")
+    if data.get("repository") not in (None, "Love-DC/recursive-ai-engineering"):
+        raise ValueError("Manifest repository does not match the RAE-local cleanup scope.")
     generated_at = data.get("generated_at")
     if not isinstance(generated_at, str):
         raise ValueError("Manifest generated_at timestamp is required.")
@@ -37,10 +44,12 @@ def parse_manifest(path):
         if not isinstance(name, str) or not isinstance(sha, str) or len(sha) != 40:
             raise ValueError("Every target must include its exact 40-character preview SHA.")
         run(["git", "check-ref-format", "--branch", name])
-    return branches
+    return {"branches": branches, "task_references": set(task_references)}
 
 
-def inspect_batch(repository, expected):
+def inspect_batch(repository, manifest):
+    expected = manifest["branches"]
+    task_references = manifest["task_references"]
     if not os.environ.get("GH_TOKEN"):
         raise RuntimeError("GH_TOKEN is required; use the workflow-provided GITHUB_TOKEN.")
     default = gh_json(f"repos/{repository}").get("default_branch")
@@ -62,6 +71,8 @@ def inspect_batch(repository, expected):
                 reason = "protected or protection state unknown"
             elif name in open_heads:
                 reason = "referenced by open pull request"
+            elif name in task_references:
+                reason = "referenced by active or submitted task"
             else:
                 cmp = gh_json(f"repos/{repository}/compare/{default}...{quote(name, safe='')}")
                 reason = ("eligible after exact-SHA revalidation" if cmp.get("ahead_by") == 0
@@ -93,11 +104,15 @@ def main():
             return 0
         for item in eligible:
             # Re-read branch, protection, open PR references and ancestry immediately before deletion.
-            final = inspect_batch(args.repository, {item["branch"]: item["sha"]})[0]
+            final = inspect_batch(args.repository, {
+                "branches": {item["branch"]: item["sha"]},
+                "task_references": manifest["task_references"],
+            })[0]
             if not final["eligible"] or final["sha"] != item["sha"]:
                 raise RuntimeError(f"Target failed final revalidation: {item['branch']}: {final['reason']}")
-            run(["gh", "api", "--method", "DELETE",
-                 f"repos/{args.repository}/git/refs/heads/{quote(item['branch'], safe='/')}"])
+            ref = f"refs/heads/{item['branch']}"
+            run(["git", "push", f"--force-with-lease={ref}:{item['sha']}",
+                 "origin", f":{ref}"])
         print(f"Deleted {len(eligible)} explicitly confirmed RAE-local branch(es).")
         return 0
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
