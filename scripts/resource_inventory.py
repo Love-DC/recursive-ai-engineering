@@ -72,9 +72,18 @@ def build_report(snapshot: dict[str, Any], current_repository: str) -> dict[str,
                 PRESERVE, "inventory only", "Edge Functions are inventory-only; deployment and deletion are excluded.",
                 {"version": item.get("version"), "project_ref": supa.get("project_ref")})
     for item in sorted(snapshot.get("supabase_projects", []), key=lambda x: str(x.get("id", ""))):
-        add({}, "supabase", "project", item.get("id", "unknown"), item.get("status", "unknown"),
+        ref = item.get("id", "unknown")
+        add({}, "supabase", "project", ref, item.get("status", "unknown"),
             PRESERVE, "inventory only", "Supabase projects are inventory-only and cannot be deleted here.",
-            {"name": item.get("name"), "region": item.get("region")})
+            {"name": item.get("name"), "region": item.get("region"), "mapping_status": item.get("mapping_status")})
+        for dev in sorted(item.get("development_branches", []), key=lambda x: str(x.get("id", ""))):
+            add({}, "supabase", "development_branch", dev.get("id", "unknown"), dev.get("status", "unknown"),
+                PRESERVE, "inventory only", "Supabase development branches are inventory-only.",
+                {"name": dev.get("name"), "project_ref": ref})
+        for fn in sorted(item.get("edge_functions", []), key=lambda x: str(x.get("slug", ""))):
+            add({}, "supabase", "edge_function", fn.get("slug", "unknown"), fn.get("status", "unknown"),
+                PRESERVE, "inventory only", "Edge Functions are inventory-only.",
+                {"version": fn.get("version"), "project_ref": ref})
     resources.sort(key=lambda r: (r["project_key"] or "", r["platform"], r["kind"], r["identity"]))
     counts = {risk: sum(r["risk_class"] == risk for r in resources) for risk in (ELIGIBLE, DECISION, PRESERVE)}
     return {"schema_version": 1, "generated_at": generated, "current_repository": current_repository,
