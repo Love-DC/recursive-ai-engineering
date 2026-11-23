@@ -29,7 +29,8 @@ ChatGPT conversation history is not accessible to RAE and is not inventoried.
 ## Batch safety
 
 The cleanup script is dry-run by default. A batch manifest maps exact branch names
-to the SHA shown in the preview. Execution requires one exact batch confirmation,
+to the SHA shown in the preview and includes the snapshot timestamp. Manifests older
+than 30 minutes are rejected. Execution requires one exact batch confirmation,
 then rechecks branch existence, exact SHA, protection, open PR references and
 merged ancestry. The script is restricted to the current RAE repository. It does
 not delete Supabase resources or mutate other repositories.
