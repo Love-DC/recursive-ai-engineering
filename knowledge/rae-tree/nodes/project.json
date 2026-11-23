@@ -51,13 +51,13 @@
       "kind": "pull_request",
       "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/28",
       "observed_at": "2026-11-23T14:36:13Z",
-      "note": "Current PR #28 remains open and Draft at HEAD 276ef2a25e9c6e93ba380179f27be453ea740d45. Independent recheck reports Recursive tree checks #81, Repository governance #93, Shell static checks #431, and PostgreSQL lifecycle #144 passed on this HEAD. Node metadata was corrected in this commit to match the current PR #29 delivery."
+      "note": "PR #28 remains open Draft at HEAD bc797c99d9db68df812cf3f6250ac2c544022838. The project-node synchronization is metadata-only; exact-HEAD CI is pending. Previous HEAD 276ef2a25e9c6e93ba380179f27be453ea740d45 passed all four workflows."
     },
     {
       "kind": "pull_request",
       "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/29",
       "observed_at": "2026-11-23T14:36:16Z",
-      "note": "Current PR #29 remains open and Draft at HEAD c90dc8b7e50817e0a10cd5eb8b633890f00872b0. Retry-cap implementation fix validated on code head 66f10c26a2c4edca44f3cdffd95750e2a4cfefad; PostgreSQL lifecycle #139 and Shell static checks #425 passed. Independent Reviewer task 5fff7a1e-ddff-482c-af92-ad67db135a7a remains pending."
+      "note": "PR #29 remains open Draft at HEAD c90dc8b7e50817e0a10cd5eb8b633890f00872b0. Retry-cap fix head 66f10c26a2c4edca44f3cdffd95750e2a4cfefad passed PostgreSQL lifecycle #139 and Shell #425. Formal Reviewer task 5fff7a1e-ddff-482c-af92-ad67db135a7a remains pending."
     },
     {
       "kind": "commit",
