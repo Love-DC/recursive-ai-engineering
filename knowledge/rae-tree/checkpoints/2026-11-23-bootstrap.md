@@ -35,10 +35,10 @@ All four workflows passed on exact code head `29ce0773ded12b633aa1c6961db99c37e7
 
 ## Worker routing and safe release — PR #29
 
-- Current PR #29 head: `3482081df1ee5c21472c6900aa2bc1345fc99aac`.
-- Exact validated PR #29 code head: `d269640fc14b1906b94a1682a0dbe6e5bdf64667`; PostgreSQL #113 and shell #366 passed on that exact SHA. Commits after it only move route/release guidance into standalone `docs/WORKER-ROUTING-AND-SAFE-RELEASE.md` to avoid end-of-file merge conflicts with PR #28.
-- PostgreSQL lifecycle integration #113 / [45104624363](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45104624363): passed, including route isolation, release idempotency/fencing, failure/retry, lease-reclaim race, lifecycle and atomic-claim tests.
-- Shell static checks #366 / [45104624398](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45104624398): passed.
+- Current PR #29 head: `c90dc8b7e50817e0a10cd5eb8b633890f00872b0`.
+- Exact validated PR #29 code head: `66f10c26a2c4edca44f3cdffd95750e2a4cfefad`; PostgreSQL #139 and shell #425 passed on that exact SHA, including the retry-cap regression. The only commit after it updates the standalone routing/release contract documentation.
+- PostgreSQL lifecycle integration #139 / [45189095149](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45189095149): passed, including route isolation, release idempotency/fencing, retry-cap terminal failure/no-reclaim, failure/retry, lease-reclaim race, lifecycle and atomic-claim tests.
+- Shell static checks #425 / [45189095144](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45189095144): passed.
 - Implementation task `ad7cdacb-be38-467c-aa79-e1eb11ee4ace`: accepted with PR and CI evidence.
 - Old PR #29 review task `842d85c0-2ea5-455c-b42f-5e276d2974b4`: cancelled because it targeted the pre-documentation-reorganization delivery.
 - Current PR #29 delivery wrapper `4cfc74aa-92a3-4caa-894b-569ac2fe23f4`: submitted.
