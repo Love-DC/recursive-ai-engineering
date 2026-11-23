@@ -1,14 +1,14 @@
-# AI Worker Collaboration System — Shared MCP Pilot
+# Recursive AI Engineering (RAE)
 
-A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversations, with GitHub as the durable code and documentation store.
+A human–AI engineering collaboration ecosystem. The Owner provides goals, ideas, resources, and constraints; AI participants autonomously discover, organize, execute, and verify work across many temporary GPT conversations. Supabase coordinates shared work; GitHub preserves formal engineering outcomes and repository governance.
 
 ## Pilot operating model
 
-- A conversation is disposable and is not tracked as a Worker identity.
+- GPT conversations are disposable execution resources, not Worker identities; many may be started and run concurrently.
 - All conversations use the user's already-authorized Supabase MCP connection.
 - Each project has project-scoped Worker routing rows; worker keys can differ by repository and task type. A Worker row is a routing reference, not an individual session identity.
 - Supabase stores project and task state. GitHub stores code, documents and commit history.
-- Large tasks can be decomposed into child tasks. Any fresh conversation can claim the next available task.
+- Goals and AI-originated initiatives can be decomposed into bounded child tasks. Any fresh conversation can discover and claim eligible shared work.
 - Pilot implementation tasks use `requires_review=false`; the separate Reviewer/Fixer workflow is not a startup requirement.
 - Autonomous discovery runs during an active Coordinator/Worker session. The shared MCP pilot does not depend on a deployed background daemon or scheduled job.
 
@@ -28,8 +28,9 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 
 ## Start here
 
+- [AI Collaboration Ecosystem](docs/AI-COLLABORATION-ECOSYSTEM.md): human/AI autonomy, many concurrent disposable sessions, shared-state coordination, AI initiatives, resource boundaries, and acceptance milestones.
 - [Autonomous Task Discovery & Generation](docs/AUTONOMOUS-TASK-DISCOVERY.md): evidence-based discovery, project authorization, deduplication, and empty-queue behavior.
-- [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the coordinator route and execute it.
+- [Session entry point](docs/SESSION-START.md): start any number of GPT conversations with the same generic entry instruction; each discovers shared state and selects suitable work.
 - [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, and task metadata.
 - [Repository-local governance protocol](docs/REPOSITORY-GOVERNANCE-PROTOCOL.md): pinned-SHA discovery, compatibility checks, conflict handling, and repository-owned CI routing.
 - [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md): Supabase task lifecycle and owner-MCP operating details.
