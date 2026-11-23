@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
@@ -20,13 +21,23 @@ def gh_json(endpoint):
 
 def parse_manifest(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    if not isinstance(data, dict) or not data:
-        raise ValueError("Expected a non-empty branch-to-SHA JSON object.")
-    for name, sha in data.items():
+    if not isinstance(data, dict) or not isinstance(data.get("branches"), dict) or not data["branches"]:
+        raise ValueError("Expected {generated_at, branches:{branch: exact_sha}} manifest.")
+    generated_at = data.get("generated_at")
+    if not isinstance(generated_at, str):
+        raise ValueError("Manifest generated_at timestamp is required.")
+    stamp = datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
+    if stamp.tzinfo is None:
+        raise ValueError("Manifest generated_at must include a timezone.")
+    age = (datetime.now(timezone.utc) - stamp.astimezone(timezone.utc)).total_seconds() / 60
+    if age < 0 or age > 30:
+        raise ValueError("Stale inventory manifest; refresh the inventory and preview again.")
+    branches = data["branches"]
+    for name, sha in branches.items():
         if not isinstance(name, str) or not isinstance(sha, str) or len(sha) != 40:
             raise ValueError("Every target must include its exact 40-character preview SHA.")
         run(["git", "check-ref-format", "--branch", name])
-    return data
+    return branches
 
 
 def inspect_batch(repository, expected):
