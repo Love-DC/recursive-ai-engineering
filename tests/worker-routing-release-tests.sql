@@ -9,6 +9,61 @@ SELECT set_config('test.worker_a', :'worker_a', true);
 SELECT set_config('test.worker_b', :'worker_b', true);
 SELECT set_config('test.reviewer_worker', :'reviewer_worker', true);
 
+-- Explicit Worker-key arrays are strict JSON string arrays. Never coerce malformed
+-- elements to text or partially accept a mixed-validity route.
+DO $route_array_test$
+DECLARE
+  v_project uuid := current_setting('test.project_id')::uuid;
+  v_keys text[];
+BEGIN
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    '{"required_worker_key":[123]}'::jsonb);
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: numeric Worker-key array element was coerced: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    '{"required_worker_key":[true]}'::jsonb);
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: boolean Worker-key array element was coerced: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    '{"required_worker_key":[{}]}'::jsonb);
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: object Worker-key array element was coerced: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    '{"required_worker_key":[null]}'::jsonb);
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: null Worker-key array element was accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    '{"required_worker_key":["test-worker-a",123]}'::jsonb);
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: mixed-validity Worker-key array was partially accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    '{"required_worker_key":["test-worker-a","   "]}'::jsonb);
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: blank Worker-key array element was accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    '{"required_worker_key":["test-worker-a","test-worker-b"]}'::jsonb);
+  IF cardinality(v_keys) <> 2
+    OR NOT ('test-worker-a'=ANY(v_keys))
+    OR NOT ('test-worker-b'=ANY(v_keys)) THEN
+    RAISE EXCEPTION 'FAIL: valid string Worker-key array was not preserved: %',v_keys;
+  END IF;
+
+  RAISE NOTICE 'PASS: Worker-key arrays reject numeric, boolean, object, null, blank, and mixed-validity elements; valid string arrays remain supported';
+END;
+$route_array_test$;
+
 DO $test$
 DECLARE
   v_project uuid := current_setting('test.project_id')::uuid;
