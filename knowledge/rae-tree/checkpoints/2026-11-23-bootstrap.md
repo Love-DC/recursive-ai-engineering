@@ -1,6 +1,7 @@
 # Recursive Engineering Tree Checkpoint
 
-- Captured at: 2026-11-23T03:36:40Z
+- Captured at: 2026-11-23T03:42:30Z
+- Last branch HEAD observed before this checkpoint metadata update: `81c2ca15bcafc187377ac928d240e2ea41031518`
 - Last branch HEAD observed before this checkpoint metadata update: `c181d3a39e96aca78fa041121d758990bcedf0de`
 - Last branch HEAD observed before this checkpoint metadata update: `306270ecc7123b876207f56a94e3cefa99baaca7`
 - Project: `recursive-ai-engineering`
@@ -34,11 +35,14 @@ All four workflows passed on exact code head `29ce0773ded12b633aa1c6961db99c37e7
 
 ## Worker routing and safe release — PR #29
 
-- Exact validated PR #29 head: `d269640fc14b1906b94a1682a0dbe6e5bdf64667`.
+- Current PR #29 head: `3482081df1ee5c21472c6900aa2bc1345fc99aac`.
+- Exact validated PR #29 code head: `d269640fc14b1906b94a1682a0dbe6e5bdf64667`; PostgreSQL #113 and shell #366 passed on that exact SHA. Commits after it only move route/release guidance into standalone `docs/WORKER-ROUTING-AND-SAFE-RELEASE.md` to avoid end-of-file merge conflicts with PR #28.
 - PostgreSQL lifecycle integration #113 / [45104624363](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45104624363): passed, including route isolation, release idempotency/fencing, failure/retry, lease-reclaim race, lifecycle and atomic-claim tests.
 - Shell static checks #366 / [45104624398](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45104624398): passed.
 - Implementation task `ad7cdacb-be38-467c-aa79-e1eb11ee4ace`: accepted with PR and CI evidence.
-- Independent review task `842d85c0-2ea5-455c-b42f-5e276d2974b4`: pending, assigned to project-scoped `independent-reviewer`.
+- Old PR #29 review task `842d85c0-2ea5-455c-b42f-5e276d2974b4`: cancelled because it targeted the pre-documentation-reorganization delivery.
+- Current PR #29 delivery wrapper `4cfc74aa-92a3-4caa-894b-569ac2fe23f4`: submitted.
+- Current PR #29 independent review task `5fff7a1e-ddff-482c-af92-ad67db135a7a`: pending, assigned to project-scoped `independent-reviewer`.
 - PR #29 remains Draft/unmerged. Migration `202611230004_worker_task_routing_safe_release.sql` has NOT been applied to production. No live project config, schema, RPC, grants, RLS, task or lease rows were changed.
 
 ## Task pool state at capture
@@ -65,7 +69,7 @@ All four workflows passed on exact code head `29ce0773ded12b633aa1c6961db99c37e7
 
 1. At session start, fetch live PR #28 and PR #29 heads and current CI; compare changed paths with their validated code heads.
 2. Complete independent analysis of corrected PR #28 using review task `a25e383a-7449-44b3-b3c1-b605af8e48ab` and PR #29 using review task `842d85c0-2ea5-455c-b42f-5e276d2974b4`. Do not call `claim_task` as `independent-reviewer` until the live route guard is deployed and verified.
-3. Because the connected GitHub identity is the PR author, record the independent review result in the RAE review task/comment; do not claim GitHub APPROVED status.
+3. Because the connected GitHub identity is the PR author, record the independent review result in the current RAE review task/comment; do not claim GitHub APPROVED status.
 4. Production deployment of PR #29 migration is a separate high-impact operation and requires explicit deployment authorization after review.
 5. Resume `861bb6d6-bdb9-4e0c-bb46-e285f614c351` for remaining dependency-eligibility work after safe routing/recovery is available.
 6. Then execute tree lifecycle task `2f49daad-f74f-4885-a193-f131360abc9b`: child creation, bounded ancestor propagation, due/wake selection, archival and checkpoint tooling.
