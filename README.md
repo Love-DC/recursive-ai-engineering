@@ -9,7 +9,7 @@ A human–AI engineering collaboration ecosystem. The Owner provides goals, idea
 - Each project has project-scoped Worker routing rows; worker keys can differ by repository and task type. A Worker row is a routing reference, not an individual session identity.
 - Supabase stores project and task state. GitHub stores code, documents and commit history.
 - Goals and AI-originated initiatives can be decomposed into bounded child tasks. Any fresh conversation can discover and claim eligible shared work.
-- Pilot implementation tasks use `requires_review=false`; the separate Reviewer/Fixer workflow is not a startup requirement.
+- Review and merge requirements come from the target repository's governance. Where independent review is required, a separate GPT conversation/context performs it; no separate account or persistent Reviewer process is required.
 - Autonomous discovery runs during an active Coordinator/Worker session. The shared MCP pilot does not depend on a deployed background daemon or scheduled job.
 
 ## Current pilot setup
@@ -43,9 +43,9 @@ Before changing the system, review [Pilot Readiness and Deferred Production Gate
 
 - Per-session identity or Worker Auth accounts.
 - Session heartbeats, presence dashboards or activity tracking.
-- Separate Coordinator/Implementer/Reviewer/Fixer accounts.
+- A permanent background Coordinator daemon or timer.
 - Browser console deployment.
-- Automated review/fix orchestration.
+- Per-conversation identities or separate Coordinator/Implementer/Reviewer/Fixer accounts.
 - A persistent background Coordinator daemon or timer.
 
 The Owner console remains available for later use, but the pilot can be operated directly through the connected Supabase MCP and GitHub MCP tools.
