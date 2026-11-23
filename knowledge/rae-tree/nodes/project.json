@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "node_id": "project:recursive-ai-engineering",
+  "node_type": "project",
+  "project_key": "recursive-ai-engineering",
+  "title": "Recursive AI Engineering",
+  "goal": "Evolve RAE into a recursively growing, context-efficient engineering system that operates through one manually started GPT conversation at a time.",
+  "status": "active",
+  "summary": "Initial tree bootstrap. Existing Supabase project/task/execution model remains authoritative. Current work establishes repository-local recursive context nodes, lazy loading, bounded upward summaries, branch wake-up, and cross-session checkpoints. The current main branch still contains fixed Coordinator startup wording; open PR #26 adds a mandatory separate-session role chain and conflicts with the confirmed single-session runtime boundary.",
+  "parent_node_id": null,
+  "children_index": "knowledge/rae-tree/attention.json",
+  "context_refs": [
+    "docs/SESSION-START.md",
+    "docs/MULTI-PROJECT-ARCHITECTURE.md",
+    "docs/WORKER-INSTRUCTIONS.md",
+    "docs/RECURSIVE-ENGINEERING-TREE.md",
+    "docs/FAILURE-RECOVERY-CONTRACT.md"
+  ],
+  "evidence_refs": [
+    {
+      "kind": "file",
+      "ref": "docs/SESSION-START.md",
+      "observed_at": "2026-11-23T02:20:00Z",
+      "note": "Current startup contract requires project queue enumeration and describes each conversation as a temporary coordinator/executor."
+    },
+    {
+      "kind": "file",
+      "ref": "docs/MULTI-PROJECT-ARCHITECTURE.md",
+      "observed_at": "2026-11-23T02:20:00Z",
+      "note": "Current architecture uses project-scoped task queues and parent/child task decomposition."
+    },
+    {
+      "kind": "pull_request",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/26",
+      "observed_at": "2026-11-23T02:20:00Z",
+      "note": "Open proposal requires fixed role identities and a distinct GPT session for review; conflicts with the Owner-confirmed runtime boundary."
+    }
+  ],
+  "dependency_refs": [],
+  "task_refs": [
+    "2daceac7-f748-49fb-8e30-a72243eaf399",
+    "861bb6d6-bdb9-4e0c-bb46-e285f614c351"
+  ],
+  "wake_conditions": [
+    "New Owner objective intersects RAE platform architecture.",
+    "A referenced task, pull request, CI result, or project governance file changes.",
+    "The next_review_at time is reached."
+  ],
+  "last_activity_at": "2026-11-23T02:20:00Z",
+  "last_reviewed_at": "2026-11-23T02:20:00Z",
+  "next_review_at": "2026-11-24T02:20:00Z",
+  "checkpoint_ref": "knowledge/rae-tree/checkpoints/2026-11-23-bootstrap.md",
+  "supersedes": []
+}
