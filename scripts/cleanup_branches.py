@@ -68,8 +68,8 @@ def main():
     parser.add_argument("--execute", action="store_true", help="Default is dry-run.")
     parser.add_argument("--confirmation", default="")
     args = parser.parse_args()
-    if not args.repository or "/" not in args.repository:
-        parser.error("--repository must be owner/name")
+    if args.repository != "Love-DC/recursive-ai-engineering":
+        parser.error("Cleanup is restricted to Love-DC/recursive-ai-engineering; cross-repository mutation is disabled.")
     if args.execute and args.confirmation != CONFIRMATION:
         parser.error(f"Deletion requires exact confirmation {CONFIRMATION!r}")
     try:
@@ -81,10 +81,10 @@ def main():
             print(f"Dry-run only: {len(eligible)} eligible / {len(result)} requested. No resources deleted.")
             return 0
         for item in eligible:
-            # Final immediate revalidation; the GitHub REST delete-ref API has no conditional-SHA parameter.
-            current = gh_json(f"repos/{args.repository}/branches/{quote(item['branch'], safe='/')}")
-            if (current.get("commit") or {}).get("sha") != item["sha"] or current.get("protected") is not False:
-                raise RuntimeError(f"Target changed during final revalidation: {item['branch']}")
+            # Re-read branch, protection, open PR references and ancestry immediately before deletion.
+            final = inspect_batch(args.repository, {item["branch"]: item["sha"]})[0]
+            if not final["eligible"] or final["sha"] != item["sha"]:
+                raise RuntimeError(f"Target failed final revalidation: {item['branch']}: {final['reason']}")
             run(["gh", "api", "--method", "DELETE",
                  f"repos/{args.repository}/git/refs/heads/{quote(item['branch'], safe='/')}"])
         print(f"Deleted {len(eligible)} explicitly confirmed RAE-local branch(es).")
