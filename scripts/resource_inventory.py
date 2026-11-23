@@ -126,3 +126,27 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("| " + " | ".join(str(v).replace("|", "\\\\|").replace("\\n", " ") for v in vals) + " |")
     lines.extend(["", "No resources were deleted. ChatGPT conversation history is outside this inventory."])
     return "\\n".join(lines) + "\\n"
+
+
+def main():
+    import argparse
+    import json
+    from pathlib import Path
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("snapshot", type=Path, help="JSON snapshot collected from authorized Supabase/GitHub integrations")
+    parser.add_argument("--repository", required=True, help="Canonical RAE repository owner/name")
+    parser.add_argument("--json-out", type=Path, required=True)
+    parser.add_argument("--markdown-out", type=Path, required=True)
+    args = parser.parse_args()
+    snapshot = json.loads(args.snapshot.read_text(encoding="utf-8"))
+    report = build_report(snapshot, args.repository)
+    args.json_out.parent.mkdir(parents=True, exist_ok=True)
+    args.markdown_out.parent.mkdir(parents=True, exist_ok=True)
+    args.json_out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    args.markdown_out.write_text(render_markdown(report), encoding="utf-8")
+    print(render_markdown(report))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
