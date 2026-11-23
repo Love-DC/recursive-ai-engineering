@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "project_key": "recursive-ai-engineering",
-  "updated_at": "2026-11-23T03:22:06Z",
+  "updated_at": "2026-11-23T03:32:00Z",
   "items": [
     {
       "node_id": "project:recursive-ai-engineering",
@@ -9,7 +9,7 @@
       "priority": 1,
       "status": "active",
       "wake_reason": "Rerun exact-head CI for PR #28 schema/index validator changes, then complete the independent review. PR #29 separately fixes Worker route/release and awaits independent review. Do not deploy either migration or merge without the required review.",
-      "next_review_at": "2026-11-23T04:22:06Z",
+      "next_review_at": "2026-11-23T04:30:28Z",
       "task_refs": [
         "2daceac7-f748-49fb-8e30-a72243eaf399",
         "ced35b2e-0f3e-4861-a758-79fda9291612",
