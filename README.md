@@ -62,6 +62,7 @@ The pilot assumes every participating ChatGPT conversation has the user's author
 - Task lifecycle integration coverage: [docs/TASK-LIFECYCLE-TESTING.md](docs/TASK-LIFECYCLE-TESTING.md)
 - Credential-free shell static checks: [.github/workflows/shell-static-checks.yml](.github/workflows/shell-static-checks.yml)
 - [Cross-project resource inventory and lifecycle center](docs/RESOURCE-LIFECYCLE.md): consolidated inventory, risk classes, and dry-run-first guarded batch cleanup.
+- [Latest consolidated resource report](reports/resource-inventory/latest.md) · [machine-readable report](reports/resource-inventory/latest.json) · [source snapshot](reports/resource-inventory/current-snapshot.json).
 - Fresh-conversation handoff acceptance: [docs/FRESH-SESSION-HANDOFF-ACCEPTANCE.md](docs/FRESH-SESSION-HANDOFF-ACCEPTANCE.md)
 - Two-connection claim race harness: [scripts/test-claim-concurrency.sh](scripts/test-claim-concurrency.sh)
 - Transactional task lifecycle harness: [scripts/test-task-lifecycle.sh](scripts/test-task-lifecycle.sh)
