@@ -46,6 +46,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes postgresql-client jq
 
+      - name: Validate Worker-routing migration structure
+        run: python3 scripts/test_worker_routing_migration_shape.py
+
       - name: Prepare isolated Supabase-compatible PostgreSQL fixture
         run: |
           set -euo pipefail
