@@ -58,7 +58,7 @@ Fields:
 7. Derive CI/review/acceptance routes from the manifest and referenced repository documents. Do not branch on repository names or hardcode a project's workflow in RAE core.
 8. Persist only execution evidence and routing identifiers in Supabase: repository, pinned base SHA, manifest path/version, manifest blob SHA, actual CI repository/workflow/run URL, exact tested head SHA and result.
 9. Before delivery, re-fetch the target PR's current head SHA and require CI evidence for that exact SHA. A stale run is not a pass.
-10. A Worker cannot review or merge its own PR. Coordinator review remains independent; merge permissions and Owner/product decision boundaries remain unchanged.
+10. Every PR requires a separate independent Reviewer AI that did not implement the change and operates in a separate agent/session/context. The Coordinator only dispatches and coordinates; it must not approve or merge. Only the independent Reviewer may issue the formal verdict and execute the merge after all exact-head checks pass. The Coordinator verifies the merge commit and post-merge CI. Follow `docs/INDEPENDENT-PR-REVIEW.md`.
 
 ## Failure semantics
 
@@ -73,6 +73,10 @@ Fields:
 | Actual checkout SHA differs from pinned SHA | Discard loaded context and refetch/re-pin under task authorization |
 | CI workflow/trigger unavailable | Mark validation unavailable; do not claim acceptance |
 | CI reports a different SHA | Reject evidence as stale |
+| Independent Reviewer unavailable | Keep PR open and unmerged; persist review handoff |
+| Reviewer is also implementer or same execution context | Reject as non-independent; dispatch another Reviewer |
+| Coordinator attempts to merge | Prohibited; hand off to the independent Reviewer |
+| PR head changes after approval | Invalidate approval; require re-review of the new exact SHA |
 
 ## Compatibility and migration
 
