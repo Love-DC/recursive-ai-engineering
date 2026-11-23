@@ -150,6 +150,9 @@ A checkpoint is a continuation packet, not a transcript. Keep one current checkp
 
 ## Acceptance properties
 
+The credential-free structural and context-budget check is `python scripts/test_recursive_tree.py`; GitHub Actions runs it through `.github/workflows/recursive-tree-checks.yml`. This verifies the current index/node contract and bounded startup rules. It does not claim to prove a fresh ChatGPT conversation or independent review; those require actual separate session execution.
+
+
 - Startup cost is bounded by root index + selected branch, not total tree size.
 - Adding unrelated projects or descendants does not increase the default context loaded by a session.
 - Any node can recursively expand; parents remain concise.
