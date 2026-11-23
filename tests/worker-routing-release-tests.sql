@@ -53,6 +53,48 @@ BEGIN
   END IF;
 
   v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    jsonb_build_object('required_worker_key',chr(9)));
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: tab-only scalar Worker-key route was accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    jsonb_build_object('required_worker_key',chr(10)));
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: newline-only scalar Worker-key route was accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    jsonb_build_object('required_worker_key',jsonb_build_array(chr(9))));
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: tab-only array Worker-key element was accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    jsonb_build_object('required_worker_key',jsonb_build_array(chr(10))));
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: newline-only array Worker-key element was accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    jsonb_build_object('required_worker_key',jsonb_build_array('test-worker-a',chr(9))));
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: mixed valid/tab-only Worker-key array was accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    jsonb_build_object('required_worker_key',jsonb_build_array('test-worker-a',chr(10))));
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: mixed valid/newline-only Worker-key array was accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    jsonb_build_object('required_worker_key',' '||chr(9)||'test-worker-a'||chr(10)||' '));
+  IF v_keys IS DISTINCT FROM ARRAY['test-worker-a']::text[] THEN
+    RAISE EXCEPTION 'FAIL: nonblank Worker-key route was not normalized across whitespace: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
     '{"required_worker_key":["test-worker-a","test-worker-b"]}'::jsonb);
   IF cardinality(v_keys) <> 2
     OR NOT ('test-worker-a'=ANY(v_keys))
