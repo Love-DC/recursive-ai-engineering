@@ -1,6 +1,6 @@
 # AI Worker Collaboration System — Shared MCP Pilot
 
-A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversations, with GitHub as the durable code and documentation store.
+A session-triggered recursive engineering system: GitHub repositories own a lazy, recursively growing knowledge/context tree, while Supabase/PostgreSQL coordinates project-scoped executable tasks and durable execution state. The only assumed AI runtime is one GPT conversation manually started by the Owner.
 
 ## Pilot operating model
 
@@ -8,9 +8,10 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 - All conversations use the user's already-authorized Supabase MCP connection.
 - Each project has project-scoped Worker routing rows; worker keys can differ by repository and task type. A Worker row is a routing reference, not an individual session identity.
 - Supabase stores project and task state. GitHub stores code, documents and commit history.
-- Large tasks can be decomposed into child tasks. Any fresh conversation can claim the next available task.
-- Pilot implementation tasks use `requires_review=false`; the separate Reviewer/Fixer workflow is not a startup requirement.
-- Autonomous discovery runs during an active Coordinator/Worker session. The shared MCP pilot does not depend on a deployed background daemon or scheduled job.
+- Large work can grow recursively through repository-local knowledge nodes and, when execution is required, project-scoped child tasks.
+- A fresh GPT conversation restores only the root index and selected branch; it does not load every project queue or historical execution.
+- Roles such as Coordinator, Worker and Reviewer are responsibilities, not fixed session identities or guaranteed separate agents.
+- Discovery and repair run only during an active manually started GPT conversation; no daemon or scheduled job is assumed.
 
 ## Current pilot setup
 
@@ -28,6 +29,8 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 
 ## Start here
 
+- [Recursive Engineering Tree](docs/RECURSIVE-ENGINEERING-TREE.md): recursive context growth, lazy loading, bounded summaries, branch wake-up, and cross-session checkpoints.
+- [RAE global root index](knowledge/rae-root/index.json): compact project pointers and global attention queue.
 - [Autonomous Task Discovery & Generation](docs/AUTONOMOUS-TASK-DISCOVERY.md): evidence-based discovery, project authorization, deduplication, and empty-queue behavior.
 - [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the coordinator route and execute it.
 - [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, and task metadata.
