@@ -93,3 +93,8 @@ python scripts/repository_governance.py /path/to/checked-out-repository \
 ```
 
 The adapter verifies structural integrity and SHA freshness. Semantic rule-conflict review and the Coordinator's read/understand step remain mandatory; a successful structural check is not policy approval. In web-only sessions, perform equivalent manifest/path/version/conflict checks from GitHub file responses at the pinned SHA and record the returned blob SHAs; the local adapter is not a prerequisite.
+
+
+## Session identity requirement
+
+Every RAE session must declare exactly one primary role and verify assignment/authority before acting, following `docs/SESSION-IDENTITY.md`. Repository-local governance supplements but cannot weaken RAE role separation, authentication, or permission boundaries. A Worker routing row is not proof of a distinct AI session. If the platform cannot dispatch or verify a distinct Worker/Reviewer context, do not simulate delegation or bypass the role gate.
