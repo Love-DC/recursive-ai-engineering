@@ -162,3 +162,17 @@ The credential-free structural and context-budget check is `python scripts/test_
 - A fresh conversation can resume from a checkpoint without chat history.
 - Existing task lifecycle, execution fencing, and project isolation remain unchanged.
 - No fixed Coordinator process or independent GPT session is assumed.
+
+## Checkpoint and live-state authority
+
+A repository checkpoint is a recovery hint, not the source of truth for live GitHub state. Branch HEADs, PR HEADs, PR state, reviews, and CI conclusions must be re-read from GitHub when a session resumes. Never infer current state from a stored checkpoint or an old assistant report.
+
+Each checkpoint must distinguish:
+- last observed branch/PR HEAD;
+- last code HEAD with exact passing CI run references;
+- metadata-only commits made after that tested code HEAD;
+- unresolved review findings and the next action.
+
+A node or checkpoint must not claim that its own containing commit is the current HEAD. Store the last observed/validated SHA and resolve the live HEAD from GitHub on startup. If live HEAD differs, mark the recorded validation as historical until exact-head checks finish. CI references must name the exact commit SHA they tested; a green run on an earlier SHA is not evidence for a later code change.
+
+Before changing a PR, inspect the actual diff and latest review comments. After changing it, re-read the live PR head and CI runs, then update the checkpoint with exact evidence and any remaining drift. A metadata-only follow-up may retain earlier code validation only when explicitly labelled as such.
