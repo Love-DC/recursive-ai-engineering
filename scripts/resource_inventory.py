@@ -46,11 +46,11 @@ def build_report(snapshot: dict[str, Any], current_repository: str) -> dict[str,
             elif prs:
                 risk, action, reason = PRESERVE, "preserve", "Referenced by open pull request(s)."
             elif branch.get("protection_verified") is not True:
-                risk, action, reason = DECISION, "recheck protection", "Protection state is unknown."
+                risk, action, reason = PRESERVE, "preserve until verified", "Protection state is unknown; uncertain branches are never cleanup candidates."
             elif branch.get("merged") is False:
                 risk, action, reason = PRESERVE, "preserve", "Branch is not merged into default."
             elif branch.get("merged") is not True or not isinstance(sha, str) or len(sha) != 40:
-                risk, action, reason = DECISION, "reinspect", "Merged ancestry or exact SHA is unknown."
+                risk, action, reason = PRESERVE, "preserve until verified", "Merged ancestry or exact SHA is unknown; uncertain branches are never cleanup candidates."
             elif project["repository"] != current_repository:
                 risk, action, reason = DECISION, "manual handoff", "Cross-repository mutation is disabled without a scoped credential."
             else:
