@@ -87,7 +87,8 @@ def build_report(snapshot: dict[str, Any], current_repository: str) -> dict[str,
     resources.sort(key=lambda r: (r["project_key"] or "", r["platform"], r["kind"], r["identity"]))
     counts = {risk: sum(r["risk_class"] == risk for r in resources) for risk in (ELIGIBLE, DECISION, PRESERVE)}
     return {"schema_version": 1, "generated_at": generated, "current_repository": current_repository,
-            "dry_run_default": True, "resources": resources, "counts": counts, "deletion_performed": False}
+            "dry_run_default": True, "resources": resources, "counts": counts, "deletion_performed": False,
+            "collection_notes": snapshot.get("collection_notes", {})}
 
 
 def preview_batch(report: dict[str, Any], ids: list[str], now: datetime | None = None, max_age_minutes: int = 30):
@@ -133,6 +134,11 @@ def render_markdown(report: dict[str, Any]) -> str:
         vals = (r["project_key"] or r["project_id"] or "Supabase account", r["platform"], r["identity"],
                 r["observed_state"], r["risk_class"], r["recommended_action"], r["reason"])
         lines.append("| " + " | ".join(str(v).replace("|", "\\\\|").replace("\n", " ") for v in vals) + " |")
+    notes = report.get("collection_notes", {})
+    if notes:
+        lines.extend(["", "## Collection notes"])
+        for key, value in notes.items():
+            lines.append(f"- {key}: {value}")
     lines.extend(["", "No resources were deleted. ChatGPT conversation history is outside this inventory."])
     return "\n".join(lines) + "\n"
 
