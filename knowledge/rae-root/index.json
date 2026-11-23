@@ -24,7 +24,7 @@
       "node_id": "project:recursive-ai-engineering",
       "node_path": "knowledge/rae-tree/nodes/project.json",
       "priority": 1,
-      "reason": "Complete independent analysis of corrected PR #28 (review task a25e383a-7449-44b3-b3c1-b605af8e48ab) and PR #29 (review task 842d85c0-2ea5-455c-b42f-5e276d2974b4). Do not claim with independent-reviewer until the live claim_task route guard is deployed and verified; production deployment remains gated."
+      "reason": "Complete independent analysis of corrected PR #28 (review task a25e383a-7449-44b3-b3c1-b605af8e48ab) and current PR #29 (review task 5fff7a1e-ddff-482c-af92-ad67db135a7a). Do not claim via independent-reviewer until live claim_task route guard is deployed and verified; production deployment remains gated."
     }
   ],
   "rules": {
