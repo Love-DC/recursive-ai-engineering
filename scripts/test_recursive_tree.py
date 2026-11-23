@@ -77,7 +77,7 @@ def main() -> int:
     check("startup still requires full project task enumeration", "list every task in every registered project" in startup)
     check("startup permits eager descendant expansion", "recursively expand all descendants" in startup)
     check("startup lacks no-fixed-role statement", "There is no mandatory role declaration at startup" in startup)
-    check("startup lacks single-session runtime boundary", "No daemon, scheduler, automatic GPT-session launch" in startup)
+    check("startup lacks single-session runtime boundary", "The Owner manually starts one GPT conversation at a time" in startup and "a daemon, or background scheduling" in startup)
 
     for relative in (
         "knowledge/rae-root/index.json",
