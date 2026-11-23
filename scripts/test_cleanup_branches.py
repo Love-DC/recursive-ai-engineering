@@ -49,7 +49,7 @@ class CleanupManifestTests(unittest.TestCase):
     def test_active_task_reference_blocks_a_branch_even_when_other_checks_pass(self):
         repository = "Love-DC/recursive-ai-engineering"
         manifest = {"branches": {"feature/x": "a" * 40}, "task_references": {"feature/x"}}
-        with patch("scripts.cleanup_branches.gh_json", side_effect=[
+        with patch.dict("os.environ", {"GH_TOKEN": "test"}), patch("scripts.cleanup_branches.gh_json", side_effect=[
             {"default_branch": "main"}, [],
             {"commit": {"sha": "a" * 40}, "protected": False},
         ]):
@@ -66,10 +66,11 @@ class CleanupManifestTests(unittest.TestCase):
         with tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8") as file:
             json.dump(manifest, file)
             file.flush()
-            with patch("scripts.cleanup_branches.gh_json", side_effect=[
-                {"default_branch": "main"}, [],
-                {"commit": {"sha": sha}, "protected": False}, {"ahead_by": 0}
-            ]), patch("scripts.cleanup_branches.run") as run:
+            with patch.dict("os.environ", {"GH_TOKEN": "test", "GITHUB_REPOSITORY": "Love-DC/recursive-ai-engineering"}), \
+                 patch("scripts.cleanup_branches.gh_json", side_effect=[
+                    {"default_branch": "main"}, [],
+                    {"commit": {"sha": sha}, "protected": False}, {"ahead_by": 0}
+                 ]), patch("scripts.cleanup_branches.run") as run:
                 run.return_value = Mock(returncode=0)
                 self.assertEqual(main(["--manifest", file.name]), 0)
                 self.assertFalse(any(call.args[0][1] == "push" for call in run.call_args_list))
@@ -89,7 +90,7 @@ class CleanupManifestTests(unittest.TestCase):
         with tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8") as file:
             json.dump(manifest, file)
             file.flush()
-            with patch.dict("os.environ", {"GH_TOKEN": "test"}), \
+            with patch.dict("os.environ", {"GH_TOKEN": "test", "GITHUB_REPOSITORY": "Love-DC/recursive-ai-engineering"}), \
                  patch("scripts.cleanup_branches.gh_json", side_effect=api_responses), \
                  patch("scripts.cleanup_branches.run") as run:
                 run.return_value = Mock(returncode=0)
