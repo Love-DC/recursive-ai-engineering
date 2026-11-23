@@ -1,0 +1,89 @@
+name: Resource lifecycle batch cleanup
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch_manifest:
+        description: "JSON object mapping selected RAE-local branch names to exact preview SHAs; {} performs a read-only no-target run"
+        required: true
+        default: "{}"
+        type: string
+      confirmation:
+        description: "Leave blank for dry-run. Exact phrase DELETE SELECTED RESOURCES enables the selected batch."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: resource-lifecycle-cleanup
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    name: Read-only batch preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate manifest and preview
+        env:
+          GH_TOKEN: \${{ github.token }}
+          GITHUB_REPOSITORY: \${{ github.repository }}
+          BRANCH_MANIFEST: \${{ inputs.branch_manifest }}
+        run: |
+          printf '%s' "$BRANCH_MANIFEST" > "$RUNNER_TEMP/branch-manifest.json"
+          if [ "$BRANCH_MANIFEST" = "{}" ]; then
+            {
+              echo "## Resource lifecycle preview"
+              echo "- Repository: $GITHUB_REPOSITORY"
+              echo "- No targets supplied; inventory remains read-only."
+              echo "- Supabase projects, development branches and Edge Functions are inventory-only."
+              echo "- No resources deleted."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            python scripts/cleanup_branches.py --manifest "$RUNNER_TEMP/branch-manifest.json" | tee "$RUNNER_TEMP/preview.json"
+            {
+              echo "## Resource lifecycle preview"
+              cat "$RUNNER_TEMP/preview.json"
+              echo "- Preview is read-only. No resources deleted."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: resource-lifecycle-preview
+          path: \${{ runner.temp }}/preview.json
+          if-no-files-found: ignore
+
+  execute:
+    name: Revalidate and execute one confirmed batch
+    if: inputs.confirmation == 'DELETE SELECTED RESOURCES' && inputs.branch_manifest != '{}'
+    needs: preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Revalidate and delete
+        env:
+          GH_TOKEN: \${{ github.token }}
+          GITHUB_REPOSITORY: \${{ github.repository }}
+          BRANCH_MANIFEST: \${{ inputs.branch_manifest }}
+          CONFIRMATION: \${{ inputs.confirmation }}
+        run: |
+          printf '%s' "$BRANCH_MANIFEST" > "$RUNNER_TEMP/branch-manifest.json"
+          python scripts/cleanup_branches.py --manifest "$RUNNER_TEMP/branch-manifest.json" --execute --confirmation "$CONFIRMATION"
+          {
+            echo "## Resource lifecycle execution"
+            echo "- One batch confirmation accepted."
+            echo "- Exact preview SHA, protection, open PR and merged ancestry revalidated."
+            echo "- Only selected RAE-local GitHub branches are executable."
+          } >> "$GITHUB_STEP_SUMMARY"
