@@ -209,3 +209,11 @@ At the start of each session, inspect the tools and integrations actually availa
 A tool call succeeding is not equivalent to end-to-end acceptance. Verify resulting branch heads, PR state, merge commit SHA, exact-head CI, deployment status, task execution fence, and post-change behavior as applicable. Distinguish verified facts from assumptions and untested work.
 
 **Default interaction rule:** the Owner supplies the initial instruction and available authorized access; the AI system supplies the planning, decomposition, execution, testing, review, routine merge, recovery, and evidence. Do not make the Owner operate the system the AI was instructed to operate.
+
+## Database-enforced Worker routing and accidental-claim recovery
+
+- `claim_task` is the final routing authority. Resolve the same project-scoped Worker key from live `workers` rows and project `worker_routing` metadata before calling it; never rely only on the Worker description or prompt.
+- Route precedence is task `requirements.required_worker_key`, project `config.worker_routing.task_type_worker_keys[task_type]`, project `config.worker_routing.default_worker_key`, then sole-active-Worker fallback. A multi-Worker project with no explicit route is intentionally unclaimable until routing is configured.
+- A Reviewer route must only receive review tasks. A review task is additionally pinned to its exact `assigned_worker_id`.
+- If a task is accidentally claimed, inspect its current execution and use `release_execution` with the exact `executions.worker_id`, current execution ID, reason, and a fresh idempotency key. `TASK_NOT_OWNED` means the supplied Worker ID does not match the current task/execution owner; do not retry with guessed IDs.
+- `release_execution` returns the task to pending without deleting its execution history. If it is unavailable in the deployed database, do not use direct SQL updates or cancellation as a workaround; let the lease expire and record the blocker.
