@@ -1,17 +1,18 @@
 {
   "schema_version": "1.0",
   "project_key": "recursive-ai-engineering",
-  "updated_at": "2026-11-23T02:29:00Z",
+  "updated_at": "2026-11-23T02:33:00Z",
   "items": [
     {
       "node_id": "project:recursive-ai-engineering",
       "node_path": "knowledge/rae-tree/nodes/project.json",
       "priority": 1,
       "status": "active",
-      "wake_reason": "PR #28 CI completion, independent review handoff, and remaining recursive-tree rollout",
-      "next_review_at": "2026-11-23T03:29:00Z",
+      "wake_reason": "Independent review task ced35b2e-0f3e-4861-a758-79fda9291612 is pending for PR #28; resume only in a fresh GPT context.",
+      "next_review_at": "2026-11-23T03:33:00Z",
       "task_refs": [
         "2daceac7-f748-49fb-8e30-a72243eaf399",
+        "ced35b2e-0f3e-4861-a758-79fda9291612",
         "861bb6d6-bdb9-4e0c-bb46-e285f614c351"
       ]
     }
