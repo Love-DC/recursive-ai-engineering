@@ -68,7 +68,7 @@ All four workflows passed on exact code head `29ce0773ded12b633aa1c6961db99c37e7
 ## Next actions
 
 1. At session start, fetch live PR #28 and PR #29 heads and current CI; compare changed paths with their validated code heads.
-2. Complete independent analysis of corrected PR #28 using review task `a25e383a-7449-44b3-b3c1-b605af8e48ab` and PR #29 using current review task `5fff7a1e-ddff-482c-af92-ad67db135a7a`. Do not call `claim_task` as `independent-reviewer` until the live route guard is deployed and verified.
+2. In a genuinely separate GPT conversation, recheck PR #28's checkpoint-only correction and independently re-review the PR #29 retry-cap fix. The prior review comments are recorded, but the Supabase review tasks `a25e383a-7449-44b3-b3c1-b605af8e48ab` and `5fff7a1e-ddff-482c-af92-ad67db135a7a` remain pending. Do not call production `claim_task` as `independent-reviewer` until the live route guard is deployed and verified.
 3. Because the connected GitHub identity is the PR author, record the independent review result in the current RAE review task/comment; do not claim GitHub APPROVED status.
 4. Production deployment of PR #29 migration is a separate high-impact operation and requires explicit deployment authorization after review.
 5. Resume `861bb6d6-bdb9-4e0c-bb46-e285f614c351` for remaining dependency-eligibility work after safe routing/recovery is available.
@@ -80,4 +80,5 @@ All four workflows passed on exact code head `29ce0773ded12b633aa1c6961db99c37e7
 - A fresh manually started GPT conversation restores the selected tree branch without prior chat history.
 - Recursive child creation, multi-level summary propagation, dormant wake-up, and archive/compaction have been exercised end-to-end.
 - Colony Sim has adopted its own local tree.
-- PR #28 or PR #29 has received independent analysis or formal approval/merge.
+- PR #28's corrected checkpoint has been independently rechecked after the metadata-only fix.
+- PR #29's retry-cap correction has been independently re-reviewed. Earlier comments are recorded on both PRs, but neither has a formal APPROVED review or merge.
