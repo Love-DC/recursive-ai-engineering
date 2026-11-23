@@ -1,0 +1,33 @@
+name: Recursive tree checks
+
+on:
+  push:
+    paths:
+      - "knowledge/rae-root/**"
+      - "knowledge/rae-tree/**"
+      - "docs/SESSION-START.md"
+      - "docs/RECURSIVE-ENGINEERING-TREE.md"
+      - "scripts/test_recursive_tree.py"
+      - ".github/workflows/recursive-tree-checks.yml"
+  pull_request:
+    paths:
+      - "knowledge/rae-root/**"
+      - "knowledge/rae-tree/**"
+      - "docs/SESSION-START.md"
+      - "docs/RECURSIVE-ENGINEERING-TREE.md"
+      - "scripts/test_recursive_tree.py"
+      - ".github/workflows/recursive-tree-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recursive-tree:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate recursive tree and bounded startup contract
+        run: python scripts/test_recursive_tree.py
