@@ -12,7 +12,7 @@ This addendum supersedes any assumption below that every task belongs to the ori
 - A direct owner request authorizes the current coordinator to execute a bounded engineering objective in the selected project. It does not authorize unapproved product decisions.
 - Never bulk-import Issues. An Issue becomes executable only under the target repository's local dispatch and authorization rules. An open Issue is not permission unless that repository explicitly defines an authorized activation path.
 - When a project queue is empty, follow docs/AUTONOMOUS-TASK-DISCOVERY.md; create only evidence-backed, deduplicated tasks permitted by that project's activation policy. Use only the selected repository's explicit task-activation policy; never infer authorization from backlog presence.
-- A leaf Worker does not merge its own PR or sibling PRs. The AI coordinator owns independent review and merge of eligible engineering-only PRs after the review checklist and exact-head CI pass. Product-owner approval remains required for product/design decisions, not routine engineering merges.
+- A Worker never reviews or merges its own PR or sibling PRs. The Coordinator dispatches a separate independent Reviewer AI; only that Reviewer may issue the formal review verdict and execute the merge after exact-head CI and all review gates pass. The Coordinator only orchestrates and verifies post-merge evidence; it must never merge. Follow `docs/INDEPENDENT-PR-REVIEW.md`. Product-owner approval remains required for product/design decisions, not routine engineering merges.
 
 Use [Session Start](SESSION-START.md) as the canonical new-conversation entry point and [Multi-Project Architecture](MULTI-PROJECT-ARCHITECTURE.md) as the canonical routing/task contract.
 
@@ -45,7 +45,7 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 5. Read the task requirements and relevant GitHub files.
 6. Do the work. Commit durable code/documentation changes to GitHub and record the resulting commit or file references in the task result/artifacts.
 7. If the task is too large, create child implementation tasks using `create_task` and the original task's ID as `parent_task_id`. Record the child task IDs in the parent result. Other sessions can claim those children without knowing anything about the decomposing session.
-8. For pilot tasks, set `requires_review=false` and finish with `complete_execution`. Do not introduce a review/fix workflow unless the user explicitly asks for it.
+8. For pilot tasks, `requires_review=false` may be used for the Supabase task lifecycle and `complete_execution`; this does not waive the mandatory independent GitHub PR review. Every PR must follow `docs/INDEPENDENT-PR-REVIEW.md` before merge.
 9. Submit a concise result containing what changed, GitHub references, verification performed, and remaining blockers.
 
 ## Lease behavior
@@ -64,7 +64,7 @@ The pilot uses the already-authorized project-owner MCP connection; it does not 
 - Do not add Worker identity systems, session tracking, heartbeat monitoring, multi-account provisioning, or complex orchestration.
 - Do not create or modify Supabase schema unless the task specifically requires it.
 - Do not use Service Role keys, secret keys, database passwords, or privileged connection strings outside the connected Supabase MCP tool.
-- Do not deploy production systems or perform other high-impact external side effects without explicit authorization. Routine engineering PR review/merge is covered by the standing owner authorization recorded in the project governance; follow the coordinator review checklist.
+- Do not deploy production systems or perform other high-impact external side effects without explicit authorization. Routine engineering PR review/merge is covered by standing Owner authorization. The Coordinator must dispatch an independent Reviewer AI; only the Reviewer may formally approve and merge. The Coordinator is prohibited from merging, even when CI is green or the PR is mergeable.
 - If a task cannot be completed safely, persist the blocker and create a smaller actionable task rather than inventing progress.
 
 
@@ -100,7 +100,7 @@ select public.create_task(
 ) from auth;
 ```
 
-For a child task, pass the parent task UUID as the ninth argument (`p_parent_task_id`). Keep pilot tasks as `implementation` with `requires_review=false`.
+For a child task, pass the parent task UUID as the ninth argument (`p_parent_task_id`). Keep pilot tasks as `implementation` with `requires_review=false` where required by the current task-pool pilot. This flag only controls the Supabase task lifecycle; it never waives independent GitHub PR review or Reviewer-only merge.
 
 ### Atomic claim and completion
 
@@ -134,7 +134,7 @@ select public.complete_execution(
 ) from auth;
 ```
 
-Do not call `complete_execution` for review-required work; pilot work should set `requires_review=false`. Do not reuse an idempotency key with different arguments.
+Do not call `complete_execution` for task-pool review-required work; pilot work may set `requires_review=false`. This is separate from GitHub PR review, which is always mandatory and must be completed by an independent Reviewer AI before merge. Do not reuse an idempotency key with different arguments.
 
 ### Querying handoff and project progress
 
@@ -209,3 +209,8 @@ At the start of each session, inspect the tools and integrations actually availa
 A tool call succeeding is not equivalent to end-to-end acceptance. Verify resulting branch heads, PR state, merge commit SHA, exact-head CI, deployment status, task execution fence, and post-change behavior as applicable. Distinguish verified facts from assumptions and untested work.
 
 **Default interaction rule:** the Owner supplies the initial instruction and available authorized access; the AI system supplies the planning, decomposition, execution, testing, review, routine merge, recovery, and evidence. Do not make the Owner operate the system the AI was instructed to operate.
+
+
+## Independent PR review and merge
+
+Follow [`docs/INDEPENDENT-PR-REVIEW.md`](INDEPENDENT-PR-REVIEW.md) for every PR. The Worker implements and opens the PR; the Coordinator dispatches and coordinates; a separate Reviewer AI independently reviews and is the only AI role allowed to merge. The Coordinator verifies the resulting merge commit and post-merge CI but never performs the merge. If no independent Reviewer or merge permission is available, leave the PR open, persist the blocker, and continue unrelated work. The Supabase `requires_review` flag does not waive GitHub PR review.
