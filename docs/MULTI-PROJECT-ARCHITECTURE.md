@@ -85,7 +85,7 @@ Every target repository must publish a root `rae-governance.json`. Before planni
 
 Missing manifests/files, incompatible protocol versions, conflicting rule declarations, semantic policy conflicts, or stale SHAs block execution. The Coordinator must report the exact source and ask the Owner when a conflict cannot be resolved by an explicit repository-local precedence rule. See [Repository-local governance discovery protocol](REPOSITORY-GOVERNANCE-PROTOCOL.md).
 
-The Colony Sim manifest identifies `Love-DC/colony-sim-ci` as an independent validation repository. Its workflow is not a Colony Sim subdirectory and must be invoked only through its documented exact-HEAD trigger. Product-owner authority, explicit Worker dispatch, and independent Coordinator review remain enforced by Colony Sim's own repository documents.
+The Colony Sim manifest identifies `Love-DC/colony-sim-ci` as an independent validation repository. Its workflow is not a Colony Sim subdirectory and must be invoked only through its documented exact-HEAD trigger. Product-owner authority, explicit Worker dispatch, and independent Reviewer dispatch remain enforced by Colony Sim's own repository documents.
 
 ## Shared task-pool semantics
 
@@ -97,11 +97,11 @@ Workers inspect their authorized project's code, docs, tests, CI, and read-only 
 
 ## Session routing and execution
 
-1. Read the RAE session entry point and inspect registered projects in Supabase.
+1. Read the RAE session entry point and `docs/SESSION-IDENTITY.md`; declare exactly one primary role before inspecting registered projects in Supabase.
 2. Resolve the user's named target project to exactly one active project record. If the target is omitted and the objective does not identify one unambiguously, ask one short clarification.
 3. Read that project's GitHub governance entry points at the current base SHA.
 4. For a direct owner objective, create a root task in the target project's task pool. Decompose only at real responsibility, ownership, interface, or validation boundaries.
-5. Execute the root task in the current coordinator conversation by default. Additional conversations are optional, not required.
+5. Dispatch the root task to a distinct Worker session using a real supported delegation capability. A Coordinator session does not silently become the Worker. If the platform cannot launch or address a separate session, preserve the complete handoff and report that execution is blocked by the missing dispatch capability; do not claim the task was delegated.
 6. Claim and complete tasks using the target project's worker UUID and project UUID. Never use the RAE project/worker IDs for a different repository.
 7. Commit to a task branch and open a PR in the target repository. The Coordinator dispatches a separate independent Reviewer AI. Only that Reviewer may issue the formal verdict and merge after all exact-head checks pass. The Coordinator verifies the merge commit and post-merge CI but never merges. Escalate only product/design or explicitly high-risk decisions. See `docs/INDEPENDENT-PR-REVIEW.md`.
 8. Persist task results and GitHub references in Supabase, then report the PR, exact head SHA, actual CI evidence, and any remaining owner decisions.
@@ -116,3 +116,8 @@ Workers inspect their authorized project's code, docs, tests, CI, and read-only 
 ## Mandatory independent PR review and merge
 
 Every PR follows `docs/INDEPENDENT-PR-REVIEW.md`: Worker implements and opens; Coordinator dispatches and coordinates; a separate Reviewer AI independently reviews, approves, and performs the merge. The Coordinator is not an alternate Reviewer and is prohibited from merging. If no independent Reviewer or required permission is available, the PR remains open and unmerged. Supabase task-level `requires_review=false` does not waive GitHub PR review.
+
+
+## Session role identity
+
+Every session reads `docs/SESSION-IDENTITY.md` and declares one primary role. Coordinator, Worker, and Reviewer are distinct execution contexts. A task-pool Worker row is only a routing identifier and does not create a session. If a real session-dispatch capability is unavailable, the handoff remains pending rather than being performed by the Coordinator under another role.
