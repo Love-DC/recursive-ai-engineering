@@ -431,6 +431,8 @@ DECLARE
   v_execution public.executions%rowtype;
   v_reason text;
   v_execution_status text;
+  v_max_attempts integer;
+  v_retry_limit_reached boolean;
   v_hash text;
   v_replay jsonb;
   v_response jsonb;
@@ -494,6 +496,74 @@ BEGIN
     WHEN v_task.lease_until IS NULL OR v_task.lease_until <= v_now THEN 'expired'
     ELSE 'superseded'
   END;
+
+  -- A release consumes the claimed attempt just like an expiry/reclaim.
+  -- Never return a task to pending once its configured attempt cap is reached.
+  v_max_attempts := CASE
+    WHEN (v_task.requirements #>> '{retry,max_attempts}') ~ '^[1-9][0-9]?
+  SET status=v_execution_status,
+      error_message=left(v_reason,2000),
+      result=jsonb_build_object('released',true,'reason',left(v_reason,1000)),
+      finished_at=v_now
+  WHERE id=p_execution_id AND task_id=p_task_id AND status='running';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING errcode='55000',message='EXECUTION_SUPERSEDED';
+  END IF;
+
+  UPDATE public.tasks
+  SET status=CASE WHEN v_retry_limit_reached THEN 'failed' ELSE 'pending' END,
+      assigned_worker_id=CASE WHEN task_type='review' THEN assigned_worker_id ELSE NULL END,
+      current_execution_id=NULL,
+      lease_until=NULL,
+      result=CASE WHEN v_retry_limit_reached
+        THEN jsonb_build_object('error_code','LEASE_RETRY_LIMIT_REACHED')
+        ELSE NULL END,
+      completed_at=CASE WHEN v_retry_limit_reached THEN v_now ELSE NULL END,
+      updated_at=v_now
+  WHERE id=p_task_id
+    AND current_execution_id=p_execution_id
+    AND status='running';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING errcode='55000',message='EXECUTION_SUPERSEDED';
+  END IF;
+
+  PERFORM private.add_event(v_project_id,p_task_id,p_execution_id,p_worker_id,
+    'execution_released',jsonb_build_object('execution_status',v_execution_status));
+  PERFORM private.add_event(v_project_id,p_task_id,p_execution_id,p_worker_id,
+    'task_released',jsonb_build_object(
+      'reason',left(v_reason,1000),
+      'execution_status',v_execution_status,
+      'retry_limit_reached',v_retry_limit_reached
+    ));
+  IF v_retry_limit_reached THEN
+    PERFORM private.add_event(v_project_id,p_task_id,p_execution_id,p_worker_id,
+      'task_failed',jsonb_build_object(
+        'error_code','LEASE_RETRY_LIMIT_REACHED',
+        'attempt',v_execution.attempt,
+        'max_attempts',v_max_attempts
+      ));
+  END IF;
+
+  v_response := jsonb_build_object('success',true,'data',jsonb_build_object(
+    'task_id',p_task_id,
+    'execution_id',p_execution_id,
+    'status',CASE WHEN v_retry_limit_reached THEN 'failed' ELSE 'pending' END,
+    'execution_status',v_execution_status,
+    'error_code',CASE WHEN v_retry_limit_reached THEN 'LEASE_RETRY_LIMIT_REACHED' ELSE NULL END
+  ));
+  PERFORM private.idempotency_put(v_project_id,'release_execution',p_idempotency_key,v_hash,v_response);
+  RETURN v_response;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.release_execution(uuid,uuid,uuid,text,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.release_execution(uuid,uuid,uuid,text,text) TO authenticated;
+
+    THEN CASE WHEN (v_task.requirements #>> '{retry,max_attempts}')::integer BETWEEN 1 AND 10
+      THEN (v_task.requirements #>> '{retry,max_attempts}')::integer ELSE 3 END
+    ELSE 3
+  END;
+  v_retry_limit_reached := v_execution.attempt >= v_max_attempts;
 
   UPDATE public.executions
   SET status=v_execution_status,
