@@ -83,3 +83,13 @@ Update the selected node and its ancestors with concise summaries and the root a
 The Owner supplies initial goals, constraints, connected access, and genuine product/architecture decisions. The Owner is not expected to dispatch workers, prepare task breakdowns/context packs, relay prompts, monitor leases, manage routine PRs, or manually repair the tree. Ask only when a concrete decision, permission, or external input is genuinely unavailable from existing records and authorized tools.
 
 Do not claim background execution between manually started GPT conversations. Persist state and resume at the next session.
+
+## Task-claim safety preflight
+
+Before calling `claim_task`, resolve the selected project's Worker key and the task's required route. Worker descriptions and prompt instructions are not enforcement.
+
+- An `independent-reviewer` Worker may only claim review tasks explicitly assigned to that Worker.
+- An implementation/fix task must resolve to the project's configured executor route or an explicit task-level `required_worker_key`.
+- Before using the reviewer route, verify that the live database `claim_task` function enforces project Worker-key routing and exact review assignment. If this is not verified, do not call `claim_task` with the reviewer Worker ID; leave review tasks untouched and continue with read-only review or other eligible work.
+- Before relying on an accidental-claim release, verify that `release_execution` exists in the live database. Use the exact Worker ID stored on the current execution. If the RPC is absent, do not update task/execution rows directly; let the lease expire.
+- A pending review task is not permission to claim arbitrary work. Never infer that a Worker route is safe from task priority or description alone.
