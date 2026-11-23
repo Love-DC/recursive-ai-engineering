@@ -147,6 +147,8 @@ def render_markdown(report: dict[str, Any]) -> str:
     c = report["counts"]
     lines = ["# Cross-project resource inventory", "", f"- Generated: {report['generated_at']}",
              f"- Current repository: {report['current_repository']}", "- Mode: read-only; dry-run by default",
+             f"- Task-reference scan complete: {report.get('task_reference_scan_complete', False)}",
+             f"- Active/submitted task branch references: {', '.join(report.get('task_references', [])) or 'none'}",
              f"- Eligible batch candidates: {c[ELIGIBLE]}", f"- Owner decision required: {c[DECISION]}",
              f"- Preserved / blocked / inventory-only: {c[PRESERVE]}", "",
              "| Project | Platform | Resource | State | Risk | Action | Reason |",
