@@ -21,6 +21,11 @@ jobs:
           bash -n scripts/test-failure-recovery.sh
           bash -n scripts/test-fail-reclaim-race.sh
 
+      - name: Run resource inventory and cleanup unit tests
+        run: |
+          python -m py_compile scripts/resource_inventory.py scripts/cleanup_branches.py
+          python -m unittest scripts.test_resource_inventory scripts.test_cleanup_branches -v
+
       - name: Install ShellCheck
         run: |
           sudo apt-get update
