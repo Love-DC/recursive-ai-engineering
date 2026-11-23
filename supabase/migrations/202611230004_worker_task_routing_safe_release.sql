@@ -40,9 +40,10 @@ BEGIN
   END IF;
 
   -- Explicit malformed/empty routes fail closed; they do not fall through.
+  -- Trim the complete PostgreSQL whitespace class, including tab/newline and VT.
   IF v_route IS NOT NULL AND jsonb_typeof(v_route)<>'null' THEN
     IF jsonb_typeof(v_route)='string' THEN
-      v_single_key := nullif(regexp_replace(v_route #>> '{}', '^[[:space:]]+|[[:space:]]+
+      v_single_key := nullif(btrim(v_route #>> '{}', E' \t\n\r\f' || chr(11)), '');
       IF v_single_key IS NULL THEN
         RETURN '{}'::text[];
       END IF;
@@ -54,13 +55,13 @@ BEGIN
         SELECT 1
         FROM jsonb_array_elements(v_route) AS route_item(value)
         WHERE jsonb_typeof(route_item.value) IS DISTINCT FROM 'string'
-          OR (route_item.value #>> '{}') ~ '^[[:space:]]*
+          OR nullif(btrim(route_item.value #>> '{}', E' \t\n\r\f' || chr(11)), '') IS NULL
       ) THEN
         RETURN '{}'::text[];
       END IF;
 
       SELECT coalesce(
-        array_agg(DISTINCT regexp_replace(route_item.value #>> '{}', '^[[:space:]]+|[[:space:]]+,
+        array_agg(DISTINCT btrim(route_item.value #>> '{}', E' \t\n\r\f' || chr(11))),
         '{}'::text[]
       )
       INTO v_keys
