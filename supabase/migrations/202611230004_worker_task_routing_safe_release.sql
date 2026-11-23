@@ -48,12 +48,23 @@ BEGIN
       END IF;
       RETURN ARRAY[v_single_key];
     ELSIF jsonb_typeof(v_route)='array' THEN
+      -- Do not coerce JSON numbers, booleans, objects, or nulls to text.
+      -- One malformed or blank element invalidates the entire explicit route.
+      IF EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(v_route) AS route_item(value)
+        WHERE jsonb_typeof(route_item.value) IS DISTINCT FROM 'string'
+          OR nullif(btrim(route_item.value #>> '{}'),'') IS NULL
+      ) THEN
+        RETURN '{}'::text[];
+      END IF;
+
       SELECT coalesce(
-        array_agg(DISTINCT btrim(value)) FILTER (WHERE btrim(value)<>''),
+        array_agg(DISTINCT btrim(route_item.value #>> '{}')),
         '{}'::text[]
       )
       INTO v_keys
-      FROM jsonb_array_elements_text(v_route);
+      FROM jsonb_array_elements(v_route) AS route_item(value);
       RETURN v_keys;
     ELSE
       RETURN '{}'::text[];
