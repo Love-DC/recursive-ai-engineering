@@ -29,6 +29,9 @@ DECLARE
   v_ambiguous_b uuid;
   v_single_task uuid;
   v_ambiguous_task uuid;
+  v_cap_task uuid;
+  v_cap_execution uuid;
+  v_cap_execution_count integer;
   v_old_execution uuid;
   v_new_execution uuid;
   v_release_key text;
@@ -225,6 +228,60 @@ BEGIN
     RAISE EXCEPTION 'FAIL: expired lease release returned unexpected state: %',v_result;
   END IF;
 
+  -- Releasing an expired execution at max_attempts must terminally fail the
+  -- task; it must not reopen pending work or permit attempt max_attempts + 1.
+  v_created := public.create_task(
+    v_project,v_a,'implementation','Release test: retry cap',
+    'A released execution at the configured cap must become terminally failed',
+    '{"required_worker_key":"test-worker-b","retry":{"max_attempts":1}}'::jsonb,
+    -1000,false,null,null,'release-retry-cap-create-'||gen_random_uuid()::text
+  );
+  v_cap_task := (v_created->'data'->>'id')::uuid;
+  v_claim := public.claim_task(
+    v_project,v_b,120,'release-retry-cap-claim-'||gen_random_uuid()::text
+  );
+  IF v_claim->'data'->>'task_id' IS DISTINCT FROM v_cap_task::text
+    OR (v_claim->'data'->>'attempt')::integer <> 1 THEN
+    RAISE EXCEPTION 'FAIL: retry-cap fixture was not claimed as attempt 1: %',v_claim;
+  END IF;
+  v_cap_execution := (v_claim->'data'->>'execution_id')::uuid;
+  UPDATE public.tasks SET lease_until=clock_timestamp()-interval '1 second'
+  WHERE id=v_cap_task AND current_execution_id=v_cap_execution;
+
+  v_result := public.release_execution(
+    v_cap_task,v_cap_execution,v_b,'expired at retry cap',
+    'release-retry-cap-'||gen_random_uuid()::text
+  );
+  IF v_result->'data'->>'status' <> 'failed'
+    OR v_result->'data'->>'error_code' <> 'LEASE_RETRY_LIMIT_REACHED' THEN
+    RAISE EXCEPTION 'FAIL: release bypassed max_attempts=1: %',v_result;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.tasks
+    WHERE id=v_cap_task AND status='failed'
+      AND result->>'error_code'='LEASE_RETRY_LIMIT_REACHED'
+      AND current_execution_id IS NULL AND lease_until IS NULL
+  ) THEN
+    RAISE EXCEPTION 'FAIL: retry-cap release did not persist terminal task failure';
+  END IF;
+  SELECT count(*) INTO v_cap_execution_count
+  FROM public.executions WHERE task_id=v_cap_task;
+  IF v_cap_execution_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: retry-cap fixture unexpectedly has % executions before reclaim',v_cap_execution_count;
+  END IF;
+
+  v_claim := public.claim_task(
+    v_project,v_b,120,'release-retry-cap-no-reclaim-'||gen_random_uuid()::text
+  );
+  IF v_claim->'data'->>'task_id' = v_cap_task::text THEN
+    RAISE EXCEPTION 'FAIL: task at max_attempts was claimable after release: %',v_claim;
+  END IF;
+  SELECT count(*) INTO v_cap_execution_count
+  FROM public.executions WHERE task_id=v_cap_task;
+  IF v_cap_execution_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: retry cap was bypassed; task now has % executions',v_cap_execution_count;
+  END IF;
+
   -- A project with exactly one active Worker retains the safe legacy fallback.
   v_single_project := gen_random_uuid();
   v_single_worker := gen_random_uuid();
@@ -275,7 +332,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL: ambiguous Worker B claimed without a route';
   END IF;
 
-  RAISE NOTICE 'PASS: reviewer isolation, default and explicit routes, review creation/claim routing, expired reclaim routing, safe release, ownership denial, idempotency, stale fencing, single-worker fallback, and ambiguous-route fail-closed behavior';
+  RAISE NOTICE 'PASS: reviewer isolation, default and explicit routes, review creation/claim routing, expired reclaim routing, safe release, retry-cap terminal failure/no-reclaim, ownership denial, idempotency, stale fencing, single-worker fallback, and ambiguous-route fail-closed behavior';
 END;
 $test$;
 
