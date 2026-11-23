@@ -11,7 +11,7 @@ Turn Recursive AI Engineering (RAE) into a multi-project task execution platform
 | Cross-project orchestration, decomposition, task leases, execution history | RAE + Supabase |
 | Project code, technical rules, design decisions, Issues, branches, PRs, CI | The target GitHub repository |
 | Product/game design approval | Colony Sim product owner |
-| Engineering PR review and merge | AI project coordinator after independent review and exact-head validation |
+| Engineering PR review and merge | Separate independent Reviewer AI; Coordinator dispatches and verifies but never merges |
 | Durable task execution state | Supabase task pool |
 | Durable code and reviewable delivery | GitHub commits and PRs |
 
@@ -103,7 +103,7 @@ Workers inspect their authorized project's code, docs, tests, CI, and read-only 
 4. For a direct owner objective, create a root task in the target project's task pool. Decompose only at real responsibility, ownership, interface, or validation boundaries.
 5. Execute the root task in the current coordinator conversation by default. Additional conversations are optional, not required.
 6. Claim and complete tasks using the target project's worker UUID and project UUID. Never use the RAE project/worker IDs for a different repository.
-7. Commit to a task branch and open a PR in the target repository. The AI coordinator reviews and merges engineering-only PRs after all checks pass; escalate only product/design or explicitly high-risk decisions.
+7. Commit to a task branch and open a PR in the target repository. The Coordinator dispatches a separate independent Reviewer AI. Only that Reviewer may issue the formal verdict and merge after all exact-head checks pass. The Coordinator verifies the merge commit and post-merge CI but never merges. Escalate only product/design or explicitly high-risk decisions. See `docs/INDEPENDENT-PR-REVIEW.md`.
 8. Persist task results and GitHub references in Supabase, then report the PR, exact head SHA, actual CI evidence, and any remaining owner decisions.
 
 ## Explicit limitations
@@ -111,3 +111,8 @@ Workers inspect their authorized project's code, docs, tests, CI, and read-only 
 - RAE cannot open or launch another ChatGPT conversation. The default workflow therefore uses one coordinator conversation and performs work there; optional workers require the owner to open additional conversations.
 - Supabase task records do not themselves grant product approval or authorize an Issue. The owner request and project-specific dispatch protocol remain the authority.
 - A green CI result proves only the jobs and steps that actually ran on the exact commit.
+
+
+## Mandatory independent PR review and merge
+
+Every PR follows `docs/INDEPENDENT-PR-REVIEW.md`: Worker implements and opens; Coordinator dispatches and coordinates; a separate Reviewer AI independently reviews, approves, and performs the merge. The Coordinator is not an alternate Reviewer and is prohibited from merging. If no independent Reviewer or required permission is available, the PR remains open and unmerged. Supabase task-level `requires_review=false` does not waive GitHub PR review.
