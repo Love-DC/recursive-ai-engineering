@@ -177,7 +177,7 @@ BEGIN
 
   v_release_key := 'release-valid-'||gen_random_uuid()::text;
   v_result := public.release_execution(
-    v_task_id,v_old_execution,v_a,'intentional handoff',$v_release_key
+    v_task_id,v_old_execution,v_a,'intentional handoff',v_release_key
   );
   IF v_result->'data'->>'status' <> 'pending'
     OR v_result->'data'->>'execution_status' <> 'superseded' THEN
@@ -185,7 +185,7 @@ BEGIN
   END IF;
 
   v_result := public.release_execution(
-    v_task_id,v_old_execution,v_a,'intentional handoff',$v_release_key
+    v_task_id,v_old_execution,v_a,'intentional handoff',v_release_key
   );
   IF v_result->'data'->>'status' <> 'pending' THEN
     RAISE EXCEPTION 'FAIL: idempotent release replay failed: %',v_result;
