@@ -23,7 +23,7 @@ The RPC:
 - verifies the exact current task/execution fence;
 - requires `worker_id` to match both `tasks.assigned_worker_id` and `executions.worker_id`;
 - is idempotent and preserves the execution audit record;
-- returns the task to `pending`;
+- returns the task to `pending` only while the claimed attempt count is below `requirements.retry.max_attempts` (default 3); at the cap it terminally sets the task to `failed` with `LEASE_RETRY_LIMIT_REACHED`;
 - marks an execution `superseded` if its lease is still valid, or `expired` if the lease has elapsed;
 - preserves a review task's reviewer assignment.
 
@@ -49,4 +49,4 @@ The migration in `supabase/migrations/202611230004_worker_task_routing_safe_rele
 
 ## Validation
 
-The PostgreSQL task lifecycle workflow runs `tests/worker-routing-release-tests.sql` against an isolated PostgreSQL 17 service. It covers reviewer/implementation separation, explicit and default routes, route-safe expired reclaim, review creation/claim routing, ambiguous-route fail-closed behavior, single-worker compatibility, wrong-owner denial, release idempotency, expired release, and stale-execution fencing.
+The PostgreSQL task lifecycle workflow runs `tests/worker-routing-release-tests.sql` against an isolated PostgreSQL 17 service. It covers reviewer/implementation separation, explicit and default routes, route-safe expired reclaim, review creation/claim routing, ambiguous-route fail-closed behavior, single-worker compatibility, wrong-owner denial, release idempotency, expired release, retry-cap terminal failure/no-reclaim, and stale-execution fencing.
