@@ -6,7 +6,7 @@
   "title": "Recursive AI Engineering",
   "goal": "Evolve RAE into a recursively growing, context-efficient engineering system that operates through one manually started GPT conversation at a time.",
   "status": "active",
-  "summary": "PR #28 fixes stale state and schema/index validation; its latest HEAD is 276ef2a25e9c6e93ba380179f27be453ea740d45. The latest independent check reports all four workflows passing on that HEAD, with one metadata consistency correction now applied in this node. PR #29 separately prepares database-enforced Worker routing and safe release; current PR HEAD is c90dc8b7e50817e0a10cd5eb8b633890f00872b0, with retry-cap fix validated on code head 66f10c26a2c4edca44f3cdffd95750e2a4cfefad; PostgreSQL lifecycle #139 and Shell #425 passed. Fresh independent review tasks a25e383a-7449-44b3-b3c1-b605af8e48ab and 5fff7a1e-ddff-482c-af92-ad67db135a7a remain pending. Older review handoffs were cancelled when their target SHAs became stale. No production deployment or merge has occurred.",
+  "summary": "PR #28's recursive-tree schema/index and project-node metadata corrections are validated by exact-head CI. The latest metadata correction fixed two evidence-note length violations; its four exact-head workflows passed. The validated implementation code head remains 29ce0773ded12b633aa1c6961db99c37e75206c1; later changes are tree/checkpoint metadata. PR #29 separately prepares database-enforced Worker routing and safe release; current PR delivery HEAD c90dc8b7e50817e0a10cd5eb8b633890f00872b0 includes retry-cap fix code head 66f10c26a2c4edca44f3cdffd95750e2a4cfefad, with PostgreSQL lifecycle #142 and Shell #427 passing. Independent review tasks a25e383a-7449-44b3-b3c1-b605af8e48ab and 5fff7a1e-ddff-482c-af92-ad67db135a7a remain pending. Production routing protection is not deployed; no merge or deployment has occurred.",
   "parent_node_id": null,
   "children_index": "knowledge/rae-tree/attention.json",
   "context_refs": [
@@ -51,7 +51,7 @@
       "kind": "pull_request",
       "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/28",
       "observed_at": "2026-11-23T14:36:13Z",
-      "note": "PR #28 remains open Draft at HEAD bc797c99d9db68df812cf3f6250ac2c544022838. The project-node synchronization is metadata-only; exact-HEAD CI is pending. Previous HEAD 276ef2a25e9c6e93ba380179f27be453ea740d45 passed all four workflows."
+      "note": "Historical PR #28 checkpoint validation at HEAD 276ef2a25e9c6e93ba380179f27be453ea740d45: all four workflows passed. Later node metadata correction is separately validated; current CI links are recorded in the PR review thread."
     },
     {
       "kind": "pull_request",
@@ -190,6 +190,12 @@
       "ref": "2f49daad-f74f-4885-a193-f131360abc9b",
       "observed_at": "2026-11-23T03:42:00Z",
       "note": "Tree lifecycle follow-up task; latest read-only report identifies it as pending."
+    },
+    {
+      "kind": "commit",
+      "ref": "ac8f472ab563748955e2f8b49ecefd3930310ad1",
+      "observed_at": "2026-11-23T14:56:59Z",
+      "note": "Validated PR #28 node-metadata correction commit; all four exact-head GitHub Actions workflows passed. The run links are recorded in the PR review thread."
     }
   ],
   "dependency_refs": [],
@@ -211,9 +217,9 @@
     "A referenced task, pull request, CI result, or project governance file changes.",
     "The next_review_at time is reached."
   ],
-  "last_activity_at": "2026-11-23T14:36:16Z",
-  "last_reviewed_at": "2026-11-23T14:36:16Z",
-  "next_review_at": "2026-11-23T15:36:16Z",
+  "last_activity_at": "2026-11-23T14:56:59Z",
+  "last_reviewed_at": "2026-11-23T14:56:59Z",
+  "next_review_at": "2026-11-23T15:56:59Z",
   "checkpoint_ref": "knowledge/rae-tree/checkpoints/2026-11-23-bootstrap.md",
   "supersedes": []
 }
