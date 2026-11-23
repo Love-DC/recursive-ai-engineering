@@ -23,7 +23,7 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 ## Operating model
 
 - A ChatGPT conversation is temporary. Do not create, track, heartbeat, identify, or report on individual sessions.
-- All sessions work as one shared executor through the user's already-authorized Supabase MCP connection.
+- Any number of GPT conversations may work concurrently through the user's already-authorized Supabase MCP connection. They share project-scoped task routes; no conversation identity or persistent Worker process is tracked.
 - Use the Worker selected by the project's routing metadata. The current pilot uses one `shared-executor` row per project, but that key is not a platform-wide requirement; different projects may route to different Worker keys and task types.
 - Do not create separate Supabase Auth users or bind Worker identities for this pilot.
 - Supabase is the source of truth for task state. GitHub is the source of truth for code and durable project documents.
@@ -45,7 +45,7 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 5. Read the task requirements and relevant GitHub files.
 6. Do the work. Commit durable code/documentation changes to GitHub and record the resulting commit or file references in the task result/artifacts.
 7. If the task is too large, create child implementation tasks using `create_task` and the original task's ID as `parent_task_id`. Record the child task IDs in the parent result. Other sessions can claim those children without knowing anything about the decomposing session.
-8. For pilot tasks, set `requires_review=false` and finish with `complete_execution`. Do not introduce a review/fix workflow unless the user explicitly asks for it.
+8. Follow the target repository's review requirements. Never disable required review for convenience. Where independent review is required, it must be performed by a genuinely separate GPT conversation/context; a distinct Worker route alone does not prove independence.
 9. Submit a concise result containing what changed, GitHub references, verification performed, and remaining blockers.
 
 ## Lease behavior
@@ -209,3 +209,16 @@ At the start of each session, inspect the tools and integrations actually availa
 A tool call succeeding is not equivalent to end-to-end acceptance. Verify resulting branch heads, PR state, merge commit SHA, exact-head CI, deployment status, task execution fence, and post-change behavior as applicable. Distinguish verified facts from assumptions and untested work.
 
 **Default interaction rule:** the Owner supplies the initial instruction and available authorized access; the AI system supplies the planning, decomposition, execution, testing, review, routine merge, recovery, and evidence. Do not make the Owner operate the system the AI was instructed to operate.
+
+
+## Multi-session and AI initiative contract
+
+The Owner may start any number of GPT conversations and may run them concurrently. Every conversation uses this same startup contract; do not ask the Owner to assign a role, select a Worker, or prepare a task packet. Each conversation discovers current shared state and chooses useful authorized work.
+
+A GPT conversation is temporary and replaceable. Do not add session IDs, per-session Worker rows, heartbeats, or presence tracking. A Worker UUID identifies a project-scoped routing category, not a GPT conversation. Multiple conversations may use the same active Worker route; atomic task claim and execution fencing prevent duplicate task ownership.
+
+AI participants may originate evidence-backed goals and initiatives, including research, maintenance, tools, and new engineering opportunities. They may pursue low-risk bounded work using already-authorized project resources. Root goals should record their origin, rationale, desired outcome, scope, risk, resource budget, evidence, and acceptance criteria in task requirements. Do not create claimable work for actions that require missing human support or reserved approval. The current schema does not yet provide a complete durable proposal/resource-request lifecycle; do not misuse `operation_requests` as an approval inbox. Track this as an explicit architecture gap.
+
+The Owner is a source of goals and a potential resource partner, not the routine project manager. Request only a specific missing resource, access capability, or genuine product decision after checking available alternatives. Continue unrelated work while a support request is pending.
+
+See [AI Collaboration Ecosystem](AI-COLLABORATION-ECOSYSTEM.md) for the full contract and rollout acceptance criteria.
