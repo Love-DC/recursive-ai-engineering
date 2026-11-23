@@ -111,3 +111,7 @@ Workers inspect their authorized project's code, docs, tests, CI, and read-only 
 - RAE cannot open or launch another ChatGPT conversation. The default workflow therefore uses one coordinator conversation and performs work there; optional workers require the owner to open additional conversations.
 - Supabase task records do not themselves grant product approval or authorize an Issue. The owner request and project-specific dispatch protocol remain the authority.
 - A green CI result proves only the jobs and steps that actually ran on the exact commit.
+
+## Database-enforced Worker routing
+
+`claim_task` must enforce routing atomically; Worker descriptions and session prompts are not authorization controls. Resolve eligible Worker keys in this order: task `requirements.required_worker_key` (string or array), project `config.worker_routing.task_type_worker_keys[task_type]`, project `config.worker_routing.default_worker_key`, then a sole-active-Worker fallback. If a project has multiple active Workers and no route is defined, fail closed. The same predicate applies to pending claims, expired-lease reclaim, and retry-limit handling. Review tasks remain pinned to their exact assigned Reviewer Worker. An explicit release RPC must be execution-fenced and must preserve the task and execution audit history.
