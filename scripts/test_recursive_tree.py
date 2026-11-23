@@ -230,6 +230,8 @@ def main() -> int:
 
     check("root schema version mismatch", root["schema_version"] == schema["properties"]["schema_version"]["const"])
     check("tree/node schema version mismatch", index["schema_version"] == schema["properties"]["schema_version"]["const"])
+    check("tree index schema pointer mismatch", index.get("node_schema") == "knowledge/rae-tree/node.schema.json")
+    check("tree index schema file missing", safe_repo_path(index["node_schema"], "node_schema").is_file())
     check("global root ID mismatch", root["root_node_id"] == "rae:root")
     check("tree index node registry is empty or invalid", isinstance(index.get("nodes"), dict) and bool(index["nodes"]))
 
@@ -254,6 +256,10 @@ def main() -> int:
     node = nodes[root_node_id]
     check("project root node ID mismatch", root_node_id == "project:recursive-ai-engineering")
     check("project root node type/status invalid", node["node_type"] == "project" and node["status"] in STATUSES)
+    for indexed_id, indexed_node in nodes.items():
+        parent_id = indexed_node["parent_node_id"]
+        if parent_id is not None:
+            check(f"parent node reference missing for {indexed_id}: {parent_id}", parent_id in nodes)
     check("node summary exceeds 1200 characters", len(node["summary"]) <= 1200)
 
     check("node children_index differs from project attention_index", node["children_index"] == index["attention_index"])
