@@ -18,10 +18,14 @@ REQUIRED_NODE_FIELDS = {
 }
 
 
+def check(label: str, condition: bool) -> None:
+    if not condition:
+        raise AssertionError(label)
+
+
 def load_json(relative: str) -> dict:
     path = ROOT / relative
-    if not path.is_file():
-        raise AssertionError(f"missing JSON file: {relative}")
+    check(f"missing JSON file: {relative}", path.is_file())
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -32,53 +36,49 @@ def main() -> int:
     attention = load_json("knowledge/rae-tree/attention.json")
     node = load_json("knowledge/rae-tree/nodes/project.json")
 
-    assert root["schema_version"] == schema["properties"]["schema_version"]["const"]
-    assert index["schema_version"] == node["schema_version"] == "1.0"
-    assert root["root_node_id"] == "rae:root"
-    assert index["root_node_id"] == node["node_id"] == "project:recursive-ai-engineering"
-    assert node["node_type"] == "project" and node["status"] in STATUSES
-    assert REQUIRED_NODE_FIELDS.issubset(node), REQUIRED_NODE_FIELDS - set(node)
-    assert len(node["summary"]) <= 1200
-    assert node["children_index"] == index["attention_index"]
-    assert node["children_index"] == "knowledge/rae-tree/attention.json"
+    check("root schema version mismatch", root["schema_version"] == schema["properties"]["schema_version"]["const"])
+    check("tree/node schema version mismatch", index["schema_version"] == node["schema_version"] == "1.0")
+    check("global root ID mismatch", root["root_node_id"] == "rae:root")
+    check("project root node ID mismatch", index["root_node_id"] == node["node_id"] == "project:recursive-ai-engineering")
+    check("project root node type/status invalid", node["node_type"] == "project" and node["status"] in STATUSES)
+    check(f"node required fields missing: {REQUIRED_NODE_FIELDS - set(node)}", REQUIRED_NODE_FIELDS.issubset(node))
+    check("node summary exceeds 1200 characters", len(node["summary"]) <= 1200)
+    check("node children_index differs from project attention_index", node["children_index"] == index["attention_index"])
+    check("unexpected project attention_index path", node["children_index"] == "knowledge/rae-tree/attention.json")
 
     project_keys = [p["project_key"] for p in root["projects"]]
-    assert len(project_keys) == len(set(project_keys)), "duplicate project key in root index"
+    check("duplicate project key in root index", len(project_keys) == len(set(project_keys)))
     rae = next(p for p in root["projects"] if p["project_key"] == "recursive-ai-engineering")
-    assert rae["state"] == "initialized"
-    assert rae["tree_index"] == "knowledge/rae-tree/index.json"
-    assert (ROOT / rae["tree_index"]).is_file()
+    check("RAE project pointer is not initialized", rae["state"] == "initialized")
+    check("RAE project tree pointer mismatch", rae["tree_index"] == "knowledge/rae-tree/index.json")
+    check("RAE project tree index file missing", (ROOT / rae["tree_index"]).is_file())
 
     for project in root["projects"]:
         if project["state"] == "pending_bootstrap":
-            # A pointer to an uninitialized external repository is not a claim that
-            # its target file exists in this repository.
             continue
-        assert project["state"] == "initialized"
-        assert project["repository"] and project["tree_index"]
+        check(f"unknown project state: {project['state']}", project["state"] == "initialized")
+        check(f"project pointer incomplete: {project['project_key']}", bool(project["repository"] and project["tree_index"]))
 
     for ref in node["context_refs"]:
-        assert (ROOT / ref).is_file(), f"missing context reference: {ref}"
+        check(f"missing context reference: {ref}", (ROOT / ref).is_file())
     for task_id in node["task_refs"]:
-        assert re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", task_id)
+        check(f"invalid task UUID: {task_id}", bool(re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", task_id)))
 
-    assert attention["schema_version"] == "1.0"
-    assert attention["project_key"] == "recursive-ai-engineering"
-    assert len(attention["items"]) <= attention["pagination"]["max_items_per_shard"]
+    check("attention schema version mismatch", attention["schema_version"] == "1.0")
+    check("attention project key mismatch", attention["project_key"] == "recursive-ai-engineering")
+    check("attention shard exceeds configured item bound", len(attention["items"]) <= attention["pagination"]["max_items_per_shard"])
     for item in attention["items"]:
-        assert (ROOT / item["node_path"]).is_file(), f"missing attention node: {item['node_path']}"
-        assert item["node_id"] == node["node_id"]
+        check(f"missing attention node: {item['node_path']}", (ROOT / item["node_path"]).is_file())
+        check(f"unexpected attention node ID: {item['node_id']}", item["node_id"] == node["node_id"])
 
-    # Default startup must be a bounded index/branch read, never a full-tree scan.
     startup = (ROOT / "docs/SESSION-START.md").read_text(encoding="utf-8")
-    assert "knowledge/rae-root/index.json" in startup
-    assert "Default startup must not:" in startup
-    assert "list every task in every registered project" in startup
-    assert "recursively expand all descendants" in startup
-    assert "There is no mandatory role declaration at startup" in startup
-    assert "No daemon, scheduler, automatic GPT-session launch" in startup
+    check("startup does not load the RAE root index", "knowledge/rae-root/index.json" in startup)
+    check("startup lacks explicit bounded-read section", "Default startup must not:" in startup)
+    check("startup still requires full project task enumeration", "list every task in every registered project" in startup)
+    check("startup permits eager descendant expansion", "recursively expand all descendants" in startup)
+    check("startup lacks no-fixed-role statement", "There is no mandatory role declaration at startup" in startup)
+    check("startup lacks single-session runtime boundary", "No daemon, scheduler, automatic GPT-session launch" in startup)
 
-    # Keep the always-loaded root/index records deliberately small.
     for relative in (
         "knowledge/rae-root/index.json",
         "knowledge/rae-tree/index.json",
@@ -86,7 +86,7 @@ def main() -> int:
         "knowledge/rae-tree/nodes/project.json",
     ):
         size = (ROOT / relative).stat().st_size
-        assert size <= 12_000, f"{relative} exceeds 12 KB ({size} bytes)"
+        check(f"{relative} exceeds 12 KB ({size} bytes)", size <= 12_000)
 
     print("Recursive tree structural checks passed.")
     print("Default startup loads root + selected branch; descendants remain lazy.")
