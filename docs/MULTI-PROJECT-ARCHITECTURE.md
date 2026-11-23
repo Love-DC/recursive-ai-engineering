@@ -101,13 +101,24 @@ Workers inspect their authorized project's code, docs, tests, CI, and read-only 
 2. Resolve the user's named target project to exactly one active project record. If the target is omitted and the objective does not identify one unambiguously, ask one short clarification.
 3. Read that project's GitHub governance entry points at the current base SHA.
 4. For a direct owner objective, create a root task in the target project's task pool. Decompose only at real responsibility, ownership, interface, or validation boundaries.
-5. Execute the root task in the current coordinator conversation by default. Additional conversations are optional, not required.
+5. The Owner may start multiple GPT conversations. Each conversation discovers shared work and may atomically claim a different eligible task; no single conversation is the permanent Coordinator.
 6. Claim and complete tasks using the target project's worker UUID and project UUID. Never use the RAE project/worker IDs for a different repository.
 7. Commit to a task branch and open a PR in the target repository. The AI coordinator reviews and merges engineering-only PRs after all checks pass; escalate only product/design or explicitly high-risk decisions.
 8. Persist task results and GitHub references in Supabase, then report the PR, exact head SHA, actual CI evidence, and any remaining owner decisions.
 
 ## Explicit limitations
 
-- RAE cannot open or launch another ChatGPT conversation. The default workflow therefore uses one coordinator conversation and performs work there; optional workers require the owner to open additional conversations.
+- RAE cannot currently open or launch GPT conversations. The Owner may manually start any number of conversations; RAE coordinates those active conversations through shared state and must not assume one-at-a-time execution.
 - Supabase task records do not themselves grant product approval or authorize an Issue. The owner request and project-specific dispatch protocol remain the authority.
 - A green CI result proves only the jobs and steps that actually ran on the exact commit.
+
+
+## Multi-session autonomy and AI-originated work
+
+The authoritative model is [AI Collaboration Ecosystem](AI-COLLABORATION-ECOSYSTEM.md). GPT conversations are disposable execution resources; multiple conversations may operate concurrently against the same project-scoped task pool. No session identity, heartbeat, or permanent Coordinator is required. Coordinator, research, implementation, review, and recovery are temporary responsibilities selected from the work.
+
+The Owner supplies goals, ideas, resources, and constraints—not task decomposition or session assignments. AI participants may independently discover and pursue evidence-backed, bounded initiatives within existing project authorization and resource limits. A root task may represent a human goal, AI initiative, maintenance objective, or collaborative goal; child tasks represent executable work. Keep project isolation, atomic claims, execution fencing, repository-local governance, and exact-head validation.
+
+A separate Worker route is routing metadata, not proof of a separate GPT conversation. Where independent review is required, a genuinely separate conversation/context must perform it. The platform currently cannot cryptographically attest conversation separation.
+
+The current production claim path has known route and dependency gaps. Do not enable concurrent production claims until the corresponding reviewed migrations are deployed and live behavior is verified. The existing one-session assumptions in PR #28 are not authoritative and must be reconciled with this model before that PR can be accepted.
