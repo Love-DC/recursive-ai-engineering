@@ -68,7 +68,7 @@ All four workflows passed on exact code head `29ce0773ded12b633aa1c6961db99c37e7
 ## Next actions
 
 1. At session start, fetch live PR #28 and PR #29 heads and current CI; compare changed paths with their validated code heads.
-2. Complete independent analysis of corrected PR #28 using review task `a25e383a-7449-44b3-b3c1-b605af8e48ab` and PR #29 using review task `842d85c0-2ea5-455c-b42f-5e276d2974b4`. Do not call `claim_task` as `independent-reviewer` until the live route guard is deployed and verified.
+2. Complete independent analysis of corrected PR #28 using review task `a25e383a-7449-44b3-b3c1-b605af8e48ab` and PR #29 using current review task `5fff7a1e-ddff-482c-af92-ad67db135a7a`. Do not call `claim_task` as `independent-reviewer` until the live route guard is deployed and verified.
 3. Because the connected GitHub identity is the PR author, record the independent review result in the current RAE review task/comment; do not claim GitHub APPROVED status.
 4. Production deployment of PR #29 migration is a separate high-impact operation and requires explicit deployment authorization after review.
 5. Resume `861bb6d6-bdb9-4e0c-bb46-e285f614c351` for remaining dependency-eligibility work after safe routing/recovery is available.
