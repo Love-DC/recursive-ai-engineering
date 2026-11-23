@@ -1,6 +1,7 @@
 # Recursive Engineering Tree Checkpoint
 
-- Captured at: 2026-11-23T03:31:00Z
+- Captured at: 2026-11-23T03:32:30Z
+- Last branch HEAD observed before this checkpoint metadata update: `306270ecc7123b876207f56a94e3cefa99baaca7`
 - Project: `recursive-ai-engineering`
 - Selected node: `project:recursive-ai-engineering`
 - Branch: `ai/2daceac7-recursive-engineering-tree`
@@ -16,7 +17,7 @@
   - Repository governance tests #78: [45106308351](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308351).
   - Shell static checks #385: [45106308251](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308251).
   - PostgreSQL task lifecycle integration #122: [45106308287](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308287).
-- Project node evidence was updated in metadata-only commit `8daec2ebe2d853be6c5fa51fbae3e0779b3ef66c`; this checkpoint update is also metadata-only. Neither changes implementation or tests.
+- Project node evidence was updated in metadata-only commit `8daec2ebe2d853be6c5fa51fbae3e0779b3ef66c`. Tree index reconciliation timestamp was updated in `89474a395967815852739e21c6b99ab3a201071e`, and attention timestamp/window in `306270ecc7123b876207f56a94e3cefa99baaca7`. This checkpoint update is also metadata-only. None of these commits changes implementation or tests.
 - A stored SHA is not live branch state. Resolve PR #28 and branch HEAD from GitHub at every session start and compare changed paths before deciding whether code validation is stale. If the diff since the last validated code head is only node/checkpoint metadata, retain the exact historical validation record with that qualification.
 - Earlier validation on `9e836183b95c34f3ce1d7869b9bfa5b8cb6928a2` and `3a7c260e189ca346864d2ff6ad82d327c35837c8` is historical and retained in the project node evidence with their exact run IDs.
 
