@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0",
   "project_key": "recursive-ai-engineering",
-  "updated_at": "2026-11-23T02:20:00Z",
+  "updated_at": "2026-11-23T02:29:00Z",
   "items": [
     {
       "node_id": "project:recursive-ai-engineering",
       "node_path": "knowledge/rae-tree/nodes/project.json",
       "priority": 1,
       "status": "active",
-      "wake_reason": "Initial recursive-tree bootstrap and session-start migration",
-      "next_review_at": "2026-11-24T02:20:00Z",
+      "wake_reason": "PR #28 CI completion, independent review handoff, and remaining recursive-tree rollout",
+      "next_review_at": "2026-11-23T03:29:00Z",
       "task_refs": [
         "2daceac7-f748-49fb-8e30-a72243eaf399",
         "861bb6d6-bdb9-4e0c-bb46-e285f614c351"
