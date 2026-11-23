@@ -110,3 +110,6 @@ jobs:
 
       - name: Run two-session atomic claim race
         run: bash scripts/test-claim-concurrency.sh
+
+      - name: Run two-session same-Worker atomic claim race
+        run: bash scripts/test-same-worker-concurrency.sh
