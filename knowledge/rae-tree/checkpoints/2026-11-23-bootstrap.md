@@ -1,6 +1,6 @@
 # Recursive Engineering Tree Checkpoint
 
-- Captured at: 2026-11-23T03:24:30Z
+- Captured at: 2026-11-23T03:31:00Z
 - Project: `recursive-ai-engineering`
 - Selected node: `project:recursive-ai-engineering`
 - Branch: `ai/2daceac7-recursive-engineering-tree`
@@ -10,24 +10,25 @@
 
 ## Live-state and validation semantics
 
-- Last fully validated PR #28 code head: `3a7c260e189ca346864d2ff6ad82d327c35837c8`.
+- Latest fully validated PR #28 code head: `29ce0773ded12b633aa1c6961db99c37e75206c1`.
 - All four workflows passed on that exact SHA:
-  - Recursive tree checks #41: [45105708621](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45105708621).
-  - Repository governance tests #74: [45105708635](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45105708635).
-  - Shell static checks #377: [45105708671](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45105708671).
-  - PostgreSQL task lifecycle integration #118: [45105708619](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45105708619).
-- Node metadata was updated after that tested code head in commit `0259a195f9edfa45d8fbcc03ef9b2a3d5e7e3672`; this checkpoint update is also metadata-only. Do not treat a stored SHA as live branch HEAD. Resolve PR #28 and branch HEAD from GitHub at every session start and compare changed paths before deciding whether code validation is stale.
-- Earlier validation on `9e836183b95c34f3ce1d7869b9bfa5b8cb6928a2` is historical and retained as such in the node evidence. Its four run IDs are also retained with exact-SHA notes.
+  - Recursive tree checks #49: [45106308364](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308364).
+  - Repository governance tests #78: [45106308351](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308351).
+  - Shell static checks #385: [45106308251](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308251).
+  - PostgreSQL task lifecycle integration #122: [45106308287](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308287).
+- Project node evidence was updated in metadata-only commit `8daec2ebe2d853be6c5fa51fbae3e0779b3ef66c`; this checkpoint update is also metadata-only. Neither changes implementation or tests.
+- A stored SHA is not live branch state. Resolve PR #28 and branch HEAD from GitHub at every session start and compare changed paths before deciding whether code validation is stale. If the diff since the last validated code head is only node/checkpoint metadata, retain the exact historical validation record with that qualification.
+- Earlier validation on `9e836183b95c34f3ce1d7869b9bfa5b8cb6928a2` and `3a7c260e189ca346864d2ff6ad82d327c35837c8` is historical and retained in the project node evidence with their exact run IDs.
 
 ## PR #28 review findings and fixes
 
 An inspection comment was published on PR #28 at [review comment 6016025172](https://github.com/Love-DC/recursive-ai-engineering/pull/28#pullrequestreview-6016025172). It was COMMENTED, not formal approval; GitHub rejected REQUEST_CHANGES because the connected identity is the PR author.
 
-1. Stale persisted state: the node and checkpoint previously mixed SHAs and CI states from different commits. The node now records historical evidence separately from the latest exact validation record. The tree design now states that GitHub live state is authoritative and a checkpoint is only a recovery hint.
-2. Schema/index acceptance: `scripts/test_recursive_tree.py` now uses a standard-library validator for the supported JSON Schema subset; validates the schema definition; validates every node listed in `index.nodes`; and checks schema pointer, parent node, context, checkpoint, attention, root global-attention references, safe repository-relative paths, UUIDs, formats, required properties, enums, patterns, and additional properties.
-3. Worker routing side effect: separated from PR #28 and addressed in PR #29; details below.
+1. **Stale persisted state:** node evidence and checkpoint now distinguish historical records from the latest exact validation record. The tree contract says GitHub live branch/PR/CI state is authoritative and checkpoints are recovery hints.
+2. **Incomplete schema/index acceptance:** `scripts/test_recursive_tree.py` uses a standard-library validator for the supported JSON Schema subset; validates the schema definition; validates every node in `index.nodes`; and checks schema/parent/context/checkpoint/attention/root global-attention references, path traversal, UUIDs, formats, required properties, enums, patterns, and additional properties.
+3. **Reviewer misclaim:** the session startup now has a claim-routing preflight. It must verify the live `claim_task` route guard before using the independent-reviewer Worker; otherwise it must not claim and should continue read-only.
 
-All four workflows passed on the exact code head `3a7c260e189ca346864d2ff6ad82d327c35837c8`, including the new schema/index validator. PR #28 remains Draft and unmerged pending genuinely independent review.
+All four workflows passed on exact code head `29ce0773ded12b633aa1c6961db99c37e75206c1`, including the new schema/index validator and claim-routing preflight. PR #28 remains Draft/unmerged pending genuinely independent review.
 
 ## Worker routing and safe release — PR #29
 
@@ -51,18 +52,18 @@ All four workflows passed on the exact code head `3a7c260e189ca346864d2ff6ad82d3
 
 - Owner manually starts one GPT conversation at a time. No daemon, scheduler, automatic GPT-session launch, or concurrent sessions are assumed.
 - Coordinator/Worker/Reviewer are responsibilities, not proof of independent model instances.
-- A genuinely independent review requires a later separate GPT conversation and a distinct reviewer identity; the current implementation context must not self-approve or merge.
+- A genuinely independent analysis requires a later separate GPT conversation. The connected GitHub identity is still the PR author, so that connector cannot submit a formal APPROVED review on the author's own PR; it can record an independent review result/comment, but the identity limitation remains.
 - GitHub repositories own durable knowledge/context. Supabase remains authoritative for project routing and task/execution state.
 - Colony Sim tree remains `pending_bootstrap`; its own repository governance must be read before adoption.
 - No production Supabase migration or data mutation has been performed.
 
 ## Next actions
 
-1. At session start, fetch the live PR #28 head and current CI; compare changed paths against validated code head `3a7c260e189ca346864d2ff6ad82d327c35837c8`.
-2. Complete PR #28 independent review in a separate GPT conversation. Keep it Draft/unmerged until formal approval.
-3. Complete PR #29 independent review in a separate GPT conversation. Keep it Draft/unmerged until formal approval.
+1. At session start, fetch live PR #28 and PR #29 heads and current CI; compare changed paths with their validated code heads.
+2. Complete independent analysis of PR #28 and PR #29 in a separate GPT conversation. Do not call `claim_task` as `independent-reviewer` until the live route guard is deployed and verified.
+3. Because the connected GitHub identity is the PR author, record the independent review result in the RAE review task/comment; do not claim GitHub APPROVED status.
 4. Production deployment of PR #29 migration is a separate high-impact operation and requires explicit deployment authorization after review.
-5. Resume `861bb6d6-bdb9-4e0c-bb46-e285f614c351` for the remaining dependency-eligibility work after safe routing/recovery is available.
+5. Resume `861bb6d6-bdb9-4e0c-bb46-e285f614c351` for remaining dependency-eligibility work after safe routing/recovery is available.
 6. Then execute tree lifecycle task `2f49daad-f74f-4885-a193-f131360abc9b`: child creation, bounded ancestor propagation, due/wake selection, archival and checkpoint tooling.
 7. Only after the RAE tree lifecycle is stable, read Colony Sim's local governance and bootstrap its project-local tree.
 
@@ -71,4 +72,4 @@ All four workflows passed on the exact code head `3a7c260e189ca346864d2ff6ad82d3
 - A fresh manually started GPT conversation restores the selected tree branch without prior chat history.
 - Recursive child creation, multi-level summary propagation, dormant wake-up, and archive/compaction have been exercised end-to-end.
 - Colony Sim has adopted its own local tree.
-- PR #28 or PR #29 has received formal independent approval or merge.
+- PR #28 or PR #29 has received independent analysis or formal approval/merge.
