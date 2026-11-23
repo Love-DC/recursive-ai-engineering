@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0
       - name: Generate consolidated inventory report
         env:
-          GITHUB_REPOSITORY: \${{ github.repository }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           python scripts/resource_inventory.py reports/resource-inventory/current-snapshot.json \
             --repository "$GITHUB_REPOSITORY" \
@@ -41,9 +41,9 @@ jobs:
           cat "$RUNNER_TEMP/inventory.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Validate manifest and preview
         env:
-          GH_TOKEN: \${{ github.token }}
-          GITHUB_REPOSITORY: \${{ github.repository }}
-          BRANCH_MANIFEST: \${{ inputs.branch_manifest }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BRANCH_MANIFEST: ${{ inputs.branch_manifest }}
         run: |
           printf '%s' "$BRANCH_MANIFEST" > "$RUNNER_TEMP/branch-manifest.json"
           if [ "$BRANCH_MANIFEST" = "{}" ]; then
@@ -67,9 +67,9 @@ jobs:
         with:
           name: resource-lifecycle-report
           path: |
-            \${{ runner.temp }}/inventory.json
-            \${{ runner.temp }}/inventory.md
-            \${{ runner.temp }}/preview.json
+            ${{ runner.temp }}/inventory.json
+            ${{ runner.temp }}/inventory.md
+            ${{ runner.temp }}/preview.json
           if-no-files-found: ignore
 
   execute:
@@ -86,10 +86,10 @@ jobs:
           fetch-depth: 0
       - name: Revalidate and delete
         env:
-          GH_TOKEN: \${{ github.token }}
-          GITHUB_REPOSITORY: \${{ github.repository }}
-          BRANCH_MANIFEST: \${{ inputs.branch_manifest }}
-          CONFIRMATION: \${{ inputs.confirmation }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BRANCH_MANIFEST: ${{ inputs.branch_manifest }}
+          CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           printf '%s' "$BRANCH_MANIFEST" > "$RUNNER_TEMP/branch-manifest.json"
           python scripts/cleanup_branches.py --manifest "$RUNNER_TEMP/branch-manifest.json" --execute --confirmation "$CONFIRMATION"
