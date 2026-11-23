@@ -1,6 +1,12 @@
 name: Resource lifecycle batch cleanup
 
 on:
+  pull_request:
+    paths:
+      - scripts/resource_inventory.py
+      - scripts/cleanup_branches.py
+      - reports/resource-inventory/**
+      - .github/workflows/resource-lifecycle.yml
   workflow_dispatch:
     inputs:
       branch_manifest:
@@ -43,7 +49,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          BRANCH_MANIFEST: ${{ inputs.branch_manifest }}
+          BRANCH_MANIFEST: ${{ inputs.branch_manifest || '{}' }}
         run: |
           printf '%s' "$BRANCH_MANIFEST" > "$RUNNER_TEMP/branch-manifest.json"
           if [ "$BRANCH_MANIFEST" = "{}" ]; then
@@ -74,7 +80,7 @@ jobs:
 
   execute:
     name: Revalidate and execute one confirmed batch
-    if: inputs.confirmation == 'DELETE SELECTED RESOURCES' && inputs.branch_manifest != '{}'
+    if: github.event_name == 'workflow_dispatch' && inputs.confirmation == 'DELETE SELECTED RESOURCES' && inputs.branch_manifest != '{}'
     needs: preview
     runs-on: ubuntu-latest
     permissions:
