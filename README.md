@@ -43,10 +43,9 @@ Before changing the system, review [Pilot Readiness and Deferred Production Gate
 
 - Per-session identity or Worker Auth accounts.
 - Session heartbeats, presence dashboards or activity tracking.
+- Separate Supabase Auth users or dedicated accounts for Coordinator/Implementer/Reviewer responsibilities.
 - A permanent background Coordinator daemon or timer.
 - Browser console deployment.
-- Per-conversation identities or separate Coordinator/Implementer/Reviewer/Fixer accounts.
-- A persistent background Coordinator daemon or timer.
 
 The Owner console remains available for later use, but the pilot can be operated directly through the connected Supabase MCP and GitHub MCP tools.
 
