@@ -1,0 +1,1346 @@
+{
+  "generated_at": "2026-11-23T01:35:00Z",
+  "registered_projects": [
+    {
+      "project_id": "56e926a8-9c33-4e7d-ad04-df22f2deff93",
+      "project_key": "colony-sim",
+      "repository": "Love-DC/colony-sim",
+      "default_branch": "main",
+      "worker_id": "be8ecaff-a197-42b4-aa4c-1c108181f847",
+      "github": {
+        "branches": [
+          {
+            "name": "ai/a2-03-owner-gated-issue-publication",
+            "sha": "b0ca639085f4b1bb5f30414ba3d8c50e8b99994f",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/a2-04-queue-integration-report-refresh",
+            "sha": "fd3e8f1c2475f93c77ed4d5e607bf758fd115405",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/ai-pr-review-authority-20261123",
+            "sha": "4e28b52a28de0e033ab3abe9812ff659b48f59ff",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/climate-profile-preview-report",
+            "sha": "7880a52d090b71d4bb5eaadc8d93541a4a01d1df",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              376
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/continuous-ai-orchestration-proposal",
+            "sha": "0e1b135492162c448c5f01c1ac8fd093fac67588",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/cs-a1-01-candidate-contract",
+            "sha": "7520c2cf1f9035e8482d3434de09214cb7f8c492",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/cs-a1-02-readonly-snapshot-collector",
+            "sha": "ca2f68728cac89b4d82ee915852b8b304c1b70a5",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/cs-a1-03-deterministic-signal-analyzer",
+            "sha": "782c969e0c969b621935120fca6ffa13f6c62c3e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/cs-a1-04-task-radar-report",
+            "sha": "0f6cbf0bfcd8613e255c5582e6ab475822e0d35c",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/cs-a1-05-task-radar-workflow",
+            "sha": "7612eba5bb0f18ac797ae9d2e343f926f9f1eda1",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/first-principles-simulation",
+            "sha": "e56e4763ed1f379a7853022b486df08dcafbd0fa",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g3-hidden-valley-design",
+            "sha": "e375ee5d46ad013884e8352fcecb092a6d142220",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g3-open-basin-geometry-proposal",
+            "sha": "208d163cbddbc0f240fd3f63375d2ac1c166d2e7",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g5-06-github-read-only-transport",
+            "sha": "9fa2f004bdfc40a4b55deab6881d3646a9de871e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g5-07-secret-scanner-policy-20261121",
+            "sha": "5044e15d8800ecde5977d611e9c77974f897a8e4",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g5-08-allow-loopback-probe",
+            "sha": "bcda9e3fe0cf2ec04e98a615313580995136d79b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g5-08-enable-loopback-in-netns",
+            "sha": "8be35d643e8dc6e42df34feda06d9c4edba8d841",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g5-08-local-ipv6-bind-probe",
+            "sha": "8c71a2ef5ab52780cad0c8549d9c1a8b50c0c3b8",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g5-08-second-round-fixtures",
+            "sha": "1e41fd233bf16cf32de2b35195ff8d64f4ca0a5c",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g5-08-trace-diagnostics",
+            "sha": "66db68857e01985b133d5caec7f91868d646cbe9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g5-09-namespace-diagnostics",
+            "sha": "da6ef799fa8f83ea41b8a919c1c594c849a1ea67",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/g5-security-contract-proposal",
+            "sha": "e4423e44c4f39128cac97ad4ec555bf564b260c4",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/m1-closeout-status-sync",
+            "sha": "4b2afc0c87edd7b4010cfdc33885c150a4a26d0d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/m1b-progress-status-sync",
+            "sha": "ff0d07c179b719b8f79287368fa89266f4a17f28",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              111
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/season-system-master-design",
+            "sha": "e03f2dd78c192bcf867cdf3c556260d4fc014781",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/season-system-master-design-current",
+            "sha": "b8fe90c78e0019d9fe94ce06c3b0dc47784b79be",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              377
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/34-resource-state-map",
+            "sha": "44c81b0a7d0db2b729b8400127f2dc3a221d3386",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/35-resource-task-lifecycle",
+            "sha": "367ad95628540ad4f87399ce16e1436977441144",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/36-resources-module-contract",
+            "sha": "7b0ca97878a10f8dd0d5581733e17bd055de4b8c",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/40-wood-resource-accounting",
+            "sha": "52a141c40d0cad4cdc41bb027f64ad51b4105a1b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/42-wood-resource-store",
+            "sha": "df35d49987886f17419938000eeb85afa7e85cfd",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/45-ground-pile-store-integration",
+            "sha": "82c4615d93bf68d62f32b6853bebb84ef9af413b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/47-stockpile-deposit-store-integration",
+            "sha": "88f7794b0d8185981f3755a1eb70ebb5cb645264",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/50-wood-source-store-api",
+            "sha": "858362b3cbe2d01a9baee22dec356e8b0751f544",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/52-live-harvest-source-integration",
+            "sha": "11d3d32222f5301bf7aa7609c276c2b4977e2b4f",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/55-cargo-store-api",
+            "sha": "551c3f668b84367f0a66435ac5b266a342c444ab",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/57-live-colonist-cargo-integration",
+            "sha": "8055d8243f869a7de080e0841e87bce1629bc984",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/64-needs-job-integration-research",
+            "sha": "b9c49dcadb5028ad6d0e5a58623db953bf204207",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/65-food-resource-research",
+            "sha": "64efd2ee21e551004705c59c6ce694f74d14a1a7",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/73-food-resource-store",
+            "sha": "797d1d31fcc360fc8f9eec580cdf01980fdef884",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/74-colonist-needs",
+            "sha": "99ae37040061435b560c5dd8a47e08eeb693f852",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/75-eat-job-integration",
+            "sha": "e1e3314193ee6c58e5243994da2bfb905cf8990a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/81-serena-gdscript-evaluation",
+            "sha": "240e81a409e8072f8aeb9dc932330207fa6727cd",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/82-repomix-context-audit",
+            "sha": "9dd87266ef23040c6cc91b581a52774391759f0b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/83-repository-map-research",
+            "sha": "492a0ab0e27e5cba34da7b2c0501b508791c90d0",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/84-context-pack-v2-proposal",
+            "sha": "63184d9b4da173a6b6592d6c987f74cfe92208d7",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/85-record-ai-governance-decision",
+            "sha": "f01569af822ca5d4c729aafbd64c7f5b49404498",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/93-context-pack-v2-schema-provenance",
+            "sha": "a36809ae4a1f5bd6dfb29503afb334df69b3b437",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/95-ci-checkout-exact-pr-head",
+            "sha": "5a95fd43ef79ecefb72d2f2d545aedad2834c821",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/100-context-pack-v2-budget-ledger",
+            "sha": "c75ae62d81fa033998464cc4a2c5eb5980ba91dd",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/104-m1b-fatigue-needs",
+            "sha": "dfe125b2663571523bfb543ba719d9341382f56e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/105-m1b-rest-zone-gridworld",
+            "sha": "4062f05f102836ffd34004461bf5398487502968",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/105-rest-zone-validation",
+            "sha": "dcf349614d64408a786c6d9f10c9a375ecca4c2d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/106-m1b-rest-job-simulation",
+            "sha": "e269a3dccb2ba621ddddcd68b76e769c815b027f",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/106-rest-job-validation",
+            "sha": "3d3df4797a3e601c49056799861316bbbffa83d6",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/107-m1b-rest-ui",
+            "sha": "6f850fd455d3c43e388ce6d7a6b9c5e6fd419729",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/109-fatigue-validation",
+            "sha": "7ba777211c92e76033df6468bdddf164e524de4b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/117-m1b-seven-day-scenario",
+            "sha": "4c758d9d6b1a16674ea94304d83ca55c16199a47",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/118-m1b-focused-ci",
+            "sha": "4fb622bc19dcde01f1b5362b25d0f075c4d257bb",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/125-m2-job-contract",
+            "sha": "0528cbabf88236ff1c638bdfa313358b7e612c02",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/126-construction-storage-brief",
+            "sha": "63053639f3e9aba99129ea072c3e0745e97d738e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/127-first-production-brief",
+            "sha": "29c96a01e7d53a0a3fcaa41b31c8b14d88f326da",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/131-m2-contention-characterization",
+            "sha": "6d4ca10d454933add7e227caf8a7c60ce65a1bfc",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/133-m2-claim-release",
+            "sha": "5308948885727c63fa93654108961fb129cabdec",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/135-m2-active-job-creation",
+            "sha": "4e2ef956214c30ea4a0f8aeb187fd5a24730a2b4",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/136-m2-wood-target-validation",
+            "sha": "1da3bc29ee31a5d5e5802e7793589aff4b04a95c",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/138-m2-terminal-outcomes",
+            "sha": "51470d3cbe7b7e1f306213d2898c48fb637a9101",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/140-m2-diagnostic-snapshot",
+            "sha": "94c11a11545bd780243a70eb3cea53a23a8f65c3",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/142-m2-manual-order-lifecycle",
+            "sha": "76e3e153c576099220541fabdd75f036826ae42b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/144-m2-autonomous-wood-lifecycle",
+            "sha": "e077322384579bb514e491ca38657a6d76808d0c",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/145-m2-needs-food-ci",
+            "sha": "17e02040a43078811077522202d6af0f5687f336",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/154-meal-schedule-brief",
+            "sha": "f77f64f8cc6b4312970210022fe89d85801d1f08",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/155-resource-flow-balance",
+            "sha": "6f46c7c63fafd23966cef43ea59f658042920730",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/156-renewable-ecology-brief",
+            "sha": "0bd495b6a2837c5bf88492e38dcd391bd28b691c",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/164-prepared-task-draft-v1",
+            "sha": "ede8c9d38cd1976c2a28469d7f3a403e5a43685e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/166-m3-implementation-contract",
+            "sha": "808899126cadda05cfb4539f44c81e7389c4fb03",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/168-ecology-lifecycle-core",
+            "sha": "76b928355bae3c9cac6fa765fcdfebc10abd2f2b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/170-prepared-context-integration",
+            "sha": "38800323580b3055f41eae22ba0f809b932bef7d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/171-ecology-world-runtime",
+            "sha": "6843c9764aa867b8f5a1ba19e5a1f02bc5e0e3c5",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/181-grid-occupancy-navigation",
+            "sha": "e85d85e63aeaf2577236489a18a3e57a0d10ddf0",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/189-multifield-geography-profile",
+            "sha": "f217a8b8b6ffcd48845ab5daf02dc951068e34ff",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/191-offline-commit-tree-resolver",
+            "sha": "a0ea7386af44d31348f00e48fbbc44db706ef310",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/194-connected-inland-hydrology",
+            "sha": "e3cf8bf25a70a3b8a12c4280407761f8693acbca",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/199-wood-site-escrow",
+            "sha": "6110fead03382319a5ae1cec0ae7142c0b7d2d2a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/209-equipment-store-fixed-slots",
+            "sha": "7e98ce430da39051ae7e62dc8e64c0f445630be4",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/210-food-seed-granary-transactions",
+            "sha": "2f6fd2e1ed025cb01ed24e61a3bfd3a37c26f060",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/211-audio-foundation",
+            "sha": "26483e8f4845288d81bcdb866e62d36f4f5df2e5",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/214-hydrology-world-integration",
+            "sha": "8cc421ef3a2e68168c0003a5ac43de2eff99743c",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/216-combat-pd017-record",
+            "sha": "57cd7ff121d4db5d0f3b28f65f489db9f362954a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/216-record-pd016-combat-equipment",
+            "sha": "f2f5a1093d7a323acc9a8ed1381c522f7fc3e63d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/218-colonist-health-down-state",
+            "sha": "1f18c2914496d547b771f2a78eea6d9c033eb212",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/226-combat-rules-kernel",
+            "sha": "4a3ef5690ed4ce043c77aabd1b5acc39790b3904",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/229-sfx-design-proposal",
+            "sha": "c368d7f25480b23fd1ce7480680dbc61423b0e8a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              232
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/234-seeded-encounter-alarm-policy",
+            "sha": "54becf5601750be931fcaf8e4cee2d66f95d021d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/236-season-climate-design",
+            "sha": "726330c78a67da6aa6ce12d5716528de255df2d4",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              239
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/238-equipment-combat-profiles",
+            "sha": "d0ba417b0ca36858444beeec62b6c65c272c3b90",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/240-hidden-valley-playtest",
+            "sha": "6f4f265f8786b12c3f8420dc40a17cd9e94284e9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              245
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/240-hidden-valley-playtest-frontier",
+            "sha": "00336821fb6731407cb14216f249e1ab52cbbd89",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              369
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/241-calendar-60-day-core",
+            "sha": "53751c435136cc6104bcb148abcc7edcd61baf3b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/244-secret-scanner-benchmark",
+            "sha": "def6266db0a13bc41897a537f1352128eff602f2",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          }
+        ],
+        "open_pull_requests": [
+          {
+            "number": 423,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/387-food-seed-haul-target-claim",
+            "url": "https://github.com/Love-DC/colony-sim/pull/423"
+          },
+          {
+            "number": 413,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "coordinator/a3-general-worker-control-panel",
+            "url": "https://github.com/Love-DC/colony-sim/pull/413"
+          },
+          {
+            "number": 375,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "feature/375-ammunition-resource-store",
+            "url": "https://github.com/Love-DC/colony-sim/pull/375"
+          },
+          {
+            "number": 377,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/season-system-master-design-current",
+            "url": "https://github.com/Love-DC/colony-sim/pull/377"
+          },
+          {
+            "number": 376,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/climate-profile-preview-report",
+            "url": "https://github.com/Love-DC/colony-sim/pull/376"
+          },
+          {
+            "number": 371,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/370-everyday-life-material-culture",
+            "url": "https://github.com/Love-DC/colony-sim/pull/371"
+          },
+          {
+            "number": 369,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/240-hidden-valley-playtest-frontier",
+            "url": "https://github.com/Love-DC/colony-sim/pull/369"
+          },
+          {
+            "number": 367,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/366-initial-societies-contact-web",
+            "url": "https://github.com/Love-DC/colony-sim/pull/367"
+          },
+          {
+            "number": 361,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/359-player-directed-species-framework",
+            "url": "https://github.com/Love-DC/colony-sim/pull/361"
+          },
+          {
+            "number": 358,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/357-social-patterns-relations",
+            "url": "https://github.com/Love-DC/colony-sim/pull/358"
+          },
+          {
+            "number": 356,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/355-social-civilization-framework",
+            "url": "https://github.com/Love-DC/colony-sim/pull/356"
+          },
+          {
+            "number": 354,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "coordinator/276-battle-organization-main-352647",
+            "url": "https://github.com/Love-DC/colony-sim/pull/354"
+          },
+          {
+            "number": 352,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "coordinator/283-world-navigation-v2-main-352647",
+            "url": "https://github.com/Love-DC/colony-sim/pull/352"
+          },
+          {
+            "number": 349,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "coordinator/336-enemy-behavior-intents-main-352647",
+            "url": "https://github.com/Love-DC/colony-sim/pull/349"
+          },
+          {
+            "number": 348,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "coordinator/302-combat-runtime-integration-main-352647",
+            "url": "https://github.com/Love-DC/colony-sim/pull/348"
+          },
+          {
+            "number": 346,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "coordinator/344-world-history-lore-draft-main-545a",
+            "url": "https://github.com/Love-DC/colony-sim/pull/346"
+          },
+          {
+            "number": 345,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/344-world-history-corruption-lore",
+            "url": "https://github.com/Love-DC/colony-sim/pull/345"
+          },
+          {
+            "number": 342,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "coordinator/project-state-current-main-2026-11-21-v2",
+            "url": "https://github.com/Love-DC/colony-sim/pull/342"
+          },
+          {
+            "number": 341,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "coordinator/readme-project-status-current-main",
+            "url": "https://github.com/Love-DC/colony-sim/pull/341"
+          },
+          {
+            "number": 335,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "coordinator/record-first-combat-release-decisions",
+            "url": "https://github.com/Love-DC/colony-sim/pull/335"
+          },
+          {
+            "number": 334,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "coordinator/PD023-corrupted-roster-record",
+            "url": "https://github.com/Love-DC/colony-sim/pull/334"
+          },
+          {
+            "number": 293,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/290-deterministic-multisource-distance-field",
+            "url": "https://github.com/Love-DC/colony-sim/pull/293"
+          },
+          {
+            "number": 245,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/240-hidden-valley-playtest",
+            "url": "https://github.com/Love-DC/colony-sim/pull/245"
+          },
+          {
+            "number": 239,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/236-season-climate-design",
+            "url": "https://github.com/Love-DC/colony-sim/pull/239"
+          },
+          {
+            "number": 232,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/229-sfx-design-proposal",
+            "url": "https://github.com/Love-DC/colony-sim/pull/232"
+          },
+          {
+            "number": 196,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "art/art-direction-proposal",
+            "url": "https://github.com/Love-DC/colony-sim/pull/196"
+          },
+          {
+            "number": 111,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "ai/m1b-progress-status-sync",
+            "url": "https://github.com/Love-DC/colony-sim/pull/111"
+          },
+          {
+            "number": 72,
+            "head_repository": "Love-DC/colony-sim",
+            "head_branch": "docs/m1a-pd002-approved-rules",
+            "url": "https://github.com/Love-DC/colony-sim/pull/72"
+          }
+        ]
+      },
+      "supabase": {}
+    },
+    {
+      "project_id": "61e32c05-39b7-47a6-ab5c-592c8e37d72d",
+      "project_key": "recursive-ai-engineering",
+      "repository": "Love-DC/recursive-ai-engineering",
+      "default_branch": "main",
+      "worker_id": "78953b49-db9d-4fbc-9d3c-be3421a1c975",
+      "github": {
+        "branches": [
+          {
+            "name": "ai/autonomous-task-discovery-fcd2194",
+            "sha": "d418601cdc631095eb1331d585205db744198b2f",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/governance-fixture-fcdee35",
+            "sha": "d44d3158e5e6da053de254ef4feeec35a992525a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/guarded-batch-branch-cleanup",
+            "sha": "8482298dbce871647c74af1d546753e072cf3904",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/guarded-batch-branch-cleanup-v2",
+            "sha": "4619024359661a087c1725b58d854954f335d46c",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/80fe5a60-resource-lifecycle-center",
+            "sha": "09c948014cf44e0fcb2180b8d4396eae3b1ef698",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/deployed-failure-retry-contract",
+            "sha": "f3b7565eb01a02814876a8a505b9e1feb00a0753",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/explicit-owner-input-and-autonomy-contract",
+            "sha": "881f3baae5d32dd9968cfd0b6b387be3b34ceb53",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feat/github-app-gateway",
+            "sha": "e293593c51e980ee689b98d35bf401828142f164",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feat/multi-project-colony-sim-onboarding",
+            "sha": "ae1b873ace5bee9b1e0c02c00164348017bc3f9d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feat/repository-local-governance-v1",
+            "sha": "8d93e6d2a9a2872525a52a1754b3db729b486ce3",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "main",
+            "sha": "3fbf6b2bb8d4c09416e58e9c3432dac3911bb601",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": true
+          },
+          {
+            "name": "rae/docs-heartbeat-coverage-map",
+            "sha": "c0025b24e29a1569c8a2a4709497e279b0dc0fc9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "rae/p0-heartbeat-coverage-docs-current-main-20261123",
+            "sha": "40673b50bb9f4e206b13dc18c2a2a1c5a8ad3af4",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "rae/p0-heartbeat-lease-tests",
+            "sha": "24e7eaffb6c03ca515715ba7c2744f9c4a83c4c0",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "rae/p0-heartbeat-lease-tests-current-main",
+            "sha": "e3b858f614954c39cf96b38475ba8772cb0436de",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "rae/p0-heartbeat-lease-tests-current-main-20261123",
+            "sha": "5beeebf4557a162e6c3f59c137949fb70ef98f51",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "rae/p1-claim-race-distinct-workers",
+            "sha": "7167f735c2328be7f06f58e9b239393b23d2acba",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "rae/p1-failure-repair-child-dedupe",
+            "sha": "1e513a2e724c2df28a2582e62bc7fd501b70b100",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "rae/p1-failure-retry-contract",
+            "sha": "8fb2b37c6d020e97a173273d9a54341eb5a3808a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "revert/branch-cleanup-feature",
+            "sha": "de009a7d84e10747a5fb0a3a206510759614bd87",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "rules/independent-reviewer-merge",
+            "sha": "41c4b4ac2cb8a3ef1603ec2f98dd9b3db21ae160",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              26
+            ],
+            "merged": null
+          }
+        ],
+        "open_pull_requests": [
+          {
+            "number": 26,
+            "head_repository": "Love-DC/recursive-ai-engineering",
+            "head_branch": "rules/independent-reviewer-merge",
+            "url": "https://github.com/Love-DC/recursive-ai-engineering/pull/26"
+          }
+        ]
+      },
+      "supabase": {
+        "project_ref": "rgztxilqcfuclkekyojl",
+        "development_branches": [],
+        "edge_functions": []
+      }
+    }
+  ],
+  "supabase_projects": [
+    {
+      "id": "rgztxilqcfuclkekyojl",
+      "name": "recursive-ai-engineering",
+      "region": "ap-northeast-1",
+      "status": "ACTIVE_HEALTHY",
+      "mapping_status": "mapped to RAE registry project",
+      "development_branches": [],
+      "edge_functions": []
+    },
+    {
+      "id": "xplphdljxpnlnlpdoioy",
+      "name": "Unmapped Supabase project",
+      "region": "ap-southeast-1",
+      "status": "ACTIVE_HEALTHY",
+      "mapping_status": "no matching public.projects.supabase_ref field; ownership/project mapping unverified",
+      "development_branches": [],
+      "edge_functions": []
+    }
+  ],
+  "collection_notes": {
+    "active_registry_rows": 2,
+    "branch_ancestry": "not queried for every branch in this first snapshot; unknown ancestry is classified owner_decision_required",
+    "branch_protection": "GitHub branches API protected field observed for every returned branch",
+    "supabase_inventory": "both Supabase Management projects queried; development branches and Edge Functions lists were empty",
+    "limitations": [
+      "Colony Sim has no Supabase project ref in public.projects config; no mapping inferred.",
+      "ChatGPT conversation history is not accessible."
+    ]
+  }
+}
