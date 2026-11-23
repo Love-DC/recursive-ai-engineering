@@ -9,7 +9,8 @@ NOW = datetime(2026, 11, 23, 1, 30, tzinfo=timezone.utc)
 def sample():
     return {"generated_at": "2026-11-23T01:30:00Z", "registered_projects": [{
         "project_id": "p1", "project_key": "alpha", "repository": "Love-DC/recursive-ai-engineering",
-        "default_branch": "main", "github": {"branches": [
+        "default_branch": "main", "task_reference_scan": {"complete": True, "active_branch_refs": [], "historical_references": []},
+        "github": {"branches": [
             {"name": "main", "sha": SHA, "default_branch": "main", "protected": False, "protection_verified": True, "open_pr_numbers": [], "merged": True},
             {"name": "safe", "sha": SHA, "default_branch": "main", "protected": False, "protection_verified": True, "open_pr_numbers": [], "merged": True},
             {"name": "protected", "sha": SHA, "default_branch": "main", "protected": True, "protection_verified": True, "open_pr_numbers": [], "merged": True},
@@ -31,6 +32,31 @@ class InventoryTests(unittest.TestCase):
     def test_default_protected_open_pr_unmerged_are_preserved(self):
         for name in ("main", "protected", "open", "unmerged"):
             self.assertEqual(self.row("branch", name)["risk_class"], PRESERVE)
+
+    def test_active_task_reference_is_preserved(self):
+        data = sample()
+        data["registered_projects"][0]["task_reference_scan"]["active_branch_refs"] = ["safe"]
+        report = build_report(data, "Love-DC/recursive-ai-engineering")
+        row = next(r for r in report["resources"] if r["kind"] == "branch" and r["identity"] == "safe")
+        self.assertEqual(row["risk_class"], PRESERVE)
+        self.assertTrue(row["evidence"]["active_task_reference"])
+
+    def test_incomplete_task_reference_scan_blocks_cleanup(self):
+        data = sample()
+        data["registered_projects"][0]["task_reference_scan"]["complete"] = False
+        report = build_report(data, "Love-DC/recursive-ai-engineering")
+        row = next(r for r in report["resources"] if r["kind"] == "branch" and r["identity"] == "safe")
+        self.assertEqual(row["risk_class"], PRESERVE)
+
+    def test_preview_manifest_carries_task_reference_guard(self):
+        data = sample()
+        data["registered_projects"][0]["task_reference_scan"]["active_branch_refs"] = ["other-task-branch"]
+        report = build_report(data, "Love-DC/recursive-ai-engineering")
+        row = next(r for r in report["resources"] if r["kind"] == "branch" and r["identity"] == "safe")
+        plan = preview_batch(report, [row["id"]], now=NOW)
+        self.assertTrue(plan["task_reference_scan_complete"])
+        self.assertEqual(plan["task_references"], ["other-task-branch"])
+        self.assertEqual(plan["branches"], {"safe": SHA})
 
     def test_unknown_protection_or_ancestry_is_preserved(self):
         self.assertEqual(self.row("branch", "unknown")["risk_class"], PRESERVE)
