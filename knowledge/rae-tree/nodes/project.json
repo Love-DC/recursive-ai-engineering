@@ -6,7 +6,7 @@
   "title": "Recursive AI Engineering",
   "goal": "Evolve RAE into a recursively growing, context-efficient engineering system that operates through one manually started GPT conversation at a time.",
   "status": "active",
-  "summary": "Initial tree bootstrap. Existing Supabase project/task/execution model remains authoritative. Current work establishes repository-local recursive context nodes, lazy loading, bounded upward summaries, branch wake-up, and cross-session checkpoints. The current main branch still contains fixed Coordinator startup wording; open PR #26 adds a mandatory separate-session role chain and conflicts with the confirmed single-session runtime boundary.",
+  "summary": "Recursive tree bootstrap is implemented on branch ai/2daceac7-recursive-engineering-tree and is under review in PR #28. The root index, local node schema, bounded attention index, lazy session startup, repository-local context contract, and structural CI test are present. The recursive-tree CI passed on commit 49752ec865853fff3d9aad3df7f5a007f4a64467; shell and PostgreSQL checks are still running for that exact head. Existing Supabase schema, projects, Workers, tasks, and execution history remain unchanged. Open PR #26 still conflicts with the confirmed single-session runtime boundary and has been flagged without modification.",
   "parent_node_id": null,
   "children_index": "knowledge/rae-tree/attention.json",
   "context_refs": [
@@ -18,22 +18,22 @@
   ],
   "evidence_refs": [
     {
-      "kind": "file",
-      "ref": "docs/SESSION-START.md",
-      "observed_at": "2026-11-23T02:20:00Z",
-      "note": "Current startup contract requires project queue enumeration and describes each conversation as a temporary coordinator/executor."
+      "kind": "pull_request",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/28",
+      "observed_at": "2026-11-23T02:29:00Z",
+      "note": "Draft implementation PR for the recursive engineering tree and lazy session startup."
     },
     {
-      "kind": "file",
-      "ref": "docs/MULTI-PROJECT-ARCHITECTURE.md",
-      "observed_at": "2026-11-23T02:20:00Z",
-      "note": "Current architecture uses project-scoped task queues and parent/child task decomposition."
+      "kind": "commit",
+      "ref": "49752ec865853fff3d9aad3df7f5a007f4a64467",
+      "observed_at": "2026-11-23T02:29:00Z",
+      "note": "Exact head on which recursive-tree checks passed; other CI workflows were still running at checkpoint time."
     },
     {
       "kind": "pull_request",
       "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/26",
-      "observed_at": "2026-11-23T02:20:00Z",
-      "note": "Open proposal requires fixed role identities and a distinct GPT session for review; conflicts with the Owner-confirmed runtime boundary."
+      "observed_at": "2026-11-23T02:29:00Z",
+      "note": "Mandatory separate-session role chain conflicts with the Owner-confirmed one-session runtime; compatibility comment added, PR left open."
     }
   ],
   "dependency_refs": [],
@@ -46,9 +46,9 @@
     "A referenced task, pull request, CI result, or project governance file changes.",
     "The next_review_at time is reached."
   ],
-  "last_activity_at": "2026-11-23T02:20:00Z",
-  "last_reviewed_at": "2026-11-23T02:20:00Z",
-  "next_review_at": "2026-11-24T02:20:00Z",
+  "last_activity_at": "2026-11-23T02:29:00Z",
+  "last_reviewed_at": "2026-11-23T02:29:00Z",
+  "next_review_at": "2026-11-23T03:29:00Z",
   "checkpoint_ref": "knowledge/rae-tree/checkpoints/2026-11-23-bootstrap.md",
   "supersedes": []
 }
