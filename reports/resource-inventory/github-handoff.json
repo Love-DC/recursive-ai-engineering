@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "captured_at": "2026-11-23T01:54:35.327Z",
-  "note": "Read-only connector snapshot for consolidated reporting. Colony Sim mutation is not authorized; its merged state is intentionally unknown and all its branches remain blocked.",
+  "captured_at": "2026-11-23T02:02:48.061Z",
+  "note": "Read-only connector snapshot. Colony Sim mutation is not authorized; its merged state is intentionally unknown and all its branches remain blocked.",
   "repositories": [
     {
       "repository": "Love-DC/recursive-ai-engineering",
@@ -31,7 +31,7 @@
         },
         {
           "name": "ai/80fe5a60-resource-lifecycle-center",
-          "sha": "a3587d88423033639da7b57ddafdbfba64b7d6a1",
+          "sha": "30da25eda05e52f95403ede3a8170a52cffe0806",
           "protected": false
         },
         {
@@ -122,7 +122,7 @@
           "url": "https://github.com/Love-DC/recursive-ai-engineering/pull/27",
           "head_repo": "Love-DC/recursive-ai-engineering",
           "head_ref": "ai/80fe5a60-resource-lifecycle-center",
-          "head_sha": "a3587d88423033639da7b57ddafdbfba64b7d6a1"
+          "head_sha": "30da25eda05e52f95403ede3a8170a52cffe0806"
         },
         {
           "number": 26,
