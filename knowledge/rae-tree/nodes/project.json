@@ -6,7 +6,7 @@
   "title": "Recursive AI Engineering",
   "goal": "Evolve RAE into a recursively growing, context-efficient engineering system that operates through one manually started GPT conversation at a time.",
   "status": "active",
-  "summary": "PR #28 remains Draft/unmerged. The stale-state and schema/index findings are addressed. scripts/test_recursive_tree.py now validates the node schema with a standard-library validator, validates every node declared by index.nodes, and checks parent/context/checkpoint/attention/global references and repository-path safety. Session startup now has a claim-routing preflight that blocks use of an independent-reviewer Worker until the live claim_task route guard is verified. All four workflows passed on exact code head 29ce0773ded12b633aa1c6961db99c37e75206c1. Later node/checkpoint evidence commits are metadata-only; live PR HEAD must always be resolved from GitHub. PR #29 separately prepares the database routing/release fix and has its own pending independent review. No production deployment or merge has occurred.",
+  "summary": "PR #28 remains Draft/unmerged. Stale-state and schema/index findings are fixed; standard-library JSON Schema validation covers every indexed node and all local references, and startup blocks Reviewer claims until the live claim_task route guard is verified. All four workflows passed on exact code head 29ce0773ded12b633aa1c6961db99c37e75206c1. A fresh review handoff a25e383a-7449-44b3-b3c1-b605af8e48ab now targets the corrected delivery; obsolete review task ced35b2e-0f3e-4861-a758-79fda9291612 was cancelled because it referenced an earlier delivery SHA. PR #29 separately prepares the database route/release fix; its independent review remains pending. No production deployment or merge has occurred.",
   "parent_node_id": null,
   "children_index": "knowledge/rae-tree/attention.json",
   "context_refs": [
@@ -130,6 +130,24 @@
       "ref": "d269640fc14b1906b94a1682a0dbe6e5bdf64667",
       "observed_at": "2026-11-23T03:15:05Z",
       "note": "Exact PR #29 implementation head with PostgreSQL lifecycle #113 and shell #366 passed."
+    },
+    {
+      "kind": "task",
+      "ref": "012fe473-6cd2-4e3c-8f3d-f601440cb16a",
+      "observed_at": "2026-11-23T03:36:22Z",
+      "note": "Submitted delivery wrapper for corrected PR #28 current head dbbc03656510cd26e62652d5cd4b3dc9db6109e7 and validated code head 29ce0773ded12b633aa1c6961db99c37e75206c1."
+    },
+    {
+      "kind": "task",
+      "ref": "a25e383a-7449-44b3-b3c1-b605af8e48ab",
+      "observed_at": "2026-11-23T03:36:22Z",
+      "note": "Fresh independent review task targeting the corrected PR #28 delivery."
+    },
+    {
+      "kind": "task",
+      "ref": "ced35b2e-0f3e-4861-a758-79fda9291612",
+      "observed_at": "2026-11-23T03:36:22Z",
+      "note": "Cancelled as stale because its review target recorded obsolete PR #28 head 87a652ca945364390c614b07078db4ca681cda65."
     }
   ],
   "dependency_refs": [],
@@ -140,16 +158,18 @@
     "2f49daad-f74f-4885-a193-f131360abc9b",
     "ad7cdacb-be38-467c-aa79-e1eb11ee4ace",
     "6273ac96-9e05-4e07-a5c9-bc34bbe6b5f1",
-    "842d85c0-2ea5-455c-b42f-5e276d2974b4"
+    "842d85c0-2ea5-455c-b42f-5e276d2974b4",
+    "012fe473-6cd2-4e3c-8f3d-f601440cb16a",
+    "a25e383a-7449-44b3-b3c1-b605af8e48ab"
   ],
   "wake_conditions": [
     "New Owner objective intersects RAE platform architecture.",
     "A referenced task, pull request, CI result, or project governance file changes.",
     "The next_review_at time is reached."
   ],
-  "last_activity_at": "2026-11-23T03:30:28Z",
-  "last_reviewed_at": "2026-11-23T03:30:28Z",
-  "next_review_at": "2026-11-23T04:30:28Z",
+  "last_activity_at": "2026-11-23T03:36:22Z",
+  "last_reviewed_at": "2026-11-23T03:36:22Z",
+  "next_review_at": "2026-11-23T04:36:22Z",
   "checkpoint_ref": "knowledge/rae-tree/checkpoints/2026-11-23-bootstrap.md",
   "supersedes": []
 }
