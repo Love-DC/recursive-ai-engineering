@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Turn Recursive AI Engineering (RAE) into a multi-project task execution platform. The first registered external project is Colony Sim. A project owner should be able to open one ChatGPT conversation, state an engineering objective and target project, and let that conversation coordinate the work without requiring the owner to prepare task packs, copy prompts between sessions, or manually relay implementation context.
+Turn Recursive AI Engineering (RAE) into a multi-project task execution platform. The first registered external project is Colony Sim. The Owner may state an outcome or idea without selecting a project, task breakdown, or execution role. RAE determines the best registered project and work path, and multiple GPT conversations may coordinate through shared state without manual context relays.
 
 ## Responsibilities and sources of truth
 
@@ -98,7 +98,7 @@ Workers inspect their authorized project's code, docs, tests, CI, and read-only 
 ## Session routing and execution
 
 1. Read the RAE session entry point and inspect registered projects in Supabase.
-2. Resolve the user's named target project to exactly one active project record. If the target is omitted and the objective does not identify one unambiguously, ask one short clarification.
+2. Select the best-fit active registered project from the objective, project metadata, and current evidence. If no registered project fits, determine whether a new project can be established within existing authorized resources; ask the Owner only for a genuinely missing resource, permission, or product decision—not for routine routing.
 3. Read that project's GitHub governance entry points at the current base SHA.
 4. For a direct owner objective, create a root task in the target project's task pool. Decompose only at real responsibility, ownership, interface, or validation boundaries.
 5. The Owner may start multiple GPT conversations. Each conversation discovers shared work and may atomically claim a different eligible task; no single conversation is the permanent Coordinator.
