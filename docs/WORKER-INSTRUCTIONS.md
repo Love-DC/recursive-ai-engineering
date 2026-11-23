@@ -1,6 +1,6 @@
 # Multi-project routing — authoritative addendum
 
-This addendum supersedes any assumption below that every task belongs to the original RAE project. Before creating, claiming, or completing work, resolve the target project and its project-scoped worker from live Supabase data.
+This addendum supersedes any assumption below that every task belongs to the original RAE project. Before creating, claiming, or completing work, resolve the target project and its project-scoped worker from live Supabase data. Every session must first declare exactly one role and verify its assignment under `docs/SESSION-IDENTITY.md`.
 
 - Query `public.projects` and select the active row by `config->>'project_key'` or canonical `github_repo`.
 - Query active `public.workers` rows for the selected `project_id`. Select the Worker matching the task's required worker key or the project's `config.worker_routing` mapping. If no explicit route exists, use the sole active Worker only when exactly one is available; if multiple candidates remain, stop and request routing configuration. Never select a Worker from another project.
@@ -184,17 +184,17 @@ The Owner is **not expected** to manually provide task decomposition, implementa
 
 ### Standing authorization for autonomous engineering
 
-The initial instruction is standing authorization for the AI Coordinator to carry an in-scope engineering objective through its complete lifecycle, within the permissions of the already-connected accounts and the target repository's governance:
+The initial instruction is standing authorization for the RAE role chain to carry an in-scope engineering objective through its complete lifecycle, within the permissions of the already-connected accounts and the target repository's governance:
 
 - inspect project state, repositories, task queues, Issues, PRs, CI, logs, and relevant operational evidence;
 - identify and prioritize evidence-backed work; create and decompose project-scoped tasks; claim and execute them;
 - create branches, edit files, commit changes, run tests and checks, repair failures, and retry bounded work;
 - open, update, review, and revise pull requests;
-- independently review and **merge routine, eligible engineering PRs without asking the Owner for per-PR approval**;
+- dispatch an independent Reviewer session to review and merge routine, eligible engineering PRs without asking the Owner for per-PR approval; verify the resulting merge evidence;
 - verify the exact merged commit and post-merge checks, record evidence, update task state, and continue with the next eligible task;
 - repeat the loop recursively until the requested outcome and its acceptance criteria are met or a genuine external blocker is reached.
 
-The Coordinator, not the Owner, owns integration review and merge. A leaf Worker must not approve or merge its own PR; it hands the PR to the Coordinator for independent review. This separation is an internal quality control, not a request for Owner approval. Do not interpret branch protection or a required CI check as a reason to ask the Owner to merge manually; satisfy the check or report the concrete platform restriction.
+The Coordinator owns routing and handoff, not formal PR review or merge. A leaf Worker hands the PR to a distinct Reviewer session through the Coordinator. Only that independent Reviewer may approve and merge. The Coordinator verifies the resulting evidence but never reviews as the independent Reviewer or merges. Do not interpret branch protection or a required CI check as a reason to ask the Owner to merge manually; satisfy the check or report the concrete platform restriction.
 
 ### Do not turn internal workflow into Owner work
 
@@ -214,3 +214,8 @@ A tool call succeeding is not equivalent to end-to-end acceptance. Verify result
 ## Independent PR review and merge
 
 Follow [`docs/INDEPENDENT-PR-REVIEW.md`](INDEPENDENT-PR-REVIEW.md) for every PR. The Worker implements and opens the PR; the Coordinator dispatches and coordinates; a separate Reviewer AI independently reviews and is the only AI role allowed to merge. The Coordinator verifies the resulting merge commit and post-merge CI but never performs the merge. If no independent Reviewer or merge permission is available, leave the PR open, persist the blocker, and continue unrelated work. The Supabase `requires_review` flag does not waive GitHub PR review.
+
+
+## Mandatory session identity
+
+Read `docs/SESSION-IDENTITY.md` before acting. Declare exactly one primary role and verify the task assignment and authority. A Worker may implement only its assigned task; a Reviewer must be a distinct session that did not implement or direct the change; a Coordinator orchestrates and verifies but does not implement as Worker or perform formal review/merge in the same session. Do not treat a Supabase Worker UUID as proof of session identity. If a separate role session cannot be dispatched or verified, preserve the handoff and report the precise capability gap; do not simulate it.
