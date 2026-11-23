@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timezone, timedelta
-from scripts.resource_inventory import ELIGIBLE, DECISION, PRESERVE, build_report, preview_batch, authorize_batch
+from scripts.resource_inventory import ELIGIBLE, DECISION, PRESERVE, build_report, preview_batch, authorize_batch, render_markdown
 
 SHA = "a" * 40
 NOW = datetime(2026, 11, 23, 1, 30, tzinfo=timezone.utc)
@@ -64,6 +64,15 @@ class InventoryTests(unittest.TestCase):
         plan = preview_batch(self.report, [row["id"]], now=NOW)
         with self.assertRaisesRegex(ValueError, "Stale inventory"):
             authorize_batch(plan, "DELETE SELECTED RESOURCES", {"safe": "b" * 40})
+
+    def test_report_is_grouped_and_preserves_collection_evidence(self):
+        data = sample()
+        data["collection_notes"] = {"branch_ancestry": "unknown"}
+        report = build_report(data, "Love-DC/recursive-ai-engineering")
+        self.assertEqual(report["collection_notes"]["branch_ancestry"], "unknown")
+        markdown = render_markdown(report)
+        self.assertIn("## Collection notes", markdown)
+        self.assertIn("No resources were deleted", markdown)
 
     def test_duplicate_and_unknown_targets_rejected(self):
         row = self.row("branch", "safe")
