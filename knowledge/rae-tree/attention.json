@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0",
   "project_key": "recursive-ai-engineering",
-  "updated_at": "2026-11-23T03:32:00Z",
+  "updated_at": "2026-11-23T03:36:22Z",
   "items": [
     {
       "node_id": "project:recursive-ai-engineering",
       "node_path": "knowledge/rae-tree/nodes/project.json",
       "priority": 1,
       "status": "active",
-      "wake_reason": "Rerun exact-head CI for PR #28 schema/index validator changes, then complete the independent review. PR #29 separately fixes Worker route/release and awaits independent review. Do not deploy either migration or merge without the required review.",
-      "next_review_at": "2026-11-23T04:30:28Z",
+      "wake_reason": "Review corrected PR #28 via fresh handoff a25e383a-7449-44b3-b3c1-b605af8e48ab; review PR #29 via 842d85c0-2ea5-455c-b42f-5e276d2974b4. Do not claim with independent-reviewer until live claim_task route guard is deployed and verified.",
+      "next_review_at": "2026-11-23T04:36:22Z",
       "task_refs": [
         "2daceac7-f748-49fb-8e30-a72243eaf399",
         "ced35b2e-0f3e-4861-a758-79fda9291612",
@@ -17,7 +17,9 @@
         "861bb6d6-bdb9-4e0c-bb46-e285f614c351",
         "ad7cdacb-be38-467c-aa79-e1eb11ee4ace",
         "6273ac96-9e05-4e07-a5c9-bc34bbe6b5f1",
-        "842d85c0-2ea5-455c-b42f-5e276d2974b4"
+        "842d85c0-2ea5-455c-b42f-5e276d2974b4",
+        "012fe473-6cd2-4e3c-8f3d-f601440cb16a",
+        "a25e383a-7449-44b3-b3c1-b605af8e48ab"
       ]
     }
   ],
