@@ -24,7 +24,7 @@
       "node_id": "project:recursive-ai-engineering",
       "node_path": "knowledge/rae-tree/nodes/project.json",
       "priority": 1,
-      "reason": "First resume independent review task ced35b2e-0f3e-4861-a758-79fda9291612 for PR #28; next execute queued tree lifecycle operations task 2f49daad-f74f-4885-a193-f131360abc9b."
+      "reason": "Validate the PR #28 schema/index corrections on the exact live head, then complete its independent review; PR #29 Worker route/release fix is separately queued for independent review. Production deployment and merges remain gated."
     }
   ],
   "rules": {
