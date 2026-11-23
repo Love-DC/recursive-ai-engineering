@@ -327,13 +327,13 @@
 
 ## Collection notes
 - active_registry_rows: 2
-- branch_inventory: [object Object]
-- open_pull_requests: [object Object]
-- branch_ancestry: RAE compare checks verified three merged ancestors: ai/guarded-batch-branch-cleanup-v2, rae/p1-claim-race-distinct-workers, rae/p1-failure-repair-child-dedupe. All other non-default RAE branches are unmerged or task/PR referenced. Colony Sim ancestry is intentionally unknown and preserved.
-- branch_protection: GitHub branches API protected field observed for every returned branch; no branch returned protected=true
-- supabase_inventory: both Supabase Management projects queried; development branches and Edge Functions lists were empty
-- limitations: Colony Sim has no Supabase project ref in public.projects config; no mapping inferred.,One Supabase project has no matching registry mapping.,ChatGPT conversation history is not accessible.
-- task_references: RAE task-reference scan covered public.tasks, public.executions, public.task_events and public.artifacts. Active/submitted refs are preserved; historical refs remain evidence. Colony scan is incomplete and no Colony branch is eligible.
-- reviewer_route: A distinct independent-reviewer Worker route exists without an auth-user binding or credential.
+- branch_inventory: {'Love-DC/recursive-ai-engineering': 21, 'Love-DC/colony-sim': 260, 'colony_pages': 3, 'all_pages_exhausted': true}
+- open_pull_requests: {'Love-DC/recursive-ai-engineering': 2, 'Love-DC/colony-sim': 28}
+- branch_ancestry: 'RAE compare checks verified three merged ancestors: ai/guarded-batch-branch-cleanup-v2, rae/p1-claim-race-distinct-workers, rae/p1-failure-repair-child-dedupe. All other non-default RAE branches are unmerged or task/PR referenced. Colony Sim ancestry is intentionally unknown and preserved.'
+- branch_protection: 'GitHub branches API protected field observed for every returned branch; no branch returned protected=true'
+- supabase_inventory: 'both Supabase Management projects queried; development branches and Edge Functions lists were empty'
+- limitations: ['Colony Sim has no Supabase project ref in public.projects config; no mapping inferred.', 'One Supabase project has no matching registry mapping.', 'ChatGPT conversation history is not accessible.']
+- task_references: 'RAE task-reference scan covered public.tasks, public.executions, public.task_events and public.artifacts. Active/submitted refs are preserved; historical refs remain evidence. Colony scan is incomplete and no Colony branch is eligible.'
+- reviewer_route: 'A distinct independent-reviewer Worker route exists without an auth-user binding or credential.'
 
 No resources were deleted. ChatGPT conversation history is outside this inventory.
