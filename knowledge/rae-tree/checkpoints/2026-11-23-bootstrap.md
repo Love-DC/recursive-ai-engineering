@@ -6,7 +6,8 @@
 - Branch: `ai/2daceac7-recursive-engineering-tree`
 - Base SHA: `3fbf6b2bb8d4c09416e58e9c3432dac3911bb601`
 - PR: [#28 — recursive engineering tree and lazy session context](https://github.com/Love-DC/recursive-ai-engineering/pull/28)
-- Last known branch commit before this checkpoint: `e12bb87aa773174aed6deb51049a1df00a87ba41`
+- Pending review task: `ced35b2e-0f3e-4861-a758-79fda9291612` (assigned to project-scoped `independent-reviewer` route; not yet claimed)
+- Last known branch commit before this checkpoint: `624c877fde0960f539e5ffeee7faf41ffc651bb0`
 - Current work task: `2daceac7-f748-49fb-8e30-a72243eaf399`
 - Current execution: `822f74c8-2800-4b6c-8b19-b94daf6df95f` (attempt 2)
 - Task lease at last claim: `2026-11-23T02:39:40Z`
@@ -26,8 +27,10 @@
 ## Validation
 
 - Structural/reference/lazy-startup checks passed in the implementation-session JS inspection.
-- Recursive tree GitHub Actions run #8 passed on exact commit `49752ec865853fff3d9aad3df7f5a007f4a64467`.
-- Shell static checks and PostgreSQL task lifecycle integration were still running on that exact commit at the time of the last check.
+- Recursive tree checks run #19 passed on exact commit `624c877fde0960f539e5ffeee7faf41ffc651bb0`.
+- Shell static checks run #344 passed on exact commit `624c877fde0960f539e5ffeee7faf41ffc651bb0`.
+- Repository governance protocol tests run #64 passed on exact commit `624c877fde0960f539e5ffeee7faf41ffc651bb0`.
+- PostgreSQL task lifecycle integration run #107 was still running on that exact commit at the time of the last check.
 - Earlier recursive-tree CI runs failed because the test asserted a startup phrase not present in the actual startup document. The assertion was corrected; run #8 passed. No failure was hidden or waived.
 - The latest node/attention/root metadata commits changed the branch after run #8; exact-head CI must be rechecked after those updates.
 
@@ -46,7 +49,7 @@
 2. Inspect the full PR diff for consistency, particularly README and Worker Instructions.
 3. Update PR #28 description with exact-head CI results.
 4. Submit this execution with the PR/head/verification evidence and create the configured review handoff.
-5. A genuinely independent review requires a later separately started GPT conversation. Until that happens, keep PR #28 draft/unmerged and do not claim review or merge.
+5. Review task `ced35b2e-0f3e-4861-a758-79fda9291612` is pending and assigned to the project-scoped independent-reviewer route. A genuinely independent review requires a later separately started GPT conversation. Until that happens, keep PR #28 draft/unmerged and do not claim review or merge.
 6. On the next session, load only this checkpoint, the RAE root index, the RAE project node, and the specific review/continuation context.
 
 ## Not yet verified
