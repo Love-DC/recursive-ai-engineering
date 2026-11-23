@@ -7,7 +7,8 @@
 - Base SHA: `3fbf6b2bb8d4c09416e58e9c3432dac3911bb601`
 - PR: [#28 — recursive engineering tree and lazy session context](https://github.com/Love-DC/recursive-ai-engineering/pull/28)
 - Pending review task: `ced35b2e-0f3e-4861-a758-79fda9291612` (assigned to project-scoped `independent-reviewer` route; not yet claimed)
-- Last known branch commit before this checkpoint: `624c877fde0960f539e5ffeee7faf41ffc651bb0`
+- Queued follow-up implementation task: `2f49daad-f74f-4885-a193-f131360abc9b` (recursive tree lifecycle operations and ancestor propagation)
+- Last known branch commit before this checkpoint: `f331b7ae9666b9562017684989bc03de374ba607`
 - Current work task: `2daceac7-f748-49fb-8e30-a72243eaf399`
 - Current execution: `822f74c8-2800-4b6c-8b19-b94daf6df95f` (attempt 2)
 - Task lease at last claim: `2026-11-23T02:39:40Z`
@@ -50,6 +51,7 @@
 3. Update PR #28 description with exact-head CI results.
 4. Submit this execution with the PR/head/verification evidence and create the configured review handoff.
 5. Review task `ced35b2e-0f3e-4861-a758-79fda9291612` is pending and assigned to the project-scoped independent-reviewer route. A genuinely independent review requires a later separately started GPT conversation. Until that happens, keep PR #28 draft/unmerged and do not claim review or merge.
+6. After review, claim follow-up task `2f49daad-f74f-4885-a193-f131360abc9b` to implement explicit tree lifecycle operations and ancestor propagation.
 6. On the next session, load only this checkpoint, the RAE root index, the RAE project node, and the specific review/continuation context.
 
 ## Not yet verified
