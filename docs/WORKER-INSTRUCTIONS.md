@@ -1,3 +1,21 @@
+# Recursive tree and single-session runtime — authoritative addendum
+
+This addendum supersedes older wording below that treats Coordinator as a fixed session identity, requires full project-queue enumeration at startup, or assumes a separate GPT session can be launched by RAE.
+
+- The Owner manually starts one GPT conversation at a time. This is the only assumed AI runtime. No fixed Coordinator, daemon, scheduler, automatic session spawning, or concurrent GPT sessions are required.
+- Coordinator, Worker, Reviewer, Researcher, and Auditor are responsibilities. The active conversation performs the responsibilities required by its selected work; a label or Worker row does not create an independent AI instance.
+- Start from `knowledge/rae-root/index.json`, select one relevant project/branch, and load only that branch, its ancestors, and required dependencies. Do not enumerate every project's task queue or read all task/execution history by default.
+- Durable engineering knowledge and branch context belong in each owning GitHub repository under `knowledge/rae-tree/`. The RAE global root index contains compact project pointers only.
+- Supabase remains authoritative for project registration, project-scoped task lifecycle, leases, executions, artifacts, and events. Existing `tasks.parent_task_id` remains the executable task hierarchy; do not duplicate task payloads or execution history in the knowledge tree.
+- Expand nodes only when evidence or complexity warrants it. Child nodes publish bounded summaries and evidence references upward; parents do not embed child histories. Dormant branches are revalidated when due or when dependencies/evidence/objectives change. Inactivity alone never authorizes deletion.
+- Persist a checkpoint in the selected project's repository before ending or when context capacity is constrained. A fresh session must be able to continue without the previous conversation transcript.
+- A separate-context review is independent only when a genuinely separate GPT conversation later receives the review assignment. RAE cannot launch that conversation. Keep the review handoff pending and make it visible in the root attention index; do not impersonate the Reviewer or claim dispatch/approval/merge occurred.
+- Project governance remains repository-local and must be loaded at a pinned SHA. The Owner's product and architecture decision authority remains intact.
+
+See `docs/RECURSIVE-ENGINEERING-TREE.md` and `docs/SESSION-START.md` for the complete navigation, lifecycle, checkpoint, and startup contracts.
+
+---
+
 # Multi-project routing — authoritative addendum
 
 This addendum supersedes any assumption below that every task belongs to the original RAE project. Before creating, claiming, or completing work, resolve the target project and its project-scoped worker from live Supabase data.
