@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "project_key": "recursive-ai-engineering",
+  "repository": "Love-DC/recursive-ai-engineering",
+  "root_node_id": "project:recursive-ai-engineering",
+  "node_schema": "knowledge/rae-tree/node.schema.json",
+  "nodes": {
+    "project:recursive-ai-engineering": "knowledge/rae-tree/nodes/project.json"
+  },
+  "attention_index": "knowledge/rae-tree/attention.json",
+  "last_reconciled_at": "2026-11-23T02:20:00Z",
+  "policy": {
+    "default_load": "root-and-selected-branch",
+    "max_parent_summary_chars": 1200,
+    "inactivity_is_deletion_authority": false,
+    "task_state_source": "supabase-project-scoped-task-rpcs",
+    "knowledge_source": "this-repository"
+  }
+}
