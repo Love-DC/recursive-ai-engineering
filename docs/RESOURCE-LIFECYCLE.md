@@ -30,16 +30,17 @@ ChatGPT conversation history is not accessible to RAE and is not inventoried.
 ## Batch safety
 
 The cleanup script is dry-run by default. A batch manifest maps exact branch names
-to the SHA shown in the preview and includes the snapshot timestamp. Manifests older
-than 30 minutes are rejected. Execution requires one exact batch confirmation,
-then rechecks branch existence, exact SHA, protection, open PR references and
-merged ancestry. The script is restricted to the current RAE repository. It does
+to the SHA shown in the preview and includes the snapshot timestamp, a completed
+task-reference scan, and the active/submitted task branch references. Manifests
+older than 30 minutes or with incomplete task-reference evidence are rejected. Execution requires one exact batch confirmation,
+then rechecks branch existence, exact SHA, protection, open PR references, active
+or submitted task references, and merged ancestry. The script is restricted to the current RAE repository. It does
 not delete Supabase resources or mutate other repositories.
 
-GitHub's delete-ref endpoint does not support an atomic expected-SHA condition;
-the implementation revalidates immediately before each delete, but this cannot
-eliminate the tiny race between the final read and delete. Treat this limitation
-as a residual risk and keep cleanup manual-only.
+Deletion uses `git push --force-with-lease` with the exact preview SHA, so GitHub
+rejects a branch-tip change between verification and mutation. PR and task-reference
+state is re-read immediately before each target; a new external reference created
+after that read remains a residual race. Cleanup stays manual-only.
 
 ## Permissions and operating limits
 
