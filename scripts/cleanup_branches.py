@@ -53,8 +53,8 @@ def inspect_batch(repository, expected):
                 reason = "referenced by open pull request"
             else:
                 cmp = gh_json(f"repos/{repository}/compare/{default}...{quote(name, safe='/')}")
-                reason = ("eligible after exact-SHA revalidation" if cmp.get("status") in ("ahead", "identical")
-                          and cmp.get("ahead_by") == 0 else "not proven merged into default")
+                reason = ("eligible after exact-SHA revalidation" if cmp.get("ahead_by") == 0
+                          else "not proven merged into default")
             results.append({"branch": name, "sha": sha, "eligible": reason.startswith("eligible"), "reason": reason})
         except Exception as exc:
             results.append({"branch": name, "sha": None, "eligible": False, "reason": f"inspection failed: {exc}"})
