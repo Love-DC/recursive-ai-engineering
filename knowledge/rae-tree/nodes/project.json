@@ -6,7 +6,7 @@
   "title": "Recursive AI Engineering",
   "goal": "Evolve RAE into a recursively growing, context-efficient engineering system that operates through one manually started GPT conversation at a time.",
   "status": "active",
-  "summary": "PR #28 remains Draft/unmerged. The review findings are addressed: persisted evidence now distinguishes historical runs from the latest validation record, and scripts/test_recursive_tree.py validates the node schema with a standard-library validator, validates every node declared by index.nodes, and resolves parent/context/checkpoint/attention/global references with repository-path safety checks. All four workflows passed on exact code head 3a7c260e189ca346864d2ff6ad82d327c35837c8. Subsequent node/checkpoint metadata commits do not alter implementation; live PR HEAD must always be resolved from GitHub on session startup. The separate Worker routing/safe-release defect is addressed in PR #29; its PostgreSQL and shell checks passed, with independent review pending. No production deployment or merge has occurred.",
+  "summary": "PR #28 remains Draft/unmerged. The stale-state and schema/index findings are addressed. scripts/test_recursive_tree.py now validates the node schema with a standard-library validator, validates every node declared by index.nodes, and checks parent/context/checkpoint/attention/global references and repository-path safety. Session startup now has a claim-routing preflight that blocks use of an independent-reviewer Worker until the live claim_task route guard is verified. All four workflows passed on exact code head 29ce0773ded12b633aa1c6961db99c37e75206c1. Later node/checkpoint evidence commits are metadata-only; live PR HEAD must always be resolved from GitHub. PR #29 separately prepares the database routing/release fix and has its own pending independent review. No production deployment or merge has occurred.",
   "parent_node_id": null,
   "children_index": "knowledge/rae-tree/attention.json",
   "context_refs": [
@@ -17,6 +17,36 @@
     "docs/FAILURE-RECOVERY-CONTRACT.md"
   ],
   "evidence_refs": [
+    {
+      "kind": "commit",
+      "ref": "29ce0773ded12b633aa1c6961db99c37e75206c1",
+      "observed_at": "2026-11-23T03:30:28Z",
+      "note": "Exact PR #28 code head including schema/index validation and session claim-routing preflight; all four workflows passed. Later node/checkpoint updates are metadata-only."
+    },
+    {
+      "kind": "ci_run",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308364",
+      "observed_at": "2026-11-23T03:30:28Z",
+      "note": "Recursive tree checks #49 passed on exact head 29ce0773ded12b633aa1c6961db99c37e75206c1."
+    },
+    {
+      "kind": "ci_run",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308351",
+      "observed_at": "2026-11-23T03:30:28Z",
+      "note": "Repository governance tests #78 passed on exact head 29ce0773ded12b633aa1c6961db99c37e75206c1."
+    },
+    {
+      "kind": "ci_run",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308251",
+      "observed_at": "2026-11-23T03:30:28Z",
+      "note": "Shell static checks #385 passed on exact head 29ce0773ded12b633aa1c6961db99c37e75206c1."
+    },
+    {
+      "kind": "ci_run",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45106308287",
+      "observed_at": "2026-11-23T03:30:28Z",
+      "note": "PostgreSQL task lifecycle integration #122 passed on exact head 29ce0773ded12b633aa1c6961db99c37e75206c1."
+    },
     {
       "kind": "pull_request",
       "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/28",
@@ -117,9 +147,9 @@
     "A referenced task, pull request, CI result, or project governance file changes.",
     "The next_review_at time is reached."
   ],
-  "last_activity_at": "2026-11-23T03:23:32Z",
-  "last_reviewed_at": "2026-11-23T03:23:32Z",
-  "next_review_at": "2026-11-23T04:23:32Z",
+  "last_activity_at": "2026-11-23T03:30:28Z",
+  "last_reviewed_at": "2026-11-23T03:30:28Z",
+  "next_review_at": "2026-11-23T04:30:28Z",
   "checkpoint_ref": "knowledge/rae-tree/checkpoints/2026-11-23-bootstrap.md",
   "supersedes": []
 }
