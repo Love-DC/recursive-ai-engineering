@@ -11,7 +11,7 @@ The claim function resolves eligible Worker keys in this order:
 3. Project `config.worker_routing.default_worker_key`.
 4. Compatibility fallback only when the project has exactly one active Worker.
 
-A multi-Worker project with no explicit route fails closed. An explicit empty or malformed route also fails closed rather than falling through. The same route predicate applies to pending claims, expired-lease reclaim, and retry-limit expiry.
+A multi-Worker project with no explicit route fails closed. An explicit empty or malformed route also fails closed rather than falling through. Route values are normalized by trimming ASCII whitespace (space, tab, line break, carriage return, form feed, and vertical tab); whitespace-only scalar or array entries invalidate the explicit route. The same route predicate applies to pending claims, expired-lease reclaim, and retry-limit expiry.
 
 Review tasks are additionally pinned to their exact `assigned_worker_id`. The project route for `review` must agree with that Worker's key. The migration seeds missing `shared-executor` / `independent-reviewer` mappings only for projects that already have both active Worker keys and preserves existing explicit config.
 
@@ -49,4 +49,4 @@ The migration in `supabase/migrations/202611230004_worker_task_routing_safe_rele
 
 ## Validation
 
-The PostgreSQL task lifecycle workflow runs `tests/worker-routing-release-tests.sql` against an isolated PostgreSQL 17 service. It covers reviewer/implementation separation, explicit and default routes, route-safe expired reclaim, review creation/claim routing, ambiguous-route fail-closed behavior, single-worker compatibility, wrong-owner denial, release idempotency, expired release, retry-cap terminal failure/no-reclaim, and stale-execution fencing.
+The PostgreSQL task lifecycle workflow runs `tests/worker-routing-release-tests.sql` against an isolated PostgreSQL 17 service. It covers reviewer/implementation separation, explicit and default routes, route-safe expired reclaim, review creation/claim routing, ambiguous-route fail-closed behavior, scalar/array whitespace normalization, single-worker compatibility, wrong-owner denial, release idempotency, expired release, retry-cap terminal failure/no-reclaim, and stale-execution fencing.
