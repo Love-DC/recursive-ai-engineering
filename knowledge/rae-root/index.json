@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "root_node_id": "rae:root",
+  "purpose": "Global navigation only. Project knowledge and detailed work context remain in each owning repository.",
+  "projects": [
+    {
+      "project_key": "recursive-ai-engineering",
+      "repository": "Love-DC/recursive-ai-engineering",
+      "tree_index": "knowledge/rae-tree/index.json",
+      "state": "initialized",
+      "summary": "RAE platform architecture, task coordination, session runtime and recursive context-tree implementation."
+    },
+    {
+      "project_key": "colony-sim",
+      "repository": "Love-DC/colony-sim",
+      "tree_index": "knowledge/rae-tree/index.json",
+      "state": "pending_bootstrap",
+      "summary": "Project-local tree is not yet initialized. Read Colony Sim governance before any adoption or write."
+    }
+  ],
+  "global_attention": [
+    {
+      "project_key": "recursive-ai-engineering",
+      "node_id": "project:recursive-ai-engineering",
+      "node_path": "knowledge/rae-tree/nodes/project.json",
+      "priority": 1,
+      "reason": "Initialize recursive engineering tree and context-local session startup."
+    }
+  ],
+  "rules": {
+    "load_project_trees_on_demand": true,
+    "never_expand_all_descendants_at_startup": true,
+    "never_enumerate_all_task_histories_at_startup": true,
+    "inactive_means_delete": false
+  }
+}
