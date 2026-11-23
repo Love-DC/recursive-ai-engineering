@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       branch_manifest:
-        description: "JSON object mapping selected RAE-local branch names to exact preview SHAs; {} performs a read-only no-target run"
+        description: "Preview manifest: generated_at, task_reference_scan_complete:true, task_references:[...], repository and branches:{name:exact_sha}; {} is read-only"
         required: true
         default: "{}"
         type: string
@@ -96,6 +96,6 @@ jobs:
           {
             echo "## Resource lifecycle execution"
             echo "- One batch confirmation accepted."
-            echo "- Exact preview SHA, protection, open PR and merged ancestry revalidated."
+            echo "- Exact preview SHA, protection, open PR, active task references and merged ancestry revalidated."
             echo "- Only selected RAE-local GitHub branches are executable."
           } >> "$GITHUB_STEP_SUMMARY"
