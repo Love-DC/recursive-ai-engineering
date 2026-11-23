@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-23T01:35:00Z",
+  "generated_at": "2026-11-23T01:42:00Z",
   "registered_projects": [
     {
       "project_id": "56e926a8-9c33-4e7d-ad04-df22f2deff93",
@@ -922,6 +922,1488 @@
             "protection_verified": true,
             "open_pr_numbers": [],
             "merged": null
+          },
+          {
+            "name": "ai/246-regional-climate-design",
+            "sha": "12c6d8bded721d2fbc66490255f212b876dc8a46",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/248-corrupted-lands-design",
+            "sha": "5b17ad1332b6033e8e201c231dfe197271eadc9d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/249-climate-c1-contract",
+            "sha": "819d3e3a077738abc43e3b59d6d19f1481d1e909",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/250-corruption-state-contract",
+            "sha": "d4c2f401cd2c0eaf64c22295473df6eaa3eab3f9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/252-climate-c1-runtime",
+            "sha": "33d982180d7848cc22a309fcbb83a9baa91ef709",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/252-granary-site-construction",
+            "sha": "074dcb8e86c369f2d8de9afc075bc550f0c2e4a5",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/254-corruption-runtime-foundation",
+            "sha": "e0e9c8a0c3b33b4db5b5ed59af1753ca4d802da9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/262-enemy-type-architecture-contract",
+            "sha": "11655c7f2a604c91955043cfd33d0fe665669288",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/263-frontier-start-decision",
+            "sha": "acb9467a7866317da7a9a0898850507dcce797f1",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/266-enemy-type-catalog-foundation",
+            "sha": "5cb52d91b8463f719bc8a55838b175669e61d1a9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/267-g5-09-remote-benchmark-runner",
+            "sha": "58ba2c3d361795ba5fe3c1850810cf39add94be4",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/267-g5-09-runtime-socket-probe",
+            "sha": "5e256ff2a1f835ebff1fcf405a31adfcae4e9426",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/270-enemy-instance-state",
+            "sha": "24c199bba52ebe778bf6b94288f40ed4f36ddc3d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/272-corrupted-creature-death-policy",
+            "sha": "e57dbc59067e21f86834fbad922690c280852591",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/290-deterministic-multisource-distance-field",
+            "sha": "9ce409f045ae3959fc0b6f24c8cdfebf9ac0e135",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              293
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/344-world-history-corruption-lore",
+            "sha": "f817eee57de981d032058f6879f4cd04df1eccf2",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              345
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/355-social-civilization-framework",
+            "sha": "efe888451dbfa2327983220f27128785fbafe63b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              356
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/357-social-patterns-relations",
+            "sha": "0747d54e3d9fe71832934f6f4789427d1c348171",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              358
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/359-player-directed-species-framework",
+            "sha": "ca8cbd375b90f976ed0b83d2d085f6d37665643e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              361
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/366-initial-societies-contact-web",
+            "sha": "a4ee71a296b130454a57f2ea2b818b235b431b30",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              367
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/370-everyday-life-material-culture",
+            "sha": "1c3cae81cb10d41dd88d7d8a7e9a84db63596968",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              371
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/386-carrier-capacity-policy",
+            "sha": "c16c697e80eb714af65c736edadcc1d88f12f1ae",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/387-food-seed-haul-target-claim",
+            "sha": "c67f2fe5b0b60efa62e40ad14d8dd0c373185f96",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              423
+            ],
+            "merged": null
+          },
+          {
+            "name": "ai/392-seed-granary-withdrawal",
+            "sha": "eb61d9368f015846353e09f20f2d2565e7e27cf6",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/408-carrier-policy-focused-smoke",
+            "sha": "6194a2ab5781718614b71f8616180b198125098d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/409-coordinator-ready-validation-gate",
+            "sha": "cd0ef83402cdf3c82d3343af1c0675a4a7fbb894",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/417-m3-simulation-economy-subcoord",
+            "sha": "ef0f5e8f9fccdeb48732d7022e673da11747975b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "ai/418-world-systems-subcoord",
+            "sha": "3404268248371b39e2e1c858a0f9496cbd7fbae3",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "art/art-direction-proposal",
+            "sha": "70594d92b941e3ed9a8a336ef16e6b0410daf43e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              196
+            ],
+            "merged": null
+          },
+          {
+            "name": "chore/colony-governance-in-ai-context-ci",
+            "sha": "b35ec509dbec67d735167834c6dfe21973a07a2f",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/PD023-corrupted-roster-record",
+            "sha": "4866d7680ebd88fc21af31998ac0efe1e4d5dfb0",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              334
+            ],
+            "merged": null
+          },
+          {
+            "name": "coordinator/a3-general-worker-control-panel",
+            "sha": "e9354e9d962b61e2bfc73efafb0e1896b6613fd0",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              413
+            ],
+            "merged": null
+          },
+          {
+            "name": "coordinator/climate-c1-current-main",
+            "sha": "926601ff07acad5716929ff5a5fea702232c3a43",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/colonist-health-current-main",
+            "sha": "2a13b4b7cf375aaea0df149582eb010e80392e5a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/colonist-health-event-idempotency-latest-main",
+            "sha": "f8347fb1488519e1dffc4d5c86b9548582e8b4b5",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/combat-rules-after-health",
+            "sha": "25ef124eecbf3f22ce6faf1aee8bb672c2f2a534",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/combat-rules-current-main",
+            "sha": "3031dc3209c11c9f3a11d8e2ab929508024eead1",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/corrupted-death-policy-current-main",
+            "sha": "193383213e986d36e380ec04613b3409f646eeeb",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/corrupted-death-policy-latest-main",
+            "sha": "965c3e28ab4ae3fc411e3382ce833a118af41731",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/encounter-state-current-main",
+            "sha": "7509df828df8b0041cc39b9a6dd633c04cdc6f33",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/encounter-state-main-current",
+            "sha": "e448c01158f5a8d86b9f4bb15c5801f725372a5f",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/enemy-PD023-optionA-final-main",
+            "sha": "55eb48b97406d6ce387bb35794e22ddb2b706102",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/enemy-PD023-optionA-latest-main",
+            "sha": "cef1e9f0cc1141d931ea6dfb85a81f53b54c6300",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/enemy-PD023-optionA-record",
+            "sha": "fe2ff4932a33bc3db9f0452ab74b6c710c1a1f0c",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/enemy-catalog-current-main",
+            "sha": "2cc4d38b0c495a230845cf3219a761746e47939d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/enemy-catalog-latest-main",
+            "sha": "2c72c53aef24977ab9c43437962738209ef06b50",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/enemy-instance-latest-main",
+            "sha": "17c40d09cc4e9ec3b7db70c5a8c3ae8c44abd514",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/enemy-type-PD023-contract",
+            "sha": "aba973234b231c7640feb30c49cb6b77641bc7f9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/equipment-profiles-latest-main",
+            "sha": "eb0c11dbe0d8332c02105be53c1c9dca569b98cd",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/equipment-store-current-main",
+            "sha": "fe774f6698b71c82ce928efd1fd62f07232ff1a9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/frontier-start-PD022-current-main",
+            "sha": "c362bc36b88b38c01338e83acce50d58ca356f47",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/frontier-start-PD022-latest-main",
+            "sha": "cb1b2f1a1d7908f8c8792d1ba01834d37aec014d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-02-v1-context-hardening",
+            "sha": "3769687deb75c7efc0efcf39d0525bc7ebc7ffcb",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-03-ci-action-pinning",
+            "sha": "5624e3e1f1c580b30df50eb3ec458739ea9ddf9f",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-04-commit-tree-design",
+            "sha": "552dbeac4f6ca523d153ea7b0da6fe3436c446c8",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-08-allow-urllib3-failed-loopback-probe",
+            "sha": "5b8f6628f399b3aff971a6446d179c2ff0d825ac",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-08-allow-urllib3-ipv6-loopback-probe",
+            "sha": "11ebf2c6ba673db5044fd89c8e262e4548225470",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-08-candidate-stage-diagnostics",
+            "sha": "286282c36c34c3a02374ee65ebd780ca45b933c8",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-08-explicit-ipv6-loopback",
+            "sha": "cf25633fef4c9ff61b98a1755fa34e2c3e8c99cc",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-08-stage-diagnostics-latest-main",
+            "sha": "fad8a74b1aadb3f8c9b215a621be6e23875fc83e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-08-strict-ipv6-loopback-current-main",
+            "sha": "95180ca9aca91792a25f96bbca253f95c65ff09b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-08-strict-ipv6-loopback-latest-main",
+            "sha": "e0db1ada688da0f76075961e6c8d09b5b4e30648",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-08-strict-loopback-current-main",
+            "sha": "e99acd052853e326cdadce468b448cc4d1047a69",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/g5-09-runner-current-main",
+            "sha": "489fd2616c04ae8ef17d903484aa5efeb07f598f",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/health-damage-events-latest-main",
+            "sha": "ded668150e5829d6b1edb2f3efa530bca128f113",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/health-damage-events-post-loopback",
+            "sha": "e0f2b95d35dd0f5766d9752bafcf689c86ed2bbf",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/hidden-valley-g3-docs-current-main",
+            "sha": "db5835720df1206323deb30f19579b085f0fb264",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/hidden-valley-g3-docs-latest-main",
+            "sha": "cc4f55f6e96e4c5f47a236f18532fb8d6bc1e970",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/integration-docs-2026-11-21",
+            "sha": "c7f3112ba652c440e1d053983eeb25b227d7cff7",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/m3-c2b-docs-current",
+            "sha": "7f32b2a56fc1bd52e81c5f4f1a6479368c2f7e0a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/m3-c2b-docs-main-current",
+            "sha": "28bedcba3e2e4007e72ab45fe66f59c8f24f9167",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/m3-d4-pd015-docs",
+            "sha": "c7e1f1ca36da1ad8076a7f401372363a57d420e2",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/m3-d4-pd015-docs-current",
+            "sha": "f597bfb68378c23886c328bfa747578c02961099",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/m3-d4-pd015-docs-main",
+            "sha": "878db6fcd01a33d453a96e70530b7e22693ba471",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/m3-granary-capacity-lifecycle",
+            "sha": "1eb1b48802d94e3862cd166d0a90b06bb804f0da",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/m3-r1-food-seed-ground-cargo",
+            "sha": "265c7f91078581ac2806e5ae89618e8dbaa921ac",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/m3-r1-food-seed-ground-cargo-current",
+            "sha": "9969d0049ce83e38e0f7c9771534e6274be44911",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/m3-w1-post-merge-status",
+            "sha": "3ca23416b9981c1843142bcc559985e14d8a0bca",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/pd-007-physical-seed-input",
+            "sha": "e851994fe334782a52ffcbdc53b36ee0f9eeb5ba",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/project-state-2026-11-21-current-main",
+            "sha": "3306392a8a92ad44683f80f0bc63910bc1d32b4b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/project-state-current-main-2026-11-21-v2",
+            "sha": "006ad5e6e455dfcda17a156ed997a6991752ed24",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              342
+            ],
+            "merged": null
+          },
+          {
+            "name": "coordinator/project-state-current-main-2026-11-21",
+            "sha": "e38810a0e2b53ef6ab94a88e488a36a34de12973",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/readme-project-status-current-main",
+            "sha": "a8a424751be9d856a6194f739c84e3c5f0ed9053",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              341
+            ],
+            "merged": null
+          },
+          {
+            "name": "coordinator/record-first-combat-release-decisions",
+            "sha": "4904e24e06823e3df7a183ee4653adc468f20495",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              335
+            ],
+            "merged": null
+          },
+          {
+            "name": "coordinator/world-generation-v1-design",
+            "sha": "263d1fd03e8ee12ba9894ba639566c1f817e2ba3",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/238-equipment-main-af1d",
+            "sha": "fd855edd484530adcc9c5506f0704902bc06ee9d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/276-battle-organization-main-352647",
+            "sha": "3dedc26e81ed813912a7854ca4a358eab5ee1206",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              354
+            ],
+            "merged": null
+          },
+          {
+            "name": "coordinator/283-world-navigation-v2-main-352647",
+            "sha": "7da8784044630f48c73079b5e905ed8300029c43",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              352
+            ],
+            "merged": null
+          },
+          {
+            "name": "coordinator/302-combat-runtime-current-main",
+            "sha": "725342f6e13b90873c66f8fa3ac8090660d3ce93",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/302-combat-runtime-integration-contract",
+            "sha": "778a3f5cf59cfcff6ba7728c22bcb1506cf6005c",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/302-combat-runtime-integration-main-352647",
+            "sha": "aae0f5bb61b574e3e66c4ada44ae39d14bc0025a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              348
+            ],
+            "merged": null
+          },
+          {
+            "name": "coordinator/302-combat-runtime-main-af1d",
+            "sha": "b1204751e3d2e0b02b0e82a7782b27f12082552b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/304-colonist-health-damage-events",
+            "sha": "d8f70ae21d4b2656379a0f08b02ab1f127f1b4ca",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/305-colonist-health-damage-events",
+            "sha": "48bf5bc4eb786dabed3427d6a9cba39a229f0ee3",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/305-health-main-af1d",
+            "sha": "1c14a81d65945850c801637a9492880b6ff0be3d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/336-enemy-behavior-intents-current-main",
+            "sha": "898d3a6a67eca65b85f53068afd74084a4d71136",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/336-enemy-behavior-intents-main-63c",
+            "sha": "66b9735e7acabfcb76e8f5d6e077835d2f9100b2",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "coordinator/336-enemy-behavior-intents-main-352647",
+            "sha": "51f2264132f265c9bb708950690e1263a3a638ec",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              349
+            ],
+            "merged": null
+          },
+          {
+            "name": "coordinator/344-world-history-lore-draft-main-545a",
+            "sha": "e2405badd4e55a994f85ecded7338c0fba17f1a3",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              346
+            ],
+            "merged": null
+          },
+          {
+            "name": "docs/ai-agent-merge-ownership",
+            "sha": "58117bdf2a64abb54a96ba8fc3092c6c2264f9e7",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/ai-ci-trigger-protocol",
+            "sha": "e5db14021e1e0d7ba49a51af1660be0be1c7d493",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/approve-m1a-hunger-decision",
+            "sha": "a496ab2f41d84bda03edb21dc94ca9a1d66e00a2",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/close-world-geography-phase-one",
+            "sha": "bb4ba463cd4f314802b34b2baae3163cedd4740f",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/colony-development-roadmap",
+            "sha": "5fa970f0905f836de394c61353023f51052dd526",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/context-recursive-orchestration",
+            "sha": "ae7eebd9fc55733de91eaf1218d86ed82c6c44bc",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/explicit-agent-assignment",
+            "sha": "8ab6d875ed7d4dc2201dc0d87e845e61655ba4ec",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/g5-issue-dispatch-activation-v2",
+            "sha": "31843788eb379ea0df280424a8df60382cfe6c4a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/issue-based-worker-dispatch",
+            "sha": "feb94e4ac07cb4149360c7e701b4180157affab5",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/m1-survival-planning",
+            "sha": "8cd9a12c58a640d24d5774f5a85bd2ad9dcb89c2",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/m1a-integrated-contract",
+            "sha": "865ecd336fe50098102d463141936f5730d8cdc7",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/m1a-pd002-approved-rules",
+            "sha": "758ef08726b7dca0a03126be36703b1d45c71948",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              72
+            ],
+            "merged": null
+          },
+          {
+            "name": "docs/m3-eco02-post-merge-state",
+            "sha": "333b2a5c20ff0877444c6a84a499dac11e920a1a",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/update-world-generation-roadmap",
+            "sha": "3a078e28a2a9263c3f20085f899aaa8fb2898dc3",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/web-first-ai-development",
+            "sha": "82e84a61cb7fcd9ec84c1b5f6bf299a932183099",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/world-and-starting-land-design",
+            "sha": "8bbd31463671c3e0b034d1d92a57fe21eabfdae8",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "docs/world-persistence-research",
+            "sha": "026592bc5f5abda8047dd38a897d4d892d50a72e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feat/ai-recursive-development-framework",
+            "sha": "c653a36e844ec173b7f2bd67ec79bffda95c11fd",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feat/repository-local-governance-v1",
+            "sha": "f0020e1f6d4842d39ddd655928057adc5a304f28",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/autonomous-work-priorities",
+            "sha": "04ab7f4b8083d1870d83cbf91212524b65aeb1f7",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/colonist-direct-orders",
+            "sha": "65eb35111aa6d2b5de0847d9077d5871dac6e3ec",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/composed-world-chunk-fields",
+            "sha": "64dd01a8c89f4bc47165f705c4844d16c7781a7b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/composite-world-chunk-state",
+            "sha": "3a6e9cf5000949556dd90657d02e003e7805bb10",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/configurable-geography-classification",
+            "sha": "776162bfd5a73c650a71ea5627ad9cafa45dbb88",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/deterministic-world-sampling",
+            "sha": "f837a337b31a97dc3ee54387409acec8cceed8c9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/deterministic-world-value-noise",
+            "sha": "2959ca90a80f69073912bf0f074ade8adb77fd9e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/harvest-work-zones",
+            "sha": "d41d105a7f230cb58083aeab469532d1a208b9e0",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/phase-2-exploration-map-baseline",
+            "sha": "107c92822215c91112ca8c06d07ed9e9d64c7f12",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/wood-work-goals",
+            "sha": "b3a3ef15df274fbb25069abd24429991aabae018",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/world-cell-access-routing",
+            "sha": "4152381437551a07fcdab7fde2125dfec2776c60",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/world-cell-geography-query",
+            "sha": "a31191c9f1762630fdc0d473d5f2cd67a47004f0",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/world-chunk-data-model",
+            "sha": "321aef6b6522ac2315c3ac49528dfb0d9a161719",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/world-chunk-field-generation",
+            "sha": "a997a98f18162bbf08222789e4cb68e4996ce6ae",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/world-chunk-runtime-manager",
+            "sha": "50c07c74b0c1b8d1e4123cc43da598e1821708e3",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/world-coordinate-primitives",
+            "sha": "f008a7a520d3e990af1f584e921c4284f8eac99f",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/world-coordinate-roundtrip",
+            "sha": "f31f695fa3dc190dd1be46dbfc4476ccafb91feb",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/world-field-mixer",
+            "sha": "e80d9b09a25a04a316a6c39935d6d8732a3e74e1",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/world-generation-identity",
+            "sha": "59c57233fac0738f329db8f92822a7917b8c3189",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/world-geography-catalog-v1",
+            "sha": "d1fa011604141fe11983ca35ffdadea45cb9f7b9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "feature/375-ammunition-resource-store",
+            "sha": "9a0904d4bd293a8484a985e22e85cc9a065da697",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [
+              375
+            ],
+            "merged": null
+          },
+          {
+            "name": "fix/g5-06-base64-linewrap",
+            "sha": "097b2124454c5143a0b197f0ea77a25c797fa4c5",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "fix/g5-06-smoke-import-path",
+            "sha": "3ec906e4b4baa0432a654b62502561c95edf2245",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "fix/g5-08-ipv6-trace-decoding",
+            "sha": "4b466c529e5d5da19cbabb11a582efd5006e9944",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "fix/g5-08-ipv6-trace-decoding-2",
+            "sha": "ad031d523a5c12f2eed69408416f58d52f298b75",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "fix/g5-08-ipv6-trace-diagnostics",
+            "sha": "05cdcc10f8d8e20501db5fc403333e99fe23d8dd",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "fix/g5-08-semantic-ipv6-loopback",
+            "sha": "2d1c5bf75a039a2425e66744631420187a0d756b",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "fix/g5-08-strace-inet-pton-pointer",
+            "sha": "cc9d2381d9a8aa20e2a1ed4ce25770a2b97dbab1",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "fix/g5-08-strace-probe-diagnostics",
+            "sha": "9888384a2a16fb9d9e2bea5f3a7842fdb9c2463d",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "integration/m1b-rest-ui",
+            "sha": "6682aa1ca59cb508109f719569c97c01af00eadf",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "integration/m1b-seven-day-survival",
+            "sha": "306ed862c3fded1c26965ee302b43ed44750fafc",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "issue-76-m1a-seven-day-validation",
+            "sha": "44acf603491cbef928b3ac3fda7321e9c6a93afc",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "main",
+            "sha": "481860762408dbcf41125444a7445b2f1a91b055",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": true
+          },
+          {
+            "name": "perf/cache-world-noise-stream-hashes",
+            "sha": "e8cf3c4b696c2cdc83e628249e2fdcbab644779e",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "perf/prepare-world-fields-once",
+            "sha": "33c6136856f6ba778f0f46dc1bc4f4656a9f0ad2",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "perf/reduce-world-field-hot-loop-allocations",
+            "sha": "3faa34be5df374c5c1e884d2843a7bf793b0db31",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "perf/streamline-chunk-field-generation",
+            "sha": "0fbbb4b553a688db7f54585414ef77e212b1be49",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "refactor/simulation-model-view-separation",
+            "sha": "ef1e32c7dfeb1d3d824c9ac603953ea47de8cbb0",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "research/world-chunking-architecture",
+            "sha": "ecef2063ae03137531559812835e1feb7ae83d56",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "test/pending-order-stale-target",
+            "sha": "f4d4dae3a91f0953738eba0836f5a1153a6e6291",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "validation/m1a-pr77-pr78",
+            "sha": "7cc624c036a56490412bd3eff9d10653daa6d1f9",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
+          },
+          {
+            "name": "worker/g5-01-v2-resource-bounds",
+            "sha": "99582c7802cc1c190ad08ac69fec220eab3eafd6",
+            "default_branch": "main",
+            "protected": false,
+            "protection_verified": true,
+            "open_pr_numbers": [],
+            "merged": null
           }
         ],
         "open_pull_requests": [
@@ -1143,7 +2625,7 @@
           },
           {
             "name": "ai/80fe5a60-resource-lifecycle-center",
-            "sha": "09c948014cf44e0fcb2180b8d4396eae3b1ef698",
+            "sha": "8e9aa16d05672d01395468b00f9d2ce573ac9e64",
             "default_branch": "main",
             "protected": false,
             "protection_verified": true,
@@ -1335,11 +2817,22 @@
   ],
   "collection_notes": {
     "active_registry_rows": 2,
-    "branch_ancestry": "not queried for every branch in this first snapshot; unknown ancestry is classified owner_decision_required",
-    "branch_protection": "GitHub branches API protected field observed for every returned branch",
+    "branch_inventory": {
+      "Love-DC/recursive-ai-engineering": 21,
+      "Love-DC/colony-sim": 260,
+      "colony_pages": 3,
+      "all_pages_exhausted": true
+    },
+    "open_pull_requests": {
+      "Love-DC/recursive-ai-engineering": 1,
+      "Love-DC/colony-sim": 28
+    },
+    "branch_ancestry": "not queried for every branch in this initial snapshot; unknown ancestry is classified owner_decision_required",
+    "branch_protection": "GitHub branches API protected field observed for every returned branch; no branch returned protected=true",
     "supabase_inventory": "both Supabase Management projects queried; development branches and Edge Functions lists were empty",
     "limitations": [
       "Colony Sim has no Supabase project ref in public.projects config; no mapping inferred.",
+      "One Supabase project has no matching registry mapping.",
       "ChatGPT conversation history is not accessible."
     ]
   }
