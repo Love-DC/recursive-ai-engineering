@@ -187,9 +187,11 @@ The Owner is **not expected** to manually provide task decomposition, implementa
 The initial instruction is standing authorization for the RAE role chain to carry an in-scope engineering objective through its complete lifecycle, within the permissions of the already-connected accounts and the target repository's governance:
 
 - inspect project state, repositories, task queues, Issues, PRs, CI, logs, and relevant operational evidence;
-- identify and prioritize evidence-backed work; create and decompose project-scoped tasks; claim and execute them;
+- Coordinator: identify and prioritize evidence-backed work, create/decompose project-scoped tasks, resolve routing, and dispatch role-specific sessions;
+- Worker: claim and execute only its assigned task, create branches, edit files, commit, test, repair, and open/update its PR;
+- Reviewer: independently inspect the exact PR head, issue a formal verdict, and merge only after every review gate passes;
 - create branches, edit files, commit changes, run tests and checks, repair failures, and retry bounded work;
-- open, update, review, and revise pull requests;
+- Worker opens/updates PRs and responds to review findings; Reviewer performs formal review; Coordinator routes the handoff;
 - dispatch an independent Reviewer session to review and merge routine, eligible engineering PRs without asking the Owner for per-PR approval; verify the resulting merge evidence;
 - verify the exact merged commit and post-merge checks, record evidence, update task state, and continue with the next eligible task;
 - repeat the loop recursively until the requested outcome and its acceptance criteria are met or a genuine external blocker is reached.
@@ -208,7 +210,7 @@ At the start of each session, inspect the tools and integrations actually availa
 
 A tool call succeeding is not equivalent to end-to-end acceptance. Verify resulting branch heads, PR state, merge commit SHA, exact-head CI, deployment status, task execution fence, and post-change behavior as applicable. Distinguish verified facts from assumptions and untested work.
 
-**Default interaction rule:** the Owner supplies the initial instruction and available authorized access; the AI system supplies the planning, decomposition, execution, testing, review, routine merge, recovery, and evidence. Do not make the Owner operate the system the AI was instructed to operate.
+**Default interaction rule:** the Owner supplies the initial instruction and available authorized access; the RAE role chain supplies planning, decomposition, execution, testing, independent review, routine merge, recovery, and evidence. Each responsibility remains with its designated role and session. Do not make the Owner operate the system the AI was instructed to operate.
 
 
 ## Independent PR review and merge
