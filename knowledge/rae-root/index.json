@@ -24,7 +24,7 @@
       "node_id": "project:recursive-ai-engineering",
       "node_path": "knowledge/rae-tree/nodes/project.json",
       "priority": 1,
-      "reason": "Continue PR #28 validation and review; then complete lazy branch selection, stale wake-up and fresh-session acceptance."
+      "reason": "Review PR #28 in a genuinely separate GPT context; review task ced35b2e-0f3e-4861-a758-79fda9291612 is pending."
     }
   ],
   "rules": {
