@@ -65,6 +65,12 @@ BEGIN
   END IF;
 
   v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    jsonb_build_object('required_worker_key',chr(11)));
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: vertical-tab-only scalar Worker-key route was accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
     jsonb_build_object('required_worker_key',jsonb_build_array(chr(9))));
   IF v_keys IS DISTINCT FROM '{}'::text[] THEN
     RAISE EXCEPTION 'FAIL: tab-only array Worker-key element was accepted: %',v_keys;
@@ -74,6 +80,12 @@ BEGIN
     jsonb_build_object('required_worker_key',jsonb_build_array(chr(10))));
   IF v_keys IS DISTINCT FROM '{}'::text[] THEN
     RAISE EXCEPTION 'FAIL: newline-only array Worker-key element was accepted: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    jsonb_build_object('required_worker_key',jsonb_build_array(chr(11))));
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: vertical-tab-only array Worker-key element was accepted: %',v_keys;
   END IF;
 
   v_keys := private.resolve_task_worker_keys(v_project,'implementation',
