@@ -32,7 +32,7 @@ A session-triggered recursive engineering system: GitHub repositories own a lazy
 - [Recursive Engineering Tree](docs/RECURSIVE-ENGINEERING-TREE.md): recursive context growth, lazy loading, bounded summaries, branch wake-up, and cross-session checkpoints.
 - [RAE global root index](knowledge/rae-root/index.json): compact project pointers and global attention queue.
 - [Autonomous Task Discovery & Generation](docs/AUTONOMOUS-TASK-DISCOVERY.md): evidence-based discovery, project authorization, deduplication, and empty-queue behavior.
-- [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the coordinator route and execute it.
+- [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the current GPT conversation restore the relevant branch and execute it.
 - [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, and task metadata.
 - [Repository-local governance protocol](docs/REPOSITORY-GOVERNANCE-PROTOCOL.md): pinned-SHA discovery, compatibility checks, conflict handling, and repository-owned CI routing.
 - [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md): Supabase task lifecycle and owner-MCP operating details.
