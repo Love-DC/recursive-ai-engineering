@@ -89,7 +89,7 @@ The Colony Sim manifest identifies `Love-DC/colony-sim-ci` as an independent val
 
 ## Shared task-pool semantics
 
-The user-facing workflow is project-agnostic. A new conversation does not receive a project name or a bespoke objective; it inspects every active registered project's queue. The logical shared pool is the union of project-scoped queues, not a cross-project table that erases ownership boundaries. For each project, the coordinator resolves an active Worker using that project's Worker routing metadata and the task's requirements, then calls `list_tasks`/`claim_task` with the matching project and Worker IDs. The claimed task's `project_id` determines repository routing. Atomic claim is authoritative; never infer claim success from a prior queue listing. If a project's queue is empty, run the authorized evidence-based discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md. A candidate may be written only to that same project's queue after deduplication and authority checks. If no candidate qualifies, report an empty queue. Never create work from an unapproved Issue or invent a task.
+The user-facing workflow is session-triggered and tree-navigated. The current GPT conversation reads the compact RAE root index, resolves the objective or next attention item, and selects only the relevant project branch. It does not inspect every active project's task queue at startup. The logical task pool remains the union of project-scoped queues, but a queue is queried only after a project branch is selected. The selected project's active Worker route is resolved using that same project ID; `list_tasks`/`claim_task` remain project-scoped and atomic claim is authoritative. If the selected branch has no eligible task, run the authorized evidence-based discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md. A candidate may be written only to that same project's queue after deduplication and authority checks. Never create work from an unapproved Issue or invent a task.
 
 ## Autonomous task discovery
 
@@ -97,17 +97,26 @@ Workers inspect their authorized project's code, docs, tests, CI, and read-only 
 
 ## Session routing and execution
 
-1. Read the RAE session entry point and inspect registered projects in Supabase.
-2. Resolve the user's named target project to exactly one active project record. If the target is omitted and the objective does not identify one unambiguously, ask one short clarification.
-3. Read that project's GitHub governance entry points at the current base SHA.
-4. For a direct owner objective, create a root task in the target project's task pool. Decompose only at real responsibility, ownership, interface, or validation boundaries.
-5. Execute the root task in the current coordinator conversation by default. Additional conversations are optional, not required.
-6. Claim and complete tasks using the target project's worker UUID and project UUID. Never use the RAE project/worker IDs for a different repository.
-7. Commit to a task branch and open a PR in the target repository. The AI coordinator reviews and merges engineering-only PRs after all checks pass; escalate only product/design or explicitly high-risk decisions.
-8. Persist task results and GitHub references in Supabase, then report the PR, exact head SHA, actual CI evidence, and any remaining owner decisions.
+1. Read the RAE session entry point and compact global root index.
+2. Resolve the explicit objective or select one due/resumable branch from the root attention index. Resolve only the selected active project row in Supabase.
+3. Load the selected project's local tree index, selected node, ancestor summaries, and required context/dependency references. Load the repository's governance at a pinned SHA.
+4. For a direct owner objective, create or update a knowledge node and create an executable root task only when execution is required. Decompose at real responsibility, ownership, interface, dependency, or validation boundaries.
+5. The current GPT conversation performs the required responsibilities sequentially. No fixed Coordinator role, separate GPT session, or parallel agent is assumed.
+6. Claim and complete tasks using the selected project's own Worker UUID and project UUID. Never use another project's routing IDs.
+7. Commit to a task branch and open a PR in the target repository. Review/merge follows the target repository's policy; where a genuinely independent session is required, persist the handoff and do not simulate dispatch or independence.
+8. Persist execution evidence in Supabase, knowledge/context updates in the target repository, and a compact checkpoint for the next manually started conversation.
 
 ## Explicit limitations
 
 - RAE cannot open or launch another ChatGPT conversation. The default workflow therefore uses one coordinator conversation and performs work there; optional workers require the owner to open additional conversations.
 - Supabase task records do not themselves grant product approval or authorize an Issue. The owner request and project-specific dispatch protocol remain the authority.
 - A green CI result proves only the jobs and steps that actually ran on the exact commit.
+
+
+## Recursive context tree and single-session runtime (authoritative)
+
+The platform's context/navigation architecture is defined by [Recursive Engineering Tree](RECURSIVE-ENGINEERING-TREE.md). The RAE global index lives at `knowledge/rae-root/index.json`; each project's detailed tree belongs in that project's own repository at `knowledge/rae-tree/index.json`.
+
+The current runtime boundary is one GPT conversation manually started by the Owner. Coordinator, Worker, Reviewer, Researcher, and Auditor are responsibilities, not mandatory fixed session identities or guaranteed independent model instances. The current conversation may perform the responsibilities required by the selected work, but a responsibility label does not create independent review. If a repository requires a separate review context and none is actually available, preserve the handoff and leave the merge pending.
+
+This section supersedes older instructions in this document that require startup to enumerate every active project's task queue or assume a permanently available Coordinator conversation. Startup loads the root index and only the selected project branch; task queues are queried only after branch selection. No daemon, scheduler, automatic GPT-session launch, or concurrent GPT sessions are required.
