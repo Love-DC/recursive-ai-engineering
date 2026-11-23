@@ -6,7 +6,7 @@
   "title": "Recursive AI Engineering",
   "goal": "Evolve RAE into a recursively growing, context-efficient engineering system that operates through one manually started GPT conversation at a time.",
   "status": "active",
-  "summary": "PR #28 delivers the first recursive-tree foundation and lazy startup; all CI workflows passed on exact head 87a652ca945364390c614b07078db4ca681cda65. Review task ced35b2e-0f3e-4861-a758-79fda9291612 is pending for a genuinely separate GPT context. Follow-up task 2f49daad-f74f-4885-a193-f131360abc9b is queued to implement explicit tree lifecycle operations, bounded ancestor propagation, due/wake selection, archival, and checkpoint tooling. No Supabase schema or historical task data was changed.",
+  "summary": "PR #28 remains Draft/unmerged. Its independent inspection found stale validation metadata and incomplete schema/index acceptance checks. The test suite now validates the node schema with a standard-library validator, validates every indexed node instance, and resolves parent/context/checkpoint/attention/global references with repository-path safety checks. The previous full four-workflow pass is accurately recorded against exact code head 9e836183b95c34f3ce1d7869b9bfa5b8cb6928a2; the new validator changes require exact-head CI rerun. The separate Worker routing and safe-release defect is addressed in PR #29; its PostgreSQL and shell checks passed, but independent review and production deployment remain pending.",
   "parent_node_id": null,
   "children_index": "knowledge/rae-tree/attention.json",
   "context_refs": [
@@ -20,20 +20,56 @@
     {
       "kind": "pull_request",
       "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/28",
-      "observed_at": "2026-11-23T02:29:00Z",
-      "note": "Draft implementation PR for the recursive engineering tree and lazy session startup."
+      "observed_at": "2026-11-23T02:49:07Z",
+      "note": "Draft recursive engineering tree PR; live review comment identified stale metadata and schema/index acceptance gaps."
     },
     {
       "kind": "commit",
-      "ref": "49752ec865853fff3d9aad3df7f5a007f4a64467",
-      "observed_at": "2026-11-23T02:29:00Z",
-      "note": "Exact head on which recursive-tree checks passed; other CI workflows were still running at checkpoint time."
+      "ref": "9e836183b95c34f3ce1d7869b9bfa5b8cb6928a2",
+      "observed_at": "2026-11-23T02:49:07Z",
+      "note": "Historical exact PR #28 head inspected by reviewer; all four workflows passed on this exact SHA."
+    },
+    {
+      "kind": "ci_run",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45101406380",
+      "observed_at": "2026-11-23T02:49:07Z",
+      "note": "Recursive tree checks #30 passed on exact head 9e836183b95c34f3ce1d7869b9bfa5b8cb6928a2."
+    },
+    {
+      "kind": "ci_run",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45101406337",
+      "observed_at": "2026-11-23T02:49:07Z",
+      "note": "Repository governance tests #69 passed on exact head 9e836183b95c34f3ce1d7869b9bfa5b8cb6928a2."
+    },
+    {
+      "kind": "ci_run",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45101406311",
+      "observed_at": "2026-11-23T02:49:07Z",
+      "note": "Shell static checks #355 passed on exact head 9e836183b95c34f3ce1d7869b9bfa5b8cb6928a2."
+    },
+    {
+      "kind": "ci_run",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45101406278",
+      "observed_at": "2026-11-23T02:49:07Z",
+      "note": "PostgreSQL lifecycle integration #112 passed on exact head 9e836183b95c34f3ce1d7869b9bfa5b8cb6928a2."
+    },
+    {
+      "kind": "external",
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/28#pullrequestreview-6016025172",
+      "observed_at": "2026-11-23T02:49:07Z",
+      "note": "Comment-only findings; not a formal approval or independent GitHub review because connected identity is PR author."
     },
     {
       "kind": "pull_request",
-      "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/26",
-      "observed_at": "2026-11-23T02:29:00Z",
-      "note": "Mandatory separate-session role chain conflicts with the Owner-confirmed one-session runtime; compatibility comment added, PR left open."
+      "ref": "https://github.com/Love-DC/recursive-ai-engineering/pull/29",
+      "observed_at": "2026-11-23T03:17:26Z",
+      "note": "Separate Worker routing and safe execution release fix; isolated PostgreSQL and shell checks passed, independent review pending."
+    },
+    {
+      "kind": "commit",
+      "ref": "d269640fc14b1906b94a1682a0dbe6e5bdf64667",
+      "observed_at": "2026-11-23T03:15:05Z",
+      "note": "Exact PR #29 implementation head with PostgreSQL lifecycle #113 and shell #366 passed."
     }
   ],
   "dependency_refs": [],
@@ -41,16 +77,19 @@
     "2daceac7-f748-49fb-8e30-a72243eaf399",
     "861bb6d6-bdb9-4e0c-bb46-e285f614c351",
     "ced35b2e-0f3e-4861-a758-79fda9291612",
-    "2f49daad-f74f-4885-a193-f131360abc9b"
+    "2f49daad-f74f-4885-a193-f131360abc9b",
+    "ad7cdacb-be38-467c-aa79-e1eb11ee4ace",
+    "6273ac96-9e05-4e07-a5c9-bc34bbe6b5f1",
+    "842d85c0-2ea5-455c-b42f-5e276d2974b4"
   ],
   "wake_conditions": [
     "New Owner objective intersects RAE platform architecture.",
     "A referenced task, pull request, CI result, or project governance file changes.",
     "The next_review_at time is reached."
   ],
-  "last_activity_at": "2026-11-23T02:36:30Z",
-  "last_reviewed_at": "2026-11-23T02:29:00Z",
-  "next_review_at": "2026-11-23T03:36:30Z",
+  "last_activity_at": "2026-11-23T03:22:06Z",
+  "last_reviewed_at": "2026-11-23T03:22:06Z",
+  "next_review_at": "2026-11-23T04:22:06Z",
   "checkpoint_ref": "knowledge/rae-tree/checkpoints/2026-11-23-bootstrap.md",
   "supersedes": []
 }
