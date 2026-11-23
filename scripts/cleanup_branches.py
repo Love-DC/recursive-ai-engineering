@@ -52,7 +52,7 @@ def inspect_batch(repository, expected):
     results = []
     for name, expected_sha in sorted(expected.items()):
         try:
-            branch = gh_json(f"repos/{repository}/branches/{quote(name, safe='/')}")
+            branch = gh_json(f"repos/{repository}/branches/{quote(name, safe='')}")
             sha, protected = (branch.get("commit") or {}).get("sha"), branch.get("protected")
             if name == default:
                 reason = "default branch"
@@ -63,7 +63,7 @@ def inspect_batch(repository, expected):
             elif name in open_heads:
                 reason = "referenced by open pull request"
             else:
-                cmp = gh_json(f"repos/{repository}/compare/{default}...{quote(name, safe='/')}")
+                cmp = gh_json(f"repos/{repository}/compare/{default}...{quote(name, safe='')}")
                 reason = ("eligible after exact-SHA revalidation" if cmp.get("ahead_by") == 0
                           else "not proven merged into default")
             results.append({"branch": name, "sha": sha, "eligible": reason.startswith("eligible"), "reason": reason})
