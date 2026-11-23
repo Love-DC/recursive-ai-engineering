@@ -99,24 +99,24 @@ BEGIN
     )
   LOOP
     v_routing := v_project.config->'worker_routing';
-    IF v_routing IS NULL THEN
+    IF v_routing IS NULL OR jsonb_typeof(v_routing)='null' THEN
       v_routing := '{}'::jsonb;
     ELSIF jsonb_typeof(v_routing)<>'object' THEN
       RAISE EXCEPTION 'Invalid worker_routing object for project %',v_project.id;
     END IF;
 
     v_task_routes := v_routing->'task_type_worker_keys';
-    IF v_task_routes IS NULL THEN
+    IF v_task_routes IS NULL OR jsonb_typeof(v_task_routes)='null' THEN
       v_task_routes := '{}'::jsonb;
     ELSIF jsonb_typeof(v_task_routes)<>'object' THEN
       RAISE EXCEPTION 'Invalid worker_routing.task_type_worker_keys object for project %',v_project.id;
     END IF;
 
-    IF NOT (v_routing ? 'default_worker_key') THEN
+    IF NOT (v_routing ? 'default_worker_key') OR jsonb_typeof(v_routing->'default_worker_key')='null' THEN
       v_routing := jsonb_set(v_routing,'{default_worker_key}','"shared-executor"'::jsonb,true);
     END IF;
 
-    IF NOT (v_task_routes ? 'review') THEN
+    IF NOT (v_task_routes ? 'review') OR jsonb_typeof(v_task_routes->'review')='null' THEN
       v_task_routes := jsonb_set(v_task_routes,'{review}','"independent-reviewer"'::jsonb,true);
     END IF;
 
