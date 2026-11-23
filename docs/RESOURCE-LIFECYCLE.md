@@ -2,7 +2,8 @@
 
 This is a read-only inventory and guarded cleanup entrypoint, not a background service.
 A live inventory snapshot is collected by the RAE Coordinator from the connected,
-authorized Supabase and GitHub integrations, then normalized by
+authorized Supabase and GitHub integrations. The current snapshot and consolidated
+report are persisted under \`reports/resource-inventory/\`. The snapshot is normalized by
 \`scripts/resource_inventory.py\`. Do not substitute repository names or project IDs:
 the source is the active \`public.projects\` registry and each row's canonical
 \`github_repo\`.
