@@ -32,8 +32,8 @@ class InventoryTests(unittest.TestCase):
         for name in ("main", "protected", "open", "unmerged"):
             self.assertEqual(self.row("branch", name)["risk_class"], PRESERVE)
 
-    def test_unknown_protection_requires_owner_decision(self):
-        self.assertEqual(self.row("branch", "unknown")["risk_class"], DECISION)
+    def test_unknown_protection_or_ancestry_is_preserved(self):
+        self.assertEqual(self.row("branch", "unknown")["risk_class"], PRESERVE)
 
     def test_only_verified_local_merged_branch_is_eligible(self):
         self.assertEqual(self.row("branch", "safe")["risk_class"], ELIGIBLE)
