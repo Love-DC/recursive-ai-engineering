@@ -64,5 +64,8 @@ jobs:
           INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
           SQL
 
+      - name: Check test runner syntax
+        run: bash -n scripts/test-ai-initiative-lifecycle.sh
+
       - name: Run initiative lifecycle acceptance tests
         run: bash scripts/test-ai-initiative-lifecycle.sh
