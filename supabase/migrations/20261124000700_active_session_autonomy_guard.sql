@@ -171,7 +171,12 @@ BEGIN
   SELECT
     p.config->>'task_activation',
     CASE
-      WHEN (p.config #>> '{autonomy,max_active_executions}') ~ '^[1-9][0-9]?
+      WHEN p.config #>> '{autonomy,max_active_executions}' = '1' THEN 1
+      ELSE 2
+    END
+  INTO v_task_activation,v_max_active_executions
+  FROM public.projects p
+  WHERE p.id=p_project_id;
 
   SELECT count(*)::integer INTO v_active_executions
   FROM public.tasks t
