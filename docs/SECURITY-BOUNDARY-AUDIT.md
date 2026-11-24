@@ -1,6 +1,6 @@
 # Supabase Security Boundary Audit
 
-**Inspection date:** 2026-11-23  
+**Initial inspection date:** 2026-11-23 (table/RLS and initial RPC baseline); **Live RPC/advisor refresh:** 2026-11-24 05:57 UTC  
 **Scope:** Read-only inspection of the live `recursive-ai-engineering` Supabase project and the default branch of this repository. No schema, grants, Auth settings, or deployment state were changed.
 
 ## Executive summary
@@ -15,16 +15,30 @@ The current shared-owner MCP pilot boundary is consistent with the documented op
 - `anon` has no SELECT/INSERT/UPDATE/DELETE privileges on the seven application tables.
 - `authenticated` has SELECT only on the six owner-readable tables; no direct table writes are granted. `operation_requests` has no table privileges for `anon` or `authenticated`.
 - The six read policies scope rows through `projects.owner_id = auth.uid()` (directly or through task/project joins). `operation_requests` has RLS enabled and no policy, and no client table grants.
-- The 20 public RPCs are SECURITY DEFINER and have an explicit fixed `search_path=pg_catalog, public, auth, private`. Inspection of function ACLs found zero EXECUTE grants to PUBLIC and zero to `anon`; EXECUTE is granted to `authenticated`.
+- The 2026-11-23 baseline contained 20 public RPCs, all SECURITY DEFINER with the fixed `search_path=pg_catalog, public, auth, private`. The 2026-11-24 read-only refresh found 22 public functions/RPCs, all SECURITY DEFINER; none is executable by `anon`, all 22 are executable by `authenticated`, and all 22 have that exact fixed search path. See the dated refresh below.
 - Private helper functions inspected are not exposed as client RPCs; their ACLs are restricted to the database owner role. Privileged helpers set an explicit search_path.
 - `claim_task` and `complete_execution` use the shared actor/owner authorization path; completion additionally checks the current execution fence and lease.
 - GitHub code search on the default branch returned no matches for `SUPABASE_SERVICE_ROLE_KEY` or `service_role`. This is a narrow source scan, not proof that no secret exists in history, Actions settings, external systems, or unindexed files.
+
+### Current RPC and advisor refresh (2026-11-24 05:57 UTC)
+
+A new read-only query against the live Supabase project (`rgztxilqcfuclkekyojl`) inspected every function in the `public` schema and evaluated effective `EXECUTE` privileges for `anon` and `authenticated`:
+
+- Public function count: **22**.
+- SECURITY DEFINER count: **22**.
+- Effective EXECUTE for `anon`: **0**.
+- Effective EXECUTE for `authenticated`: **22**.
+- Functions with the exact fixed `search_path=pg_catalog, public, auth, private`: **22**.
+
+The 22 inspected public function names were: `add_artifact`, `bind_worker_identity`, `cancel_task`, `claim_task`, `complete_execution`, `create_fix_task`, `create_review_task`, `create_task`, `fail_execution`, `get_project`, `get_task`, `get_worker`, `heartbeat_execution`, `heartbeat_worker`, `list_tasks`, `list_workers`, `register_project`, `register_worker`, `requeue_failed_task`, `resubmit_after_fix`, `review_result`, and `submit_result`.
+
+The Security Advisor at the same observation time reported **22** `authenticated_security_definer_function_executable` WARN findings, **1** `rls_enabled_no_policy` INFO finding for `public.operation_requests`, and **1** `auth_leaked_password_protection` WARN finding. The zero-`anon` result is a privilege observation, not an authorization test against independent authenticated users. The 22 authenticated-executable warnings remain open production-expansion gates; this refresh does not approve independent/non-owner access.
 
 ### Findings and gates
 
 | Priority | Finding | Impact / required action |
 |---|---|---|
-| High before non-owner/public exposure | 20 SECURITY DEFINER RPCs are executable by `authenticated`. | Supabase security advisor reports 20 warnings. Each function must be reviewed for authorization and data minimization under real non-owner JWTs; test cross-project and cross-worker IDOR cases. Do not solve this by blindly revoking all RPCs: the pilot intentionally relies on RPC access. |
+| High before non-owner/public exposure | 22 current SECURITY DEFINER RPCs are executable by `authenticated`. | The 2026-11-24 Supabase security advisor reports 22 warnings. Each function must be reviewed for authorization and data minimization under real non-owner JWTs; test cross-project and cross-worker IDOR cases. Do not solve this by blindly revoking all RPCs: the pilot intentionally relies on RPC access. |
 | High before end-user Auth rollout | Leaked-password protection is disabled. | Enable and verify before accepting user-managed passwords. This does not block the current trusted owner-MCP pilot. |
 | Medium / defense in depth | `public.operation_requests` has RLS enabled but no policy. | This is currently fail-closed and client roles have no table privileges. Keep it private; add a narrowly scoped policy only if a documented client access path is introduced. |
 | Unverified | Auth provider, MFA, rate-limit, redirect URL, email/phone confirmation, and session settings were not available through the connected project/database inspection tools. | Review in the Supabase Auth dashboard before production exposure. No claim is made that these controls are enabled. |
@@ -38,7 +52,7 @@ The current shared-owner MCP pilot boundary is consistent with the documented op
 
 Before any independent/non-owner client is admitted:
 
-1. Threat-model all 20 SECURITY DEFINER RPCs and their transitive helpers; prove authorization for owner, worker, project, task, and execution IDs.
+1. Threat-model all 22 current SECURITY DEFINER RPCs and their transitive helpers; prove authorization for owner, worker, project, task, and execution IDs.
 2. Add automated negative tests using at least two independent Auth identities, including cross-project and cross-worker access attempts.
 3. Decide the intended public API surface and revoke EXECUTE from functions that clients do not need; preserve explicit grants only.
 4. Enable leaked-password protection and review MFA, provider, confirmation, rate-limit, redirect, and session settings in Auth.
@@ -49,7 +63,7 @@ Before any independent/non-owner client is admitted:
 ## Evidence and limitations
 
 - Live SQL inspected table RLS flags, policy expressions, client table privileges, public RPC ACLs, SECURITY DEFINER flags, and function search_path settings.
-- Supabase security advisor returned: 1 `rls_enabled_no_policy` INFO finding (`operation_requests`); 20 `authenticated_security_definer_function_executable` WARN findings; 1 `auth_leaked_password_protection` WARN finding.
+- The 2026-11-23 advisor baseline reported 20 `authenticated_security_definer_function_executable` WARN findings. The 2026-11-24 refresh reported 1 `rls_enabled_no_policy` INFO finding (`operation_requests`), 22 `authenticated_security_definer_function_executable` WARN findings, and 1 `auth_leaked_password_protection` WARN finding.
 - The advisor remediation references are the Supabase database linter rule 0008, rule 0029, and the Auth password security guide.
 - This was a read-only configuration/source audit. It did not attempt exploit tests, inspect provider-specific Auth settings, change grants, or deploy anything.
 
