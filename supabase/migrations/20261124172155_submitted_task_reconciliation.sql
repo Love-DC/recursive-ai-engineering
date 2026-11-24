@@ -46,8 +46,10 @@ BEGIN
     RAISE EXCEPTION USING errcode='22023',message='RECONCILIATION_REASON_TOO_LONG';
   END IF;
 
-  IF jsonb_typeof(p_evidence) IS DISTINCT FROM 'array'
-    OR jsonb_array_length(coalesce(p_evidence,'[]'::jsonb)) NOT BETWEEN 1 AND 20 THEN
+  IF jsonb_typeof(p_evidence) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION USING errcode='22023',message='RECONCILIATION_EVIDENCE_REQUIRED';
+  END IF;
+  IF jsonb_array_length(p_evidence) NOT BETWEEN 1 AND 20 THEN
     RAISE EXCEPTION USING errcode='22023',message='RECONCILIATION_EVIDENCE_REQUIRED';
   END IF;
   IF EXISTS (
@@ -62,6 +64,24 @@ BEGIN
   ) THEN
     RAISE EXCEPTION USING errcode='22023',message='RECONCILIATION_EVIDENCE_INVALID';
   END IF;
+
+  -- Keep the durable audit payload useful without copying common credential
+  -- formats that may have been pasted accidentally into an evidence note.
+  SELECT coalesce(jsonb_agg(jsonb_build_object(
+    'kind',regexp_replace(item.value->>'kind','[[:cntrl:]]','','g'),
+    'ref',regexp_replace(
+      regexp_replace(item.value->>'ref',
+        '(?i)(bearer[[:space:]]+)[A-Za-z0-9._~+/=-]+','\\1[REDACTED]','g'),
+      '(?i)((api[_-]?key|token|secret|password)[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+',
+      '\\1[REDACTED]','g'),
+    'observation',regexp_replace(
+      regexp_replace(item.value->>'observation',
+        '(?i)(bearer[[:space:]]+)[A-Za-z0-9._~+/=-]+','\\1[REDACTED]','g'),
+      '(?i)((api[_-]?key|token|secret|password)[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+',
+      '\\1[REDACTED]','g')
+  ) ORDER BY item.ordinality),'[]'::jsonb)
+  INTO v_evidence
+  FROM jsonb_array_elements(p_evidence) WITH ORDINALITY item(value,ordinality);
 
   SELECT t.project_id INTO v_project_id
   FROM public.tasks t
@@ -85,7 +105,7 @@ BEGIN
     'task_id',p_task_id,
     'expected_updated_at',p_expected_updated_at,
     'reason',v_reason,
-    'evidence',p_evidence
+    'evidence',v_evidence
   ));
   v_replay := private.idempotency_get(
     v_project_id,'reconcile_submitted_task',p_idempotency_key,v_hash
@@ -199,7 +219,7 @@ BEGIN
       result=v_old_result || jsonb_build_object(
         'reconciliation',jsonb_build_object(
           'reason',v_reason,
-          'evidence',p_evidence,
+          'evidence',v_evidence,
           'reconciled_at',v_now,
           'previous_status','submitted',
           'expected_updated_at',p_expected_updated_at
@@ -222,7 +242,7 @@ BEGIN
       'previous_status','submitted',
       'new_status','cancelled',
       'reason',v_reason,
-      'evidence',p_evidence,
+      'evidence',v_evidence,
       'latest_delivery_task_id',v_task.latest_delivery_task_id,
       'latest_delivery_execution_id',v_task.latest_delivery_execution_id
     )
