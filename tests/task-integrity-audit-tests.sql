@@ -172,15 +172,27 @@ BEGIN
   END IF;
 
   IF EXISTS (
-    SELECT 1 FROM private.task_destructive_audit
-    WHERE task_id=v_task_id
-      AND (
-        to_jsonb(private.task_destructive_audit)->>'description' IS NOT NULL
-        OR to_jsonb(private.task_destructive_audit)->>'result' IS NOT NULL
-        OR to_jsonb(private.task_destructive_audit)->>'raw_sql' IS NOT NULL
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema='private'
+      AND table_name='task_destructive_audit'
+      AND column_name IN (
+        'description','result','error_message','raw_sql',
+        'jwt','access_token','refresh_token'
       )
   ) THEN
-    RAISE EXCEPTION 'FAIL: audit rows must not store task descriptions, results or raw SQL';
+    RAISE EXCEPTION 'FAIL: audit schema contains a forbidden freeform/secret field';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM private.task_destructive_audit
+    WHERE operation='DELETE'
+      AND relation_name='tasks'
+      AND task_id=v_task_id
+      AND session_user_name=session_user
+      AND backend_pid=pg_backend_pid()
+  ) THEN
+    RAISE EXCEPTION 'FAIL: task audit row is missing session/actor metadata';
   END IF;
 END
 $delete_audit_assertions$;
