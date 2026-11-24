@@ -119,13 +119,13 @@ When the discovery pass finds an opportunity that should be preserved as a goal/
 
 At the start of a session, for each active project:
 
-1. Call `list_initiatives(project_id, status, limit)` to discover proposed, approved, in-progress, completed, rejected, and abandoned initiatives. Inspect pending support requests and durable handoffs with `get_initiative`.
+1. Call `list_initiatives(project_id, status, limit)` to discover proposed, approved, in-progress, ready-to-close, completed, rejected, and abandoned initiatives. Inspect pending support requests and durable handoffs with `get_initiative`.
 2. Continue an existing approved/in-progress initiative before proposing overlapping work. After one or more tasks become `accepted` (including required independent review), call `advance_initiative` with a fresh idempotency key. It marks accepted work items complete and materializes only the next dependency-ready wave.
 3. When a new evidence-backed opportunity needs a durable Owner decision, call `propose_initiative` with its origin, desired outcome, scope, evidence, impact rationale, risk, priority, resource budget, support needs, and stable project-scoped fingerprint. The RPC atomically deduplicates active proposals and returns a prior learning record for already-closed root causes.
 4. If blocked by a concrete missing capability/resource, first search connected integrations and repository evidence. Then call `request_initiative_support` with the exact capability, alternatives checked, rationale, what it unlocks, and requested resources. Do not create a claimable task for the blocked action.
 5. Wait for the Owner's persisted decision. `decide_initiative` must approve with a bounded acyclic work plan or reject. Approval creates the work-plan DAG, not claimable tasks. Call `advance_initiative` to materialize the initial ready wave.
 6. Execute materialized tasks through the existing task lifecycle. Do not bypass leases, review, or acceptance. A dependent work item is materialized only after all its predecessor tasks reach `accepted`.
-7. When the initiative reaches a terminal state, record a concise lesson and evidence with `record_initiative_learning`. The learning fingerprint suppresses rediscovery of the same resolved root cause. Use `abandon_initiative` when the Owner or valid project decision stops the initiative; it refuses to cancel work while tasks are running or submitted.
+7. When `advance_initiative` returns `ready_to_close`, record a concise lesson and evidence with `record_initiative_learning`; that operation closes the initiative as `completed`. The learning fingerprint must match the proposal fingerprint and suppresses rediscovery of the same resolved root cause. Rejected or abandoned initiatives may also receive a terminal lesson. Use `abandon_initiative` when the Owner or valid project decision stops the initiative; it refuses to cancel work while tasks are running or submitted.
 
 ### Candidate routing
 
