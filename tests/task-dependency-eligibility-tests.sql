@@ -183,11 +183,21 @@ BEGIN
     -100,false,null,null,'dependency-expired-create-'||gen_random_uuid()::text
   );
   v_expired_id := (v_created->'data'->>'id')::uuid;
+  PERFORM public.resolve_task_dependency(
+    v_expired_id,v_key,'satisfied',
+    jsonb_build_object('ref','https://status.example.test/maintenance','observed_state','closed'),
+    'dependency-expired-initial-resolve-'||gen_random_uuid()::text
+  );
   v_claim := public.claim_task(v_project,v_worker,120,'dependency-expired-initial-claim-'||gen_random_uuid()::text);
   IF v_claim->'data'->>'task_id' IS DISTINCT FROM v_expired_id::text THEN
     RAISE EXCEPTION 'FAIL: expired-dependency fixture was not initially claimed: %',v_claim;
   END IF;
   v_old_execution_id := (v_claim->'data'->>'execution_id')::uuid;
+  PERFORM public.resolve_task_dependency(
+    v_expired_id,v_key,'unresolved',
+    jsonb_build_object('reason','maintenance prerequisite was reopened after execution started'),
+    'dependency-expired-reopen-'||gen_random_uuid()::text
+  );
   UPDATE public.tasks SET lease_until=clock_timestamp()-interval '1 second'
   WHERE id=v_expired_id AND current_execution_id=v_old_execution_id;
 
@@ -243,12 +253,22 @@ BEGIN
     -100,false,null,null,'dependency-cap-create-'||gen_random_uuid()::text
   );
   v_cap_id := (v_created->'data'->>'id')::uuid;
+  PERFORM public.resolve_task_dependency(
+    v_cap_id,v_key,'satisfied',
+    jsonb_build_object('ref','https://github.com/Love-DC/recursive-ai-engineering/issues/12','observed_state','captured'),
+    'dependency-cap-initial-resolve-'||gen_random_uuid()::text
+  );
   v_claim := public.claim_task(v_project,v_worker,120,'dependency-cap-initial-claim-'||gen_random_uuid()::text);
   IF v_claim->'data'->>'task_id' IS DISTINCT FROM v_cap_id::text
     OR (v_claim->'data'->>'attempt')::integer <> 1 THEN
     RAISE EXCEPTION 'FAIL: retry-cap dependency fixture was not claimed as attempt 1: %',v_claim;
   END IF;
   v_execution_id := (v_claim->'data'->>'execution_id')::uuid;
+  PERFORM public.resolve_task_dependency(
+    v_cap_id,v_key,'unresolved',
+    jsonb_build_object('reason','approval prerequisite was reopened after claim'),
+    'dependency-cap-reopen-'||gen_random_uuid()::text
+  );
   UPDATE public.tasks SET lease_until=clock_timestamp()-interval '1 second'
   WHERE id=v_cap_id AND current_execution_id=v_execution_id;
 
