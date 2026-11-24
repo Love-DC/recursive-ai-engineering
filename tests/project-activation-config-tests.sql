@@ -28,8 +28,8 @@ BEGIN
       IS DISTINCT FROM (v_before - 'task_activation' - 'autonomy') THEN
     RAISE EXCEPTION 'FAIL: activation RPC changed unrelated project config: before %, after %',v_before,v_after;
   END IF;
-  IF (v_after->'autonomy' - 'max_active_executions')
-      IS DISTINCT FROM (coalesce(v_before->'autonomy','{}'::jsonb) - 'max_active_executions') THEN
+  IF ((v_after->'autonomy') - 'max_active_executions'::text)
+      IS DISTINCT FROM (coalesce(v_before->'autonomy','{}'::jsonb) - 'max_active_executions'::text) THEN
     RAISE EXCEPTION 'FAIL: activation RPC changed unrelated autonomy config: before %, after %',v_before,v_after;
   END IF;
   IF v_result->'data'->>'project_id' IS DISTINCT FROM v_project::text THEN
