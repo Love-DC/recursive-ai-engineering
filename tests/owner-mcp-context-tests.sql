@@ -669,7 +669,14 @@ ROLLBACK;
 -- The normal PostgREST auth boundary remains unchanged. An authenticated role
 -- with no JWT does not inherit the trusted postgres Owner-MCP context.
 BEGIN;
-SET LOCAL ROLE authenticated;
+-- SESSION AUTHORIZATION changes session_user, unlike SET ROLE. Forge all
+-- documented Owner-MCP GUCs as an untrusted DB login to prove the helper
+-- rejects the request unless the connection itself is the trusted postgres
+-- login. No JWT claims are supplied.
+SET LOCAL SESSION AUTHORIZATION authenticated;
+SELECT set_config('rae.owner_mcp_version','v1',true);
+SELECT set_config('rae.owner_mcp_project_id','00000000-0000-4000-8000-000000000008',true);
+SELECT set_config('rae.owner_mcp_owner_id','00000000-0000-4000-8000-000000000001',true);
 DO $authenticated$
 DECLARE
   v_rejected boolean := false;
@@ -689,13 +696,13 @@ BEGIN
     v_rejected := true;
   END;
   IF NOT v_rejected THEN
-    RAISE EXCEPTION 'FAIL: authenticated role bypassed the JWT guard';
+    RAISE EXCEPTION 'FAIL: untrusted session bypassed the task Owner/JWT guard';
   END IF;
 
   v_rejected := false;
   BEGIN
-    -- The Problem Inbox must independently reject an authenticated DB role
-    -- without a JWT or a verified postgres Owner-MCP context.
+    -- The Problem Inbox must reject a forged Owner-MCP GUC context on an
+    -- authenticated database session even when IDs match a real project.
     PERFORM public.list_problem_reports('unresolved',NULL,20);
   EXCEPTION WHEN SQLSTATE '28000' THEN
     IF SQLERRM <> 'UNAUTHENTICATED' THEN
@@ -704,7 +711,7 @@ BEGIN
     v_rejected := true;
   END;
   IF NOT v_rejected THEN
-    RAISE EXCEPTION 'FAIL: list_problem_reports bypassed the Owner/JWT guard';
+    RAISE EXCEPTION 'FAIL: untrusted session forged the Problem Inbox Owner-MCP context';
   END IF;
 END
 $authenticated$;
