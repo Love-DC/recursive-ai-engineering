@@ -78,8 +78,8 @@ class MigrationVersionTests(unittest.TestCase):
     def test_rejects_duplicate_versions(self) -> None:
         errors = validate_inventory(
             [
-                Path("202611240001_first_change.sql"),
-                Path("202611240001_second_change.sql"),
+                Path("20261124000100_first_change.sql"),
+                Path("20261124000100_second_change.sql"),
             ],
             check_feature_order=False,
         )
@@ -105,9 +105,9 @@ class MigrationVersionTests(unittest.TestCase):
     def test_rejects_incorrect_feature_order(self) -> None:
         errors = validate_inventory(
             [
-                Path("202611240003_worker_task_routing_safe_release.sql"),
-                Path("202611240001_task_dependency_eligibility.sql"),
-                Path("202611240002_ai_initiative_lifecycle.sql"),
+                Path("20261124000300_worker_task_routing_safe_release.sql"),
+                Path("20261124000100_task_dependency_eligibility.sql"),
+                Path("20261124000200_ai_initiative_lifecycle.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -116,7 +116,7 @@ class MigrationVersionTests(unittest.TestCase):
         errors = validate_inventory(
             [
                 Path(SNAPSHOT_FILE),
-                Path("202611240001_task_dependency_eligibility.sql"),
+                Path("20261124000100_task_dependency_eligibility.sql"),
             ],
             check_feature_order=False,
         )
