@@ -150,6 +150,10 @@ jobs:
 
       - name: Run two-session same-Worker atomic claim race
         run: bash scripts/test-same-worker-concurrency.sh
+      - name: Run three-session project concurrency-cap race
+        run: |
+          bash -n scripts/test-project-claim-cap-race.sh
+          bash scripts/test-project-claim-cap-race.sh
 
       - name: Run same-branch claim exclusion regression
         run: |
