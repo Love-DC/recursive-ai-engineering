@@ -158,6 +158,32 @@ BEGIN
       AND status IN ('open','triaged','in_progress','owner_input_required')
     LIMIT 1;
   IF FOUND THEN
+    UPDATE public.problem_reports SET
+      evidence=(
+        SELECT coalesce(jsonb_agg(x.item ORDER BY x.item::text),'[]'::jsonb)
+        FROM (
+          SELECT DISTINCT item
+          FROM jsonb_array_elements(v_existing.evidence || p_payload->'evidence') AS evidence(item)
+          LIMIT 50
+        ) x
+      ),
+      severity=CASE
+        WHEN CASE p_payload->>'severity'
+          WHEN 'critical' THEN 5 WHEN 'high' THEN 4 WHEN 'medium' THEN 3
+          WHEN 'low' THEN 2 ELSE 1 END >
+          CASE v_existing.severity
+          WHEN 'critical' THEN 5 WHEN 'high' THEN 4 WHEN 'medium' THEN 3
+          WHEN 'low' THEN 2 ELSE 1 END
+        THEN p_payload->>'severity' ELSE v_existing.severity END,
+      updated_at=clock_timestamp()
+    WHERE id=v_existing.id;
+    INSERT INTO public.problem_report_events(report_id,project_id,actor_worker_id,event_type,payload)
+    VALUES (v_existing.id,p_project_id,p_worker_id,'duplicate_observed',jsonb_build_object(
+      'source',p_payload->>'source',
+      'source_ref',p_payload->>'source_ref',
+      'severity',p_payload->>'severity',
+      'evidence',p_payload->'evidence'
+    ));
     v_response:=jsonb_build_object('success',true,'data',jsonb_build_object(
       'created',false,'duplicate',true,'report_id',v_existing.id,'status',v_existing.status
     ));
