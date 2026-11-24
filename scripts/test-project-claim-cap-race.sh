@@ -5,13 +5,13 @@ set -euo pipefail
 
 : "${SUPABASE_DB_URL:?Set SUPABASE_DB_URL}"
 : "${SUPABASE_OWNER_ID:?Set SUPABASE_OWNER_ID}"
-: "${SUPABASE_PROJECT_ID:?Set SUPABASE_PROJECT_ID}"
-: "${SHARED_WORKER_ID:?Set SHARED_WORKER_ID}"
+: "${CAP_TEST_PROJECT_ID:?Set CAP_TEST_PROJECT_ID}"
+: "${CAP_TEST_WORKER_ID:?Set CAP_TEST_WORKER_ID}"
 command -v psql >/dev/null || { echo "psql is required" >&2; exit 2; }
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 2; }
 
 uuid_re='^[0-9a-fA-F-]{36}$'
-for value in "$SUPABASE_OWNER_ID" "$SUPABASE_PROJECT_ID" "$SHARED_WORKER_ID"; do
+for value in "$SUPABASE_OWNER_ID" "$CAP_TEST_PROJECT_ID" "$CAP_TEST_WORKER_ID"; do
   [[ "$value" =~ $uuid_re ]] || { echo "Expected UUID environment values" >&2; exit 2; }
 done
 
@@ -22,7 +22,7 @@ run_key="$(openssl rand -hex 16 2>/dev/null || printf '%s-%s' "$(date +%s)" "$$"
 claimable_count="$(
   psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
 select count(*) from public.tasks
-where project_id='$SUPABASE_PROJECT_ID'
+where project_id='$CAP_TEST_PROJECT_ID'
   and (status='pending' or (status='running' and lease_until < clock_timestamp()));
 SQL
 )"
@@ -38,7 +38,7 @@ with auth as (
   select set_config('request.jwt.claim.sub','$SUPABASE_OWNER_ID',true)
 )
 select (public.create_task(
-  '$SUPABASE_PROJECT_ID','$SHARED_WORKER_ID','implementation',
+  '$CAP_TEST_PROJECT_ID','$CAP_TEST_WORKER_ID','implementation',
   'Project cap race $run_key $label',
   'Disposable task for the three-session project concurrency cap regression.',
   '{"acceptance":["task is claimed only when project active executions are below two"]}'::jsonb,
@@ -63,7 +63,7 @@ with auth as (
   select set_config('request.jwt.claim.sub','$SUPABASE_OWNER_ID',true)
 )
 select public.claim_task(
-  '$SUPABASE_PROJECT_ID','$SHARED_WORKER_ID',600,
+  '$CAP_TEST_PROJECT_ID','$CAP_TEST_WORKER_ID',600,
   'project-cap-claim-$run_key-$label'
 ) from auth;
 SQL
@@ -115,7 +115,7 @@ with auth as (
   select set_config('request.jwt.claim.sub','$SUPABASE_OWNER_ID',true)
 )
 select public.complete_execution(
-  '$task_id','$execution_id','$SHARED_WORKER_ID',
+  '$task_id','$execution_id','$CAP_TEST_WORKER_ID',
   jsonb_build_object('summary','Completed project concurrency cap fixture','test_run','$run_key'),
   'project-cap-complete-$run_key-$task_id'
 ) from auth;
@@ -144,7 +144,7 @@ with auth as (
   select set_config('request.jwt.claim.sub','$SUPABASE_OWNER_ID',true)
 )
 select public.claim_task(
-  '$SUPABASE_PROJECT_ID','$SHARED_WORKER_ID',600,'project-cap-after-release-$run_key'
+  '$CAP_TEST_PROJECT_ID','$CAP_TEST_WORKER_ID',600,'project-cap-after-release-$run_key'
 ) from auth;
 SQL
 )"
