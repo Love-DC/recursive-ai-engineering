@@ -1,6 +1,6 @@
 # AI Worker Collaboration System — Shared MCP Pilot
 
-A session-triggered recursive engineering system: GitHub repositories own a lazy, recursively growing knowledge/context tree, while Supabase/PostgreSQL coordinates project-scoped executable tasks and durable execution state. The only assumed AI runtime is one GPT conversation manually started by the Owner.
+A shared-state recursive engineering system: multiple GPT conversations may run concurrently, using Supabase/PostgreSQL for project-scoped goals, initiatives, task queues, dependencies, leases, executions and handoffs, while GitHub repositories preserve source code, governance, decisions, PRs and CI. Each conversation is temporary; no permanent Coordinator or session identity is required.
 
 ## Pilot operating model
 
@@ -9,7 +9,7 @@ A session-triggered recursive engineering system: GitHub repositories own a lazy
 - Each project has project-scoped Worker routing rows; worker keys can differ by repository and task type. A Worker row is a routing reference, not an individual session identity.
 - Supabase stores project and task state. GitHub stores code, documents and commit history.
 - Large work can grow recursively through repository-local knowledge nodes and, when execution is required, project-scoped child tasks.
-- A fresh GPT conversation restores only the root index and selected branch; it does not load every project queue or historical execution.
+- A fresh GPT conversation inspects compact project-scoped queues across active projects, then loads only the selected task and its relevant context. The recursive tree provides lazy navigation, not a substitute for shared task discovery or execution state.
 - Roles such as Coordinator, Worker and Reviewer are responsibilities, not fixed session identities or guaranteed separate agents.
 - Discovery and repair run only during an active manually started GPT conversation; no daemon or scheduled job is assumed.
 
@@ -32,7 +32,7 @@ A session-triggered recursive engineering system: GitHub repositories own a lazy
 - [Recursive Engineering Tree](docs/RECURSIVE-ENGINEERING-TREE.md): recursive context growth, lazy loading, bounded summaries, branch wake-up, and cross-session checkpoints.
 - [RAE global root index](knowledge/rae-root/index.json): compact project pointers and global attention queue.
 - [Autonomous Task Discovery & Generation](docs/AUTONOMOUS-TASK-DISCOVERY.md): evidence-based discovery, project authorization, deduplication, and empty-queue behavior.
-- [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the current GPT conversation restore the relevant branch and execute it.
+- [Session entry point](docs/SESSION-START.md): every conversation uses the same generic startup protocol, discovers active project-scoped queues, claims eligible work atomically, and loads only the selected branch context.
 - [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, and task metadata.
 - [Repository-local governance protocol](docs/REPOSITORY-GOVERNANCE-PROTOCOL.md): pinned-SHA discovery, compatibility checks, conflict handling, and repository-owned CI routing.
 - [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md): Supabase task lifecycle and owner-MCP operating details.
@@ -49,6 +49,7 @@ Before changing the system, review [Pilot Readiness and Deferred Production Gate
 - Browser console deployment.
 - Automated review/fix orchestration.
 - A persistent background Coordinator daemon or timer.
+- A fixed Coordinator identity or one-conversation-at-a-time operating constraint.
 
 The Owner console remains available for later use, but the pilot can be operated directly through the connected Supabase MCP and GitHub MCP tools.
 
@@ -58,7 +59,7 @@ The existing v1.2 database includes identity-isolation and review/fix machinery.
 
 ## Security boundary
 
-The pilot assumes every participating ChatGPT conversation has the user's authorized Supabase MCP access. That access is the trust boundary. Do not copy Service Role keys, secret keys, database passwords, or privileged connection strings into prompts, GitHub files, or external clients. Do not deploy production systems or perform high-impact external side effects without explicit authorization. Routine engineering PR review/merge is covered by the standing owner authorization and coordinator checklist.
+The pilot supports multiple Owner-started conversations using the already-authorized Supabase MCP access. Shared project-scoped task queues and atomic claims coordinate concurrent work; that connected access is the trust boundary. Do not copy Service Role keys, secret keys, database passwords, or privileged connection strings into prompts, GitHub files, or external clients. Do not deploy production systems or perform high-impact external side effects without explicit authorization. Routine engineering PR review/merge is covered by the standing owner authorization and coordinator checklist.
 
 ## Verification
 
