@@ -310,12 +310,12 @@ BEGIN
   IF v_initiative.status<>'proposed' THEN
     RAISE EXCEPTION USING errcode='55000',message='INITIATIVE_NOT_AWAITING_DECISION';
   END IF;
-  IF p_decision NOT IN ('approve','reject') THEN
+  IF p_decision IS NULL OR p_decision NOT IN ('approve','reject') THEN
     RAISE EXCEPTION USING errcode='22023',message='INVALID_INITIATIVE_DECISION';
   END IF;
 
   IF p_decision='approve' THEN
-    IF jsonb_typeof(p_work_plan)<>'array' OR jsonb_array_length(p_work_plan) NOT BETWEEN 1 AND 100 THEN
+    IF p_work_plan IS NULL OR jsonb_typeof(p_work_plan)<>'array' OR jsonb_array_length(p_work_plan) NOT BETWEEN 1 AND 100 THEN
       RAISE EXCEPTION USING errcode='22023',message='APPROVED_INITIATIVE_REQUIRES_WORK_PLAN';
     END IF;
     SELECT count(*),count(DISTINCT item->>'work_key')
@@ -415,6 +415,7 @@ DECLARE
   v_hash text;
   v_replay jsonb;
   v_id uuid;
+  v_existing_id uuid;
   v_response jsonb;
 BEGIN
   SELECT * INTO v_initiative FROM public.initiatives WHERE id=p_initiative_id;
@@ -439,6 +440,21 @@ BEGIN
   v_hash:=private.request_hash(jsonb_build_object('initiative_id',p_initiative_id,'worker_id',p_worker_id,'payload',p_payload));
   v_replay:=private.idempotency_get(v_initiative.project_id,'request_initiative_support',p_idempotency_key,v_hash);
   IF v_replay IS NOT NULL THEN RETURN v_replay; END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtextextended(
+    p_initiative_id::text||':'||p_payload->>'request_kind'||':'||lower(btrim(p_payload->>'capability')),0
+  ));
+  SELECT id INTO v_existing_id FROM public.initiative_support_requests
+    WHERE initiative_id=p_initiative_id AND request_kind=p_payload->>'request_kind'
+      AND lower(capability)=lower(btrim(p_payload->>'capability')) AND status='pending'
+    LIMIT 1;
+  IF v_existing_id IS NOT NULL THEN
+    v_response:=jsonb_build_object('success',true,'data',jsonb_build_object(
+      'support_request_id',v_existing_id,'initiative_id',p_initiative_id,'status','pending','duplicate',true
+    ));
+    PERFORM private.idempotency_put(v_initiative.project_id,'request_initiative_support',p_idempotency_key,v_hash,v_response);
+    RETURN v_response;
+  END IF;
 
   INSERT INTO public.initiative_support_requests(
     initiative_id,project_id,requested_by_worker_id,request_kind,capability,rationale,
@@ -493,7 +509,7 @@ BEGIN
   IF v_request.status<>'pending' THEN
     RAISE EXCEPTION USING errcode='55000',message='SUPPORT_REQUEST_NOT_PENDING';
   END IF;
-  IF p_decision NOT IN ('grant','decline') OR jsonb_typeof(coalesce(p_granted_scope,'{}'::jsonb))<>'object' THEN
+  IF p_decision IS NULL OR p_decision NOT IN ('grant','decline') OR jsonb_typeof(coalesce(p_granted_scope,'{}'::jsonb))<>'object' THEN
     RAISE EXCEPTION USING errcode='22023',message='INVALID_SUPPORT_DECISION';
   END IF;
   UPDATE public.initiative_support_requests
