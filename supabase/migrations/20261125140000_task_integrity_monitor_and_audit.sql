@@ -391,21 +391,28 @@ BEGIN
     WHERE ev.project_id=p_project_id AND ev.worker_id IS NOT NULL
 
     UNION ALL
-    SELECT 'artifacts',a.id::text,'task_id',a.task_id,p.project_id,
+    SELECT 'artifacts',a.id::text,'task_id',a.task_id,
+      coalesce(execution_task.project_id,execution_worker.project_id,t.project_id),
       t.id IS NOT NULL,t.project_id
     FROM public.artifacts a
     LEFT JOIN public.tasks t ON t.id=a.task_id
-    LEFT JOIN public.projects p ON p.id=t.project_id
-    WHERE p.project_id=p_project_id
+    LEFT JOIN public.executions e ON e.id=a.execution_id
+    LEFT JOIN public.tasks execution_task ON execution_task.id=e.task_id
+    LEFT JOIN public.workers execution_worker ON execution_worker.id=e.worker_id
+    WHERE coalesce(execution_task.project_id,execution_worker.project_id,t.project_id)=p_project_id
 
     UNION ALL
-    SELECT 'artifacts',a.id::text,'execution_id',a.execution_id,t.project_id,
-      e.id IS NOT NULL,t.project_id
+    SELECT 'artifacts',a.id::text,'execution_id',a.execution_id,
+      coalesce(t.project_id,execution_task.project_id,execution_worker.project_id),
+      e.id IS NOT NULL AND e.task_id=a.task_id,
+      execution_task.project_id
     FROM public.artifacts a
-    JOIN public.tasks t ON t.id=a.task_id AND t.project_id=p_project_id
-    LEFT JOIN public.executions e
-      ON e.id=a.execution_id AND e.task_id=a.task_id
+    LEFT JOIN public.tasks t ON t.id=a.task_id
+    LEFT JOIN public.executions e ON e.id=a.execution_id
+    LEFT JOIN public.tasks execution_task ON execution_task.id=e.task_id
+    LEFT JOIN public.workers execution_worker ON execution_worker.id=e.worker_id
     WHERE a.execution_id IS NOT NULL
+      AND coalesce(t.project_id,execution_task.project_id,execution_worker.project_id)=p_project_id
   )
   SELECT coalesce(jsonb_agg(to_jsonb(edges)),'[]'::jsonb)
   INTO v_edges
