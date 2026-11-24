@@ -50,3 +50,35 @@ The migration in `supabase/migrations/202611230004_worker_task_routing_safe_rele
 ## Validation
 
 The PostgreSQL task lifecycle workflow runs `tests/worker-routing-release-tests.sql` against an isolated PostgreSQL 17 service. It covers reviewer/implementation separation, explicit and default routes, route-safe expired reclaim, review creation/claim routing, ambiguous-route fail-closed behavior, scalar/array whitespace normalization, single-worker compatibility, wrong-owner denial, release idempotency, expired release, retry-cap terminal failure/no-reclaim, and stale-execution fencing.
+
+
+## Task dependency eligibility
+
+The migration \`202611240001_task_dependency_eligibility.sql\` extends \`claim_task\` without changing table schemas or deploying to the live project.
+
+### Declaring prerequisites
+
+- Legacy \`requirements.depends_on\` remains supported as an array of external dependency keys (for example, \`["recursive-ai-engineering#6 merged"]\`). Every entry remains blocked until the Coordinator records verified evidence through \`resolve_task_dependency\`.
+- The preferred \`requirements.dependencies\` format is an array of typed objects:
+  - Internal task: \`{"type":"task","task_id":"<same-project-task-uuid>","required_status":"accepted"}\`. \`required_status\` defaults to \`accepted\`; other states are rejected fail-closed. Cross-project and missing task IDs do not satisfy the prerequisite.
+  - External prerequisite: \`{"type":"external","key":"<stable-dependency-key>"}\`. It uses the same explicit evidence-resolution path as legacy \`depends_on\`.
+
+An external prerequisite is satisfied only when \`requirements.dependency_resolutions[key]\` contains \`status: "satisfied"\` and evidence with non-empty \`ref\` and \`observed_state\`. The owner-authorized, idempotent \`public.resolve_task_dependency(task_id, dependency_key, state, evidence, idempotency_key)\` RPC accepts only keys already declared on that task. Use \`state="unresolved"\` with a \`reason\` to reopen a prerequisite. It updates the task requirements and appends an audit event; do not edit dependency metadata directly.
+
+### Claim behavior
+
+\`claim_task\` applies dependency eligibility consistently to pending claims, expired-lease reclaim, and the expired retry-cap sweep.
+
+- A pending task with an unmet prerequisite stays \`pending\` and creates no execution.
+- An expired-running task with an unmet prerequisite keeps its existing execution/audit state; it is not terminally failed or given another attempt until the dependency clears.
+- The claim response includes a bounded \`dependency_blockers\` summary. The Coordinator can continue to claim unrelated eligible work even when a higher-priority task is blocked.
+- \`dependency_blocked\`, \`dependency_unblocked\`, \`dependency_resolved\`, and \`dependency_reopened\` events preserve the blocker and resolution history. Repeated scans with the same blocker set do not emit duplicate blocked events.
+- Malformed dependency metadata, missing/cross-project task references, unsupported dependency types, and absent external evidence fail closed.
+
+External state is not fetched from GitHub by SQL. The Coordinator must verify the cited PR/commit/Issue state from GitHub before recording a \`satisfied\` resolution; the database RPC enforces that the key was declared, evidence fields are present, the owner is authorized, and the update is idempotent.
+
+## Dependency validation and deployment boundary
+
+The PostgreSQL lifecycle workflow applies this function-only migration to an isolated PostgreSQL 17 fixture and runs \`tests/task-dependency-eligibility-tests.sql\` inside a transaction that rolls back. It covers external evidence/idempotency, same-project task prerequisites, independent-work selection, expired-lease behavior and retry-cap handling.
+
+The migration is a candidate only. It has **not** been applied to production. Independent review of the exact stacked PR HEAD, required exact-head CI, and the separately authorized production deployment gate are still required.
