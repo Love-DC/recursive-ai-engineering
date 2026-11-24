@@ -1,3 +1,4 @@
+import io
 import json
 import tempfile
 from datetime import datetime, timezone, timedelta
@@ -125,9 +126,13 @@ class ReadOnlyExecutionTests(unittest.TestCase):
         with tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8") as file:
             json.dump(manifest(), file)
             file.flush()
-            with self.assertRaises(SystemExit) as raised:
-                main(["--manifest", file.name, "--execute"])
+            with patch.dict("os.environ", {"GITHUB_REPOSITORY": REPOSITORY}), \
+                 patch("sys.stderr", new_callable=io.StringIO) as stderr:
+                with self.assertRaises(SystemExit) as raised:
+                    main(["--manifest", file.name, "--execute"])
             self.assertEqual(raised.exception.code, 2)
+            self.assertIn("Resource deletion is disabled", stderr.getvalue())
+            self.assertIn("cannot authoritatively re-read live Supabase task references", stderr.getvalue())
 
 
 if __name__ == "__main__":
