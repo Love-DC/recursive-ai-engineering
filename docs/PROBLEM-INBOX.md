@@ -90,7 +90,7 @@ Terminal reports can be reopened explicitly to `open` or `triaged`. Every state 
 
 ### Read the Owner's inbox
 
-`list_problem_reports(status, severity, limit)` returns reports across all active projects owned by the authenticated Owner, including project name and repository. The default status filter is null; the Owner's main digest should normally include unresolved states:
+`list_problem_reports(status, severity, limit)` returns reports across all active projects owned by the authenticated Owner, including project name and repository. Pass `unresolved` to return only open, triaged, in-progress, and Owner-input-required reports. The default status filter is null; the Owner's main digest should normally include unresolved states:
 - `open`
 - `triaged`
 - `in_progress`
@@ -101,7 +101,7 @@ Use `get_problem_report(report_id)` for full evidence and event history.
 The expected Owner query is:
 
 ```sql
-select public.list_problem_reports(null, null, 200);
+select public.list_problem_reports('unresolved', null, 200);
 ```
 
 The function itself enforces Owner scope using the authenticated project-owner context. Do not query or expose another project's reports.
