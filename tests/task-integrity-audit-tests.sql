@@ -177,11 +177,12 @@ $audit_table_boundary$;
 
 CREATE TEMP TABLE task_integrity_audit_fixture (
   task_id uuid PRIMARY KEY,
-  execution_id uuid UNIQUE
+  execution_id uuid UNIQUE,
+  missing_dependency_id uuid NOT NULL
 ) ON COMMIT DROP;
 
-INSERT INTO task_integrity_audit_fixture(task_id,execution_id)
-VALUES (gen_random_uuid(),gen_random_uuid());
+INSERT INTO task_integrity_audit_fixture(task_id,execution_id,missing_dependency_id)
+VALUES (gen_random_uuid(),gen_random_uuid(),gen_random_uuid());
 
 INSERT INTO public.tasks(
   id,project_id,task_type,title,description,requirements,
@@ -191,7 +192,16 @@ SELECT
   f.task_id,current_setting('test.project_id')::uuid,
   'implementation','Integrity audit delete fixture',
   'Disposable metadata-only audit test fixture.',
-  '{}'::jsonb,false,'pending',-100,
+  jsonb_build_object(
+    'dependencies',jsonb_build_array(
+      jsonb_build_object(
+        'type','task',
+        'task_id',f.missing_dependency_id::text,
+        'required_status','accepted'
+      )
+    )
+  ),
+  false,'pending',-100,
   current_setting('test.worker_id')::uuid
 FROM task_integrity_audit_fixture f;
 
@@ -202,6 +212,28 @@ SELECT
   f.execution_id,f.task_id,current_setting('test.worker_id')::uuid,
   1,'expired',clock_timestamp(),clock_timestamp()
 FROM task_integrity_audit_fixture f;
+
+DO $json_task_dependency_scan$
+DECLARE
+  v_task_id uuid := (SELECT task_id FROM task_integrity_audit_fixture);
+  v_missing_id uuid := (SELECT missing_dependency_id FROM task_integrity_audit_fixture);
+  v_project_id uuid := current_setting('test.project_id')::uuid;
+  v_findings integer;
+BEGIN
+  SELECT count(*) INTO v_findings
+  FROM private.task_integrity_findings(v_project_id)
+  WHERE source_relation='tasks'
+    AND row_id=v_task_id::text
+    AND reference_name='requirements.dependencies.task_id'
+    AND referenced_id=v_missing_id
+    AND finding_code='missing_reference';
+
+  IF v_findings <> 1 THEN
+    RAISE EXCEPTION 'FAIL: missing JSON task prerequisite was not reported exactly once: task %, dependency %, finding count %',
+      v_task_id,v_missing_id,v_findings;
+  END IF;
+END
+$json_task_dependency_scan$;
 
 SAVEPOINT delete_audit_probe;
 DELETE FROM public.tasks
