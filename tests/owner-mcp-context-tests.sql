@@ -135,10 +135,6 @@ BEGIN
       10,
       NULL
     );
-
-    -- The Problem Inbox must also reject an authenticated DB role without a JWT
-    -- or a verified postgres Owner-MCP context.
-    PERFORM public.list_problem_reports('unresolved',NULL,20);
   EXCEPTION WHEN SQLSTATE '28000' THEN
     IF SQLERRM <> 'UNAUTHENTICATED' THEN
       RAISE;
@@ -642,6 +638,21 @@ BEGIN
   END;
   IF NOT v_rejected THEN
     RAISE EXCEPTION 'FAIL: authenticated role bypassed the JWT guard';
+  END IF;
+
+  v_rejected := false;
+  BEGIN
+    -- The Problem Inbox must independently reject an authenticated DB role
+    -- without a JWT or a verified postgres Owner-MCP context.
+    PERFORM public.list_problem_reports('unresolved',NULL,20);
+  EXCEPTION WHEN SQLSTATE '28000' THEN
+    IF SQLERRM <> 'UNAUTHENTICATED' THEN
+      RAISE;
+    END IF;
+    v_rejected := true;
+  END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'FAIL: list_problem_reports bypassed the Owner/JWT guard';
   END IF;
 END
 $authenticated$;
