@@ -256,13 +256,24 @@ $truncate_rollback_assertions$;
 
 DO $append_only_assertion$
 DECLARE
+  v_audit_id bigint;
   v_rejected boolean := false;
 BEGIN
+  INSERT INTO private.task_destructive_audit(
+    transaction_id,operation,relation_name,session_user_name,
+    database_user_name,backend_pid,trigger_depth
+  )
+  VALUES(
+    txid_current(),'DELETE','tasks',session_user,current_user,
+    pg_backend_pid(),0
+  )
+  RETURNING id INTO v_audit_id;
+
   BEGIN
     UPDATE private.task_destructive_audit
     SET application_name='tampered'
-    WHERE false;
-    RAISE EXCEPTION 'FAIL: audit mutation should be rejected even when no row matches';
+    WHERE id=v_audit_id;
+    RAISE EXCEPTION 'FAIL: audit UPDATE was not rejected';
   EXCEPTION WHEN SQLSTATE '55000' THEN
     IF SQLERRM <> 'TASK_DESTRUCTIVE_AUDIT_APPEND_ONLY' THEN
       RAISE;
