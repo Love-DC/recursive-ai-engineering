@@ -77,7 +77,7 @@ def validate_inventory(paths: list[Path], *, check_feature_order: bool = True) -
                 errors.append(
                     "migration dependency order must be failure reporting/retry, "
                     "Worker routing/safe release, task dependency eligibility, "
-                    "AI Initiative lifecycle, safe task reassignment, Problem Inbox, review cancellation/failure recovery, then exclusive branch claim, then active-session autonomy guard, then submitted-task reconciliation, then owner-scoped project activation config, then repository-authoritative activation guard, then trusted Owner-MCP execution context, then Owner-MCP project registration"
+                    "AI Initiative lifecycle, safe task reassignment, Problem Inbox, review cancellation/failure recovery, then exclusive branch claim, then active-session autonomy guard, then submitted-task reconciliation, then owner-scoped project activation config, then repository-authoritative activation guard, then trusted Owner-MCP execution context, then Owner-MCP project registration, then Owner-MCP Problem Inbox context"
                 )
 
     return errors
@@ -315,6 +315,28 @@ class MigrationVersionTests(unittest.TestCase):
         )
         self.assertEqual(errors, [])
 
+
+    def test_rejects_owner_mcp_problem_inbox_context_before_project_registration(self) -> None:
+        errors = validate_inventory(
+            [
+                Path("20261123000300_failure_reporting_retry.sql"),
+                Path("20261123000400_worker_task_routing_safe_release.sql"),
+                Path("20261124000100_task_dependency_eligibility.sql"),
+                Path("20261124000200_ai_initiative_lifecycle.sql"),
+                Path("20261124000300_task_worker_routing_safe_reassignment.sql"),
+                Path("20261124000400_problem_inbox.sql"),
+                Path("20261124000500_review_task_cancellation_recovery.sql"),
+                Path("20261124000600_exclusive_branch_claim.sql"),
+                Path("20261124000700_active_session_autonomy_guard.sql"),
+                Path("20261124172155_submitted_task_reconciliation.sql"),
+                Path("20261124181237_owner_scoped_project_activation.sql"),
+                Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
+                Path("20261125105000_owner_mcp_problem_inbox_context.sql"),
+                Path("20261125110000_owner_mcp_project_registration.sql"),
+            ]
+        )
+        self.assertTrue(any("dependency order" in error for error in errors))
 
     def test_rejects_owner_mcp_project_registration_before_context(self) -> None:
         errors = validate_inventory(
