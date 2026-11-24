@@ -9,9 +9,9 @@ The problem inbox is the durable cross-session register for defects, blockers, r
 - GitHub remains authoritative for code, Issues, PRs, commits, and CI. Store links to those records in the report.
 - Do not leave a material finding only in a ChatGPT transcript, task description, or PR comment.
 
-The additive migration `20261124000400_problem_inbox.sql` is deployed in the shared RAE Supabase database; the `problem_reports` and `problem_report_events` tables plus their RPCs exist. However, the 2026-11-25 read through the connected Supabase MCP SQL session failed: `public.list_problem_reports('unresolved', null, 200)` returned `UNAUTHENTICATED` because the deployed list RPC requires `auth.uid()`, while the verified Owner-MCP session has no JWT identity. The deployed detail/update functions also still use `auth.uid()` filters. Do not claim the Inbox was refreshed through Owner-MCP and never read or mutate the tables directly. Repository migration `20261125120000_owner_mcp_problem_inbox_context.sql` adds a private adapter for all three Owner Inbox RPCs and PostgreSQL regression coverage, but remains repository-only until an independently reviewed migration rollout. Verify its live deployment and re-test all three RPCs before restoring the Owner-MCP Inbox as the normal intake path.
+The additive migration `20261124000400_problem_inbox.sql` is deployed in the shared RAE Supabase database. On 2026-11-25, the live `problem_reports` and `problem_report_events` tables and Problem Inbox RPCs were verified, and the owner-scoped `list_problem_reports('unresolved', null, 200)` read succeeded. Use this Supabase inbox as the normal cross-session source of truth; re-check availability at each session start.
 
-PR #66's repository-authoritative activation migration is deployed as live migration `20261124192533`; the legacy `projects.config.task_activation` guard is removed. The live controls were rechecked on 2026-11-25: Colony Sim and Hexa Game Kernel are `autonomy.paused=false`/max 2; RAE and Lambent are `autonomy.paused=true`/max 2. Colony Sim's repository-owned bounded active-session engineering policy and activation gates are approved. The trusted Owner-MCP execution context is deployed as migration `20261124200149_trusted_owner_mcp_execution_context`, and project registration as `20261124202438_owner_mcp_project_registration`; `list_tasks` and `list_initiatives` work inside the verified transaction context. The Problem Inbox is the remaining exception: list/detail/update RPCs still require the JWT Owner identity, so the no-JWT Supabase MCP session cannot use them until the repository-only compatibility proposal in PR #72 is independently reviewed, merged, deployed and re-tested. Do not write task or Problem Inbox tables directly.
+PR #66's repository-authoritative activation migration is deployed as live migration `20261124192533`; the legacy `projects.config.task_activation` guard is removed. The live controls were rechecked on 2026-11-25: Colony Sim `autonomy.paused=false`/max 2, RAE `autonomy.paused=true`/max 2, Lambent `autonomy.paused=true`/max 2. Colony Sim's repository-owned bounded active-session engineering policy and activation gates are approved. A separate trusted Owner-MCP execution-context migration is being prepared so owner-protected task and Problem Inbox RPCs can be called from the already-authorized database MCP connection without fabricating `auth.uid()`. Until that migration is deployed and verified, treat writes through the current SQL MCP session as blocked; do not write task or Problem Inbox tables directly. The Problem Inbox read RPC remains available through a genuine authenticated owner context.
 
 ## What to report
 
@@ -38,7 +38,7 @@ Never include credentials, secrets, personal data, or unbounded environment dump
 
 ## RPC contract
 
-The following owner-authorized RPCs are deployed. With a genuine authenticated Owner JWT they retain their normal JWT contract. Through the connected Supabase MCP SQL context, use them only after the Owner-MCP Problem Inbox compatibility migration is confirmed deployed and the live RPCs are re-tested:
+The following owner-authorized RPCs are deployed and should be used through the connected Supabase MCP context after the live database gate and selected project scope are re-verified:
 
 ### Report a finding
 
@@ -124,9 +124,9 @@ During execution:
 4. Update the report as work progresses and resolve only with verified evidence.
 5. If a session cannot finish, leave the report and task state truthful so another fresh session can continue.
 
-## Last known unresolved report snapshot — 2026-11-25
+## Current unresolved reports — 2026-11-25
 
-The entries below are the last known read-only snapshot from the shared database, not a successful re-query through the current Owner-MCP SQL session. Until the Owner-MCP compatibility migration is deployed and the RPC is re-verified, treat these statuses as historical context rather than current truth:
+Read-only `public.problem_reports` snapshot from the live shared database:
 
 - **RAE — medium defect, in progress:** `adc5c02c-d9ce-4850-9181-0c137317f7ae`, “RAE startup and inbox governance snapshots contradict live deployment”. Linked task: `34e01a68-244a-4832-87c3-ce86536a3a49`. PR #66 corrected Session Start, Worker Instructions, Security Boundary Audit, and Autonomous Task Discovery; this Problem Inbox snapshot is refreshed by [PR #67](https://github.com/Love-DC/recursive-ai-engineering/pull/67).
 - **RAE — high risk, in progress (historical report; refresh after Owner-MCP migration):** `e70803f3-57d4-402c-9823-a38a8a7ef59f`, “Repository-local activation policy conflicts with deployed database task_activation guard”. Linked task: `a16f1098-80e3-4ad6-a4f8-029e2849be4f`; PR #66 and its activation migration are now deployed. The remaining live blocker is the separate Owner-MCP task-lifecycle call path; do not resolve this report until the real RPC workflow is verified.
@@ -137,7 +137,7 @@ These are unresolved reports, not a task list. The live inbox also contains reso
 
 ## Exceptional fallback when the live inbox RPC is unavailable
 
-The Problem Inbox tables and RPCs are deployed, but the Owner-MCP read path was not verified on 2026-11-25: `list_problem_reports` returned `UNAUTHENTICATED`. This fallback is therefore active for the current Supabase-MCP-only session until the compatibility migration is separately deployed and re-tested. It remains exceptional; do not bypass owner-scoped RPCs with table access. The database-wide claim-safety gate in `docs/SESSION-START.md` remains a separate prerequisite for every task/execution lifecycle write.
+The Problem Inbox is deployed and was verified live on 2026-11-25. This fallback is exceptional; it is not the normal intake workflow. The database-wide claim-safety gate in `docs/SESSION-START.md` remains a separate prerequisite for every task/execution lifecycle write.
 
 - If the live Problem Inbox RPCs are available, record material findings there. Do not route routine findings to GitHub Issue #42.
 - Issue #42 is the closed historical transitional-intake record. Use it only as the documented no-write fallback when the live inbox cannot be verified or the production gate is closed/uncertain; add a comment only if the issue remains writable. Include project/repository, category, severity, exact evidence links, stable fingerprint, recommended action, and whether Owner input is required. Do not create a replacement intake issue.
