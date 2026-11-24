@@ -14,7 +14,7 @@ cleanup() {
   fi
   if [[ -n "$project_id" ]]; then
     psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 \
-      -c "DELETE FROM public.projects WHERE id='$project_id'::uuid;" >/dev/null 2>&1 || true
+      -c "DELETE FROM public.initiatives WHERE project_id='$project_id'::uuid; DELETE FROM public.projects WHERE id='$project_id'::uuid;" >/dev/null 2>&1 || true
   fi
   rm -rf "$tmp_dir"
 }
