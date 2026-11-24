@@ -55,6 +55,10 @@ The database gate permits ordinary project-scoped task/execution lifecycle write
 
 Current project config: Colony Sim remains `explicit_owner_authorization_only`; RAE and Lambent have no `task_activation` value. No project currently has `autonomy.max_active_executions` configured, so the guard is deployed but not active. RAE PR #64 adds a private Owner-scoped activation RPC and is awaiting independent review; do not update `public.projects.config` directly or bypass RLS. The Owner has authorized bounded autonomy activation for RAE and Colony Sim after exact-head CI and independent review; this does not authorize unrelated DDL or gameplay/product changes.
 
+Before any claim, still verify the live migration registry and project-specific activation policy. Re-check deployed RPC behavior and the selected project's project/Worker mapping as well.
+
+If the database gate becomes closed or cannot be proven open, do not invoke `claim_task` or any task-lifecycle write RPC. Continue only with read-only inspection and permitted repository work.
+
 Do not probe `claim_task` with a dummy task, invalid Worker, or replay key: the deployed function can expire/fail an eligible stale execution before it selects a task. Prove mutation/race behavior only in isolated PostgreSQL fixtures. If the gate is closed, stale, contradictory, or cannot be proven open, do not invoke any production task/initiative/problem-report write RPC; do not call any task/initiative/Problem Inbox write RPC and remain read-only/repository-only.
 
 ## Autonomous discovery
