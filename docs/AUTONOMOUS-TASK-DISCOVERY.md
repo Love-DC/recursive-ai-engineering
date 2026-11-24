@@ -109,7 +109,7 @@ For a positive RAE case, verify the new row with project-scoped list_tasks/get_t
 
 The project owner has delegated routine engineering PR review and merge to the AI project coordinator. This is a standing project-level authorization, not a per-PR approval request.
 
-The leaf Worker opens a PR and reports exact head SHA, changed paths, acceptance evidence, and CI. The coordinator performs an independent review pass (separate from implementation) and owns requested changes, re-review, merge, and post-merge verification.
+The leaf Worker opens a PR and reports exact head SHA, changed paths, acceptance evidence, and CI. The coordinator follows `docs/COORDINATOR-PR-REVIEW-AND-MERGE.md` for an independent review pass (separate from implementation), requested changes, re-review, Draft-to-ready transition, merge, and post-merge verification.
 
 The coordinator may merge when all of the following are true:
 

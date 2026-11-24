@@ -9,6 +9,7 @@
     "agent_instructions": "docs/WORKER-INSTRUCTIONS.md",
     "entrypoints": [
       "docs/SESSION-START.md",
+      "docs/COORDINATOR-PR-REVIEW-AND-MERGE.md",
       "docs/MULTI-PROJECT-ARCHITECTURE.md",
       "docs/ADR-001-REPOSITORY-LOCAL-GOVERNANCE.md",
       "docs/REPOSITORY-GOVERNANCE-PROTOCOL.md"
