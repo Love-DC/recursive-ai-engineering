@@ -73,111 +73,49 @@ If any live check is closed, stale, contradictory, or unavailable, Do not call `
 
 ## Supabase MCP execution context
 
-The pilot uses the already-authorized project-owner MCP connection; it does not provision per-session credentials. When calling owner-protected RPCs through the privileged SQL MCP tool, set the existing project's `owner_id` as `request.jwt.claim.sub` in the same SQL transaction before invoking the RPC. Keep this confined to the authenticated Supabase MCP connection; never copy credentials or privileged keys into prompts, GitHub, task results, or external clients.
+The existing authorized Supabase MCP database-management connection is the trusted Owner-MCP channel for this single-owner pilot. Its SQL connection runs as `postgres` and does not carry a Supabase Auth JWT (`auth.uid()` is null). Do **not** manufacture a JWT by setting `request.jwt.claim.sub`; that is not authentication and is not the supported Owner-MCP path.
+
+The deployed RAE migration `20261125100000_trusted_owner_mcp_execution_context` provides the private, transaction-scoped entry point `private.begin_owner_mcp_context(project_id, owner_id)`. It accepts only the original `postgres` database session, verifies that the supplied Owner UUID exactly matches the selected project's live `public.projects.owner_id`, and records an audit row. The context binds to one project and automatically clears on COMMIT or ROLLBACK.
+
+Use the same transaction for context initialization and the protected RPC calls:
+
+```sql
+BEGIN;
+
+-- Resolve the live Owner UUID from the project row; do not assume it is static.
+SELECT private.begin_owner_mcp_context(p.id, p.owner_id)
+FROM public.projects AS p
+WHERE p.id = 'PROJECT_UUID'::uuid
+  AND p.status = 'active';
+
+-- Use the project's own Worker UUID and existing task RPCs.
+SELECT public.list_tasks(
+  'PROJECT_UUID'::uuid,
+  NULL,
+  NULL,
+  100,
+  NULL
+);
+
+-- Or call create_task / claim_task / heartbeat_execution /
+-- submit_result / complete_execution / review_result as required.
+COMMIT;
+```
+
+For a task claim, call `claim_task(project_id, that_project_worker_id, lease_seconds, fresh_idempotency_key)` inside the same transaction. Use the Worker key selected by the project's `worker_routing` for the task type. The returned execution ID and lease are authoritative. For multiple projects, use a separate transaction and a separately resolved project Owner UUID for each project.
+
+The helper does not create a Worker session identity, set `auth.uid()`, change public PostgREST/JWT authentication, grant private-schema access to `anon` or `authenticated`, or bypass project routing, activation pause, dependencies, branch exclusion, execution leases, retry limits, or the two-execution cap. Ordinary JWT-authenticated callers continue to use the existing `auth.uid()` owner/Worker checks. Never expose the database admin connection or this private helper to external clients.
 
 ## Boundaries
 
 - Do not add Worker identity systems, session tracking, heartbeat monitoring, multi-account provisioning, or complex orchestration.
-- Do not create or modify Supabase schema unless the task specifically requires it.
+- Do not add a second Supabase Auth identity or bind Worker rows to an artificial user.
+- Do not set `request.jwt.claim.sub` to simulate an Owner JWT.
 - Do not use Service Role keys, secret keys, database passwords, or privileged connection strings outside the connected Supabase MCP tool.
-- Do not deploy production systems or perform other high-impact external side effects without explicit authorization. Routine engineering PR review/merge is covered by the standing owner authorization recorded in the project governance; follow the coordinator review checklist.
-- If a task cannot be completed safely, persist the blocker in the Problem Inbox (or the documented transitional fallback), create a smaller actionable task only when authorized, and never invent progress.
+- Do not deploy game builds, production releases, or perform unrelated destructive actions. Routine RAE database migrations required to restore the already-authorized Owner-MCP task lifecycle are in scope for this integration work.
+- Keep Colony Sim changes inside its approved engineering boundary. Gameplay, balance, design, map, UX, and player-experience decisions remain Owner-reserved.
+- If a task cannot be completed safely, persist the blocker in the Problem Inbox and never invent progress.
 
-
-## Verified Supabase MCP recipe (2026-11-23)
-
-### Project identifiers
-
-Do not confuse these two identifiers:
-
-- Supabase MCP project ref (used as the `project_id` argument to MCP tools): `rgztxilqcfuclkekyojl`.
-- Database `public.projects.id` (UUID passed to task RPCs): `61e32c05-39b7-47a6-ab5c-592c8e37d72d`.
-
-The project-owner UUID currently stored in `public.projects.owner_id` is `343781b2-5552-4d49-a52e-9f9dca7c802a`. It is an authorization claim value, not a secret. Resolve these values from the live project/database rather than assuming they never change.
-
-### Owner context and task creation
-
-For owner-protected RPCs called through the already-authorized Supabase MCP `execute_sql` tool, set the existing owner claim and invoke the RPC in the same SQL statement/transaction. Example (use a new idempotency key for each distinct create operation):
-
-```sql
-with auth as (
-  select set_config('request.jwt.claim.sub',
-    '343781b2-5552-4d49-a52e-9f9dca7c802a', true)
-)
-select public.create_task(
-  '61e32c05-39b7-47a6-ab5c-592c8e37d72d',
-  '78953b49-db9d-4fbc-9d3c-be3421a1c975',
-  'implementation',
-  'Task title',
-  'Bounded task description',
-  '{"acceptance":["observable condition"]}'::jsonb,
-  10, false, null, null,
-  'fresh-unique-create-key'
-) from auth;
-```
-
-For a child task, pass the parent task UUID as the ninth argument (`p_parent_task_id`). Keep pilot tasks as `implementation` with `requires_review=false`.
-
-### Atomic claim and completion
-
-Claim from the shared pool with a fresh idempotency key; valid lease duration is 60–600 seconds:
-
-```sql
-with auth as (
-  select set_config('request.jwt.claim.sub',
-    '343781b2-5552-4d49-a52e-9f9dca7c802a', true)
-)
-select public.claim_task(
-  '61e32c05-39b7-47a6-ab5c-592c8e37d72d',
-  '78953b49-db9d-4fbc-9d3c-be3421a1c975',
-  600,
-  'fresh-unique-claim-key'
-) from auth;
-```
-
-Read `data.task_id` and `data.execution_id` from the response. After work and GitHub commit verification, persist the result with:
-
-```sql
-with auth as (
-  select set_config('request.jwt.claim.sub',
-    '343781b2-5552-4d49-a52e-9f9dca7c802a', true)
-)
-select public.complete_execution(
-  'TASK_UUID', 'EXECUTION_UUID',
-  '78953b49-db9d-4fbc-9d3c-be3421a1c975',
-  '{"summary":"...","github_commit":"...","verification":["..."],"blockers":[]}'::jsonb,
-  'fresh-unique-completion-key'
-) from auth;
-```
-
-Do not call `complete_execution` for review-required work; pilot work should set `requires_review=false`. Do not reuse an idempotency key with different arguments.
-
-### Querying handoff and project progress
-
-```sql
-with auth as (
-  select set_config('request.jwt.claim.sub',
-    '343781b2-5552-4d49-a52e-9f9dca7c802a', true)
-)
-select public.get_task('TASK_UUID') from auth;
-
-with auth as (
-  select set_config('request.jwt.claim.sub',
-    '343781b2-5552-4d49-a52e-9f9dca7c802a', true)
-)
-select public.list_tasks(
-  '61e32c05-39b7-47a6-ab5c-592c8e37d72d',
-  null, null, 100, null
-) from auth;
-```
-
-`get_task` returns the task, execution history, artifacts, and review/fix context. `list_tasks` with null status and worker filters lists the project task queue (up to 100 rows). For a root task's direct children, query `public.tasks` by `parent_task_id` through the authorized SQL tool; aggregate statuses to report progress. Task state remains authoritative in Supabase; cite GitHub commit SHA/path in the result.
-
-### Verified implementation details
-
-Live inspection of `claim_task` confirms row-level `FOR UPDATE SKIP LOCKED`, deterministic priority/creation ordering, expired-lease recovery, and operation idempotency. `complete_execution` verifies the current execution fence and persists the execution result, accepted task status, and task events. A sequential create → claim → complete run has passed in this project. A truly simultaneous multi-client race was not run in this session; the locking guarantee is supported by the deployed function definition, not claimed as a live race-test result.
-
-A completed child task and three child tasks (all three were subsequently completed in this run) were persisted under root task `dedafaf5-6abb-4d66-9c0d-7622cebfcb2f` on 2026-11-23. Query Supabase for current state; do not rely on this snapshot.
 
 
 ## Universal owner input, capability, and autonomy contract
