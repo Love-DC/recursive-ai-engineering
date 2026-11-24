@@ -27,6 +27,7 @@ FEATURE_ORDER = (
     "submitted_task_reconciliation",
     "owner_scoped_project_activation",
     "repository_authoritative_activation_guard",
+    "trusted_owner_mcp_execution_context",
 )
 
 
@@ -74,7 +75,7 @@ def validate_inventory(paths: list[Path], *, check_feature_order: bool = True) -
                 errors.append(
                     "migration dependency order must be failure reporting/retry, "
                     "Worker routing/safe release, task dependency eligibility, "
-                    "AI Initiative lifecycle, safe task reassignment, Problem Inbox, review cancellation/failure recovery, then exclusive branch claim, then active-session autonomy guard, then submitted-task reconciliation, then owner-scoped project activation config, then repository-authoritative activation guard"
+                    "AI Initiative lifecycle, safe task reassignment, Problem Inbox, review cancellation/failure recovery, then exclusive branch claim, then active-session autonomy guard, then submitted-task reconciliation, then owner-scoped project activation config, then repository-authoritative activation guard, then trusted Owner-MCP execution context"
                 )
 
     return errors
@@ -127,6 +128,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124172155_submitted_task_reconciliation.sql"),
                 Path("20261124181237_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -146,6 +148,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124172155_submitted_task_reconciliation.sql"),
                 Path("20261124181237_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -165,6 +168,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124172155_submitted_task_reconciliation.sql"),
                 Path("20261124181237_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -184,6 +188,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124172155_submitted_task_reconciliation.sql"),
                 Path("20261124181237_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -203,6 +208,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124172155_submitted_task_reconciliation.sql"),
                 Path("20261124181237_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -222,6 +228,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124172155_submitted_task_reconciliation.sql"),
                 Path("20261124181237_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in error for error in errors))
@@ -242,6 +249,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124172155_submitted_task_reconciliation.sql"),
                 Path("20261124181237_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in error for error in errors))
@@ -262,11 +270,12 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000800_active_session_autonomy_guard.sql"),
                 Path("20261124181237_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in error for error in errors))
 
-    def test_accepts_complete_order_with_repository_authoritative_guard_last(self) -> None:
+    def test_accepts_complete_order_with_trusted_owner_mcp_context_last(self) -> None:
         errors = validate_inventory(
             [
                 Path("20261123000300_failure_reporting_retry.sql"),
@@ -281,6 +290,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124172155_submitted_task_reconciliation.sql"),
                 Path("20261124181237_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
             ]
         )
         self.assertEqual(errors, [])
@@ -299,6 +309,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000700_active_session_autonomy_guard.sql"),
                 Path("20261124170000_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
+                Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261124172155_submitted_task_reconciliation.sql"),
             ]
         )
