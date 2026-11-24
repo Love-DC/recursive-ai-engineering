@@ -16,7 +16,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
         for name in ("AGENTS.md", "docs/AI_START.md", "docs/WORKFLOW.md"):
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("repository rule\\n", encoding="utf-8")
+            path.write_text("repository rule\n", encoding="utf-8")
         value = manifest or {
             "protocol": "rae.repository-governance",
             "protocol_version": "1.0.0",
@@ -126,6 +126,47 @@ class RepositoryGovernanceTests(unittest.TestCase):
         with self.assertRaisesRegex(GovernanceError, "Incompatible governance protocol major"):
             self.load(root)
 
+    def test_governance_workflow_covers_every_declared_manifest_file(self):
+        root = Path(__file__).resolve().parent.parent
+        manifest = json.loads(
+            (root / "rae-governance.json").read_text(encoding="utf-8")
+        )
+        governance = manifest["governance"]
+        declared_paths = {
+            governance["agent_instructions"],
+            *governance["entrypoints"],
+            *governance["required"],
+            *(rule["path"] for rule in governance["rule_sets"]),
+        }
+        required_triggers = declared_paths | {
+            "rae-governance.json",
+            "README.md",
+            "scripts/repository_governance.py",
+            "tests/test_repository_governance.py",
+            ".github/workflows/repository-governance.yml",
+        }
+        workflow = (
+            root / ".github/workflows/repository-governance.yml"
+        ).read_text(encoding="utf-8")
+
+        for event in ("pull_request", "push"):
+            event_start = workflow.index(f"  {event}:") + len(f"  {event}:")
+            if event == "pull_request":
+                event_end = workflow.index("  push:", event_start)
+            else:
+                event_end = workflow.index("permissions:", event_start)
+            event_body = workflow[event_start:event_end]
+            self.assertIn("    paths:", event_body)
+            paths_body = event_body.split("    paths:", 1)[1]
+            triggers = {
+                line.strip()[3:-1]
+                for line in paths_body.splitlines()
+                if line.strip().startswith('- "') and line.strip().endswith('"')
+            }
+            self.assertTrue(
+                required_triggers <= triggers,
+                f"{event} path filters omit: {sorted(required_triggers - triggers)}",
+            )
 
     def test_production_claim_safety_gate_is_fail_closed_across_session_contracts(self):
         root = Path(__file__).resolve().parent.parent
