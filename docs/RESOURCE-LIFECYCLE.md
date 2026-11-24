@@ -1,9 +1,9 @@
 # Cross-project resource inventory and lifecycle center
 
-This is a read-only inventory and guarded cleanup entrypoint, not a background service.
+This is a read-only inventory and preview entrypoint, not a background service.
 A live inventory snapshot is collected by the RAE Coordinator from the connected,
-authorized Supabase and GitHub integrations. The current snapshot and consolidated
-report are persisted under `reports/resource-inventory/`. The snapshot is normalized by
+authorized Supabase and GitHub integrations. The snapshot and consolidated report
+are persisted under `reports/resource-inventory/` and normalized by
 `scripts/resource_inventory.py`. Do not substitute repository names or project IDs:
 the source is the active `public.projects` registry and each row's canonical
 `github_repo`.
@@ -18,8 +18,9 @@ one deterministic JSON/Markdown report with resource identity, platform, state,
 dependency evidence, risk class, recommended action and reason.
 
 Risk classes:
-- `eligible_batch`: only a verified, merged, unprotected, unused branch in this
-  RAE repository, with an exact 40-character SHA.
+- `eligible_batch`: a verified, merged, unprotected, unused branch in this
+  RAE repository, with an exact 40-character SHA. This is a preview classification,
+  not deletion authorization.
 - `owner_decision_required`: incomplete protection/ancestry evidence or a branch
   in another repository for which no scoped mutation credential exists.
 - `preserve_or_blocked`: default/protected/open-PR/unmerged branches and all
@@ -27,34 +28,31 @@ Risk classes:
 
 ChatGPT conversation history is not accessible to RAE and is not inventoried.
 
-## Batch safety
+## Safety boundary
 
-The cleanup script is dry-run by default. A batch manifest maps exact branch names
-to the SHA shown in the preview and includes the snapshot timestamp, a completed
-task-reference scan, and the active/submitted task branch references. Manifests
-older than 30 minutes or with incomplete task-reference evidence are rejected. Execution requires one exact batch confirmation,
-then rechecks branch existence, exact SHA, protection, open PR references, active
-or submitted task references, and merged ancestry. The script is restricted to the current RAE repository. It does
-not delete Supabase resources or mutate other repositories.
+The GitHub workflow and `scripts/cleanup_branches.py` are read-only. They can
+inspect branch state, exact SHAs, protection, ancestry and open PR references,
+then produce a preview. Open PR enumeration uses all GitHub API pages.
 
-Deletion uses `git push --force-with-lease` with the exact preview SHA, so GitHub
-rejects a branch-tip change between verification and mutation. PR and task-reference
-state is re-read immediately before each target; a new external reference created
-after that read remains a residual race. Cleanup stays manual-only.
+**Deletion is disabled.** The connected workflow has no authorized live Supabase
+task-reference provider. A caller-supplied manifest or a committed snapshot can
+be stale or fabricated and cannot prove that a branch is not referenced by an
+active/submitted task. Therefore neither the workflow nor the script may delete
+branches based on that evidence. The deprecated `--execute` flag fails closed.
+
+Re-enabling deletion requires an authorized, live task-reference lookup at
+execution time, complete open-PR pagination, exact target revalidation, and a
+separately reviewed authorization design. Do not add a PAT, GitHub App, Supabase
+service-role key, or other credential to bypass this boundary.
 
 ## Permissions and operating limits
 
-- The manual GitHub Actions workflow uses the repository's built-in
-  `GITHUB_TOKEN`; only its execute job requests `contents: write`.
-- Repository Actions settings must permit read/write workflow tokens. This setting
-  is not changed by this task and must be verified before first execution.
+- The workflow requests only `contents: read` and `pull-requests: read`.
+- Supabase projects, development branches and Edge Functions remain inventory-only.
+- Cross-repository mutation remains disabled.
+- No resource is deleted by implementation, tests, dry-runs, or PR review.
 - No GitHub App, PAT, Supabase service-role key, Edge Function, schema or
   production infrastructure is created or changed.
-- Supabase management inventory is supplied by the existing connected Supabase
-  integration. The GitHub workflow does not possess Supabase Management API
-  credentials and therefore cannot refresh that part of the snapshot itself.
-- Cross-repository branch deletion remains disabled until a repository-scoped
-  authorized workflow/token is already available. No credential is created here.
 
 ## Running tests
 
