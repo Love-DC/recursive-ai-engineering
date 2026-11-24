@@ -1,6 +1,6 @@
 # AI Worker Collaboration System — Shared MCP Pilot
 
-A shared-state recursive engineering system: multiple GPT conversations may run concurrently, using Supabase/PostgreSQL for project-scoped goals, initiatives, task queues, dependencies, leases, executions and handoffs, while GitHub repositories preserve source code, governance, decisions, PRs and CI. Each conversation is temporary; no permanent Coordinator or session identity is required.
+A shared-state recursive engineering system: multiple GPT conversations may run concurrently, using Supabase/PostgreSQL for currently deployed project registration, task records, leases, executions, artifacts, events and handoffs, while GitHub repositories preserve source code, governance, decisions, PRs and CI. Each conversation is temporary; no permanent Coordinator or session identity is required. The Initiative lifecycle and database-backed goal records are a planned extension tracked in PR #31 and are not deployed in the live RAE database; do not assume initiative tables or RPCs exist until that change has passed review and deployment.
 
 ## Pilot operating model
 

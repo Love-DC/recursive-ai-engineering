@@ -6,7 +6,7 @@
 
 ## Purpose
 
-RAE must grow with the engineering work without requiring one conversation to understand the entire system. The tree is a repository-local, recursively extensible navigation map for durable technical context, project domains, formal decisions, and evidence references. It is not the live coordination bus, initiative ledger, executable task queue, dependency engine, lease store, or execution history; those mutable coordination records remain in Supabase.
+RAE must grow with the engineering work without requiring one conversation to understand the entire system. The tree is a repository-local, recursively extensible navigation map for durable technical context, project domains, formal decisions, and evidence references. It is not the live coordination bus, executable task queue, dependency engine, lease store, or execution history; those currently deployed coordination records remain in Supabase. The live RAE schema does not yet contain Initiative tables or RPCs; the candidate lifecycle in PR #31 is a separate, undeployed gate.
 
 The root stores compact navigation pointers and context wake-up hints, not active task priority or queue state. Project and domain branches own their local durable context. A branch may create children when new evidence, scope, or complexity justifies a split. Executable work remains represented by project-scoped Supabase tasks.
 
@@ -24,7 +24,7 @@ The root stores compact navigation pointers and context wake-up hints, not activ
 
 ### Knowledge and engineering-context tree
 
-Stored in the owning GitHub repository. It contains durable technical context, architecture, formal decisions, domain summaries, and evidence references. It may include a concise goal summary, but active goal/initiative state and executable dependencies remain authoritative in Supabase.
+Stored in the owning GitHub repository. It contains durable technical context, architecture, formal decisions, domain summaries, and evidence references. It may include a concise goal summary. Currently deployed project/task status, leases and execution records remain authoritative in Supabase. Active Initiative records and their lifecycle RPCs are not yet deployed; see the separate candidate PR #31.
 
 ### Executable task tree
 
@@ -40,7 +40,7 @@ A knowledge node may reference zero or more task IDs. A task may reference a kno
 - Session checkpoints: `knowledge/rae-tree/checkpoints/<date>-<short-id>.md`.
 - Node schema: `knowledge/rae-tree/node.schema.json`.
 
-The RAE root contains compact repository/context pointers and bounded wake-up hints, not the authoritative active-project registry or executable-work queue. Project-specific durable facts, technical context, formal decisions, and evidence references stay in the owning repository. Supabase remains authoritative for project registration, goals/initiatives, project-scoped tasks, dependencies, leases, executions, artifacts, events, and temporary collaboration handoffs. GitHub repositories are not a session registry or transient message bus.
+The RAE root contains compact repository/context pointers and bounded wake-up hints, not the authoritative active-project registry or executable-work queue. Project-specific durable facts, technical context, formal decisions, and evidence references stay in the owning repository. Supabase remains authoritative for project registration, project-scoped tasks, leases, executions, artifacts, events, and temporary collaboration handoffs. Initiative lifecycle state is intended to be stored there only after PR #31 is reviewed, deployed and verified; no live Initiative table/RPC is currently available. GitHub repositories are not a session registry or transient message bus.
 
 A project that has not yet adopted the tree is marked `pending_bootstrap`. A pointer is not evidence that the target file already exists. Adoption is incremental and repository-local.
 
@@ -93,7 +93,7 @@ Do not, by default:
 - recursively expand all tree descendants;
 - replay conversation history or old session reports.
 
-The root attention list helps navigate durable knowledge and wake due context branches; it does not replace Supabase project/initiative/task discovery or determine the highest-priority executable task by itself. If the Owner supplies a specific objective, prioritize work relevant to it while still respecting the active project registry, task authorization, and project isolation. Otherwise, select suitable work from the shared project-scoped queues. If a queue has no eligible task, follow that project's authorized discovery policy.
+The root attention list helps navigate durable knowledge and wake due context branches; it does not replace Supabase project/task discovery; Initiative lifecycle support remains gated on the separate review and deployment of PR #31 or determine the highest-priority executable task by itself. If the Owner supplies a specific objective, prioritize work relevant to it while still respecting the active project registry, task authorization, and project isolation. Otherwise, select suitable work from the shared project-scoped queues. If a queue has no eligible task, follow that project's authorized discovery policy.
 
 If the root index is missing, malformed, or stale, repair only that context index from authoritative repository evidence. Never reconstruct the active project registry or task queues from the tree; read them from Supabase.
 
