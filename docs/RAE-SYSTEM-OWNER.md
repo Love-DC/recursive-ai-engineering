@@ -51,9 +51,11 @@ The following operations remain protected by `private.assert_human_owner` and do
 - `private.set_project_execution_controls`: changing the project pause/kill-switch or execution cap.
 - `public.bind_worker_identity`: binding a Worker to a real Auth user remains JWT/Owner controlled.
 
-The legacy `private.begin_owner_mcp_context(project_id, owner_id)` remains available for the trusted Owner-MCP route where an explicit human Owner action is being carried out. It must be anchored to the actual `projects.owner_id`; it is not the RAE system identity.
+The legacy `private.begin_owner_mcp_context(project_id, owner_id)` remains available for the trusted Owner-MCP route when the human has explicitly supplied the relevant product/Owner decision. It must be anchored to the actual `projects.owner_id`; it is not the RAE system identity.
 
-An approved Initiative may be decomposed and executed by RAE. RAE cannot approve its own proposal, grant its own resource request, or remove a human pause control.
+Important limitation: the connected Supabase MCP SQL connection runs as `postgres`. The database can distinguish the explicit `rae-core` system context from the legacy Owner-MCP context, and the system context is rejected by the human-decision guard. However, the database cannot cryptographically prove that a legacy Owner-MCP call was initiated by a human rather than an AI session using the same privileged connection. That boundary therefore also depends on the Coordinator following the explicit-human-decision rule. A stronger technical separation would require a separate least-privilege authenticated channel or a human-issued approval capability; neither is currently available in this pilot.
+
+An approved Initiative may be decomposed and executed by RAE. RAE cannot approve its own proposal, grant its own resource request, or remove a human pause control through the `rae-core` system context.
 
 ## Security interpretation
 
