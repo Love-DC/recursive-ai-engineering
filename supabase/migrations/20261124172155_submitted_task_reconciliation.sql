@@ -206,7 +206,7 @@ BEGIN
               THEN dependent.requirements->'depends_on' ELSE '[]'::jsonb END
           ) d(value)
           WHERE jsonb_typeof(d.value)='string'
-            AND d.value #>> '{}' = ANY(ARRAY(SELECT x::text FROM unnest(v_related_task_ids) x))
+            AND d.value #>> '{}' = ANY(ARRAY(SELECT related_id::text FROM unnest(v_related_task_ids) AS ids(related_id)))
         )
       )
   ) THEN
