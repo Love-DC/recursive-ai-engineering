@@ -12,7 +12,7 @@ This addendum supersedes any assumption below that every task belongs to the ori
 - A direct owner request authorizes the current coordinator to execute a bounded engineering objective in the selected project. It does not authorize unapproved product decisions.
 - Never bulk-import Issues. An Issue becomes executable only under the target repository's local dispatch and authorization rules. An open Issue is not permission unless that repository explicitly defines an authorized activation path.
 - When a project queue is empty, follow docs/AUTONOMOUS-TASK-DISCOVERY.md; create only evidence-backed, deduplicated tasks permitted by that project's activation policy. Use only the selected repository's explicit task-activation policy; never infer authorization from backlog presence.
-- A leaf Worker does not merge its own PR or sibling PRs. The AI coordinator owns independent review and merge of eligible engineering-only PRs after the review checklist and exact-head CI pass. Product-owner approval remains required for product/design decisions, not routine engineering merges.
+- A leaf Worker does not merge its own PR or sibling PRs. The AI coordinator owns independent review and merge of eligible engineering-only PRs after the checklist in `docs/COORDINATOR-PR-REVIEW-AND-MERGE.md` and exact-head CI pass. Product-owner approval remains required for product/design decisions, not routine engineering merges.
 
 Use [Session Start](SESSION-START.md) as the canonical new-conversation entry point and [Multi-Project Architecture](MULTI-PROJECT-ARCHITECTURE.md) as the canonical routing/task contract.
 
@@ -45,7 +45,7 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 5. Read the task requirements and relevant GitHub files.
 6. Do the work. Commit durable code/documentation changes to GitHub and record the resulting commit or file references in the task result/artifacts.
 7. If the task is too large, create child implementation tasks using `create_task` and the original task's ID as `parent_task_id`. Record the child task IDs in the parent result. Other sessions can claim those children without knowing anything about the decomposing session.
-8. For pilot tasks, set `requires_review=false` and finish with `complete_execution`. Do not introduce a review/fix workflow unless the user explicitly asks for it.
+8. For pilot task records, set `requires_review=false` where the task-level pilot contract allows it and finish with `complete_execution`. This only disables a separate Supabase review-task lifecycle for that task; it does not waive the Coordinator's independent PR review and merge checklist. Do not add task-level review/fix child tasks unless target-repository governance or the task explicitly requires them.
 9. Submit a concise result containing what changed, GitHub references, verification performed, and remaining blockers.
 
 ## Lease behavior
@@ -100,7 +100,7 @@ select public.create_task(
 ) from auth;
 ```
 
-For a child task, pass the parent task UUID as the ninth argument (`p_parent_task_id`). Keep pilot tasks as `implementation` with `requires_review=false`.
+For a child task, pass the parent task UUID as the ninth argument (`p_parent_task_id`). Keep pilot task records as `implementation` with `requires_review=false` where the task-level pilot contract allows it; the Coordinator still performs independent PR review before merge.
 
 ### Atomic claim and completion
 
@@ -134,7 +134,7 @@ select public.complete_execution(
 ) from auth;
 ```
 
-Do not call `complete_execution` for review-required work; pilot work should set `requires_review=false`. Do not reuse an idempotency key with different arguments.
+Do not call `complete_execution` for task-level review-required work; when a pilot task uses `requires_review=false`, Coordinator PR review remains mandatory before merge. Do not reuse an idempotency key with different arguments.
 
 ### Querying handoff and project progress
 
@@ -194,7 +194,7 @@ The initial instruction is standing authorization for the AI Coordinator to carr
 - verify the exact merged commit and post-merge checks, record evidence, update task state, and continue with the next eligible task;
 - repeat the loop recursively until the requested outcome and its acceptance criteria are met or a genuine external blocker is reached.
 
-The Coordinator, not the Owner, owns integration review and merge. A leaf Worker must not approve or merge its own PR; it hands the PR to the Coordinator for independent review. This separation is an internal quality control, not a request for Owner approval. Do not interpret branch protection or a required CI check as a reason to ask the Owner to merge manually; satisfy the check or report the concrete platform restriction.
+The Coordinator, not the Owner, owns integration review and merge. A leaf Worker must not approve or merge its own PR; it hands the PR to the Coordinator for independent review. This separation is an internal quality control, not a request for Owner approval. Follow `docs/COORDINATOR-PR-REVIEW-AND-MERGE.md`. A task-level `requires_review=false` setting does not waive PR-level integration review. A formal GitHub `APPROVE` is not universally required: the reviewer must be a separate execution context from the implementer; if the connected GitHub identity is also the PR author, record the independent result as a `COMMENT` and in durable RAE evidence unless the target repository's explicit branch-protection policy requires a distinct approval. Do not create or request a second human account by default. Do not interpret ordinary branch protection or a required CI check as a reason to ask the Owner to merge manually; satisfy the check or report the concrete platform restriction.
 
 ### Do not turn internal workflow into Owner work
 
