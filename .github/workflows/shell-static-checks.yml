@@ -20,7 +20,8 @@ jobs:
           bash -n scripts/test-task-lifecycle.sh
           bash -n scripts/test-failure-recovery.sh
           bash -n scripts/test-fail-reclaim-race.sh
-          bash -n scripts/test-same-worker-concurrency.sh
+          bash -n scripts/test-same-worker-concurrency.sh scripts/test-initiative-support-advance-race.sh
+          bash -n scripts/test-initiative-support-advance-race.sh
 
       - name: Install ShellCheck
         run: |
