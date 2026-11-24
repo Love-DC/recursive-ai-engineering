@@ -112,3 +112,27 @@ The coordinator may merge when all of the following are true:
 - The resulting merge commit and post-merge CI are verified and recorded.
 
 If a check fails, request changes or repair within scope, then review the new head. If the change crosses a product, security, credential, production deployment, or irreversible data boundary, stop only at that boundary and create a specific decision request. Do not ask the owner to approve routine engineering PRs one by one.
+
+## Durable AI initiative lifecycle
+
+When the discovery pass finds an opportunity that should be preserved as a goal/proposal rather than immediately entering the executable task queue, use the dedicated AI Initiative lifecycle in [AI Initiative Lifecycle](AI-INITIATIVE-LIFECYCLE.md). This is especially important when a candidate needs an Owner decision, a missing capability, or a resource request. Do not leave such findings only in chat, and do not put them in `operation_requests`.
+
+At the start of a session, for each active project:
+
+1. Call `list_initiatives(project_id, status, limit)` to discover proposed, approved, in-progress, completed, rejected, and abandoned initiatives. Inspect pending support requests and durable handoffs with `get_initiative`.
+2. Continue an existing approved/in-progress initiative before proposing overlapping work. After one or more tasks become `accepted` (including required independent review), call `advance_initiative` with a fresh idempotency key. It marks accepted work items complete and materializes only the next dependency-ready wave.
+3. When a new evidence-backed opportunity needs a durable Owner decision, call `propose_initiative` with its origin, desired outcome, scope, evidence, impact rationale, risk, priority, resource budget, support needs, and stable project-scoped fingerprint. The RPC atomically deduplicates active proposals and returns a prior learning record for already-closed root causes.
+4. If blocked by a concrete missing capability/resource, first search connected integrations and repository evidence. Then call `request_initiative_support` with the exact capability, alternatives checked, rationale, what it unlocks, and requested resources. Do not create a claimable task for the blocked action.
+5. Wait for the Owner's persisted decision. `decide_initiative` must approve with a bounded acyclic work plan or reject. Approval creates the work-plan DAG, not claimable tasks. Call `advance_initiative` to materialize the initial ready wave.
+6. Execute materialized tasks through the existing task lifecycle. Do not bypass leases, review, or acceptance. A dependent work item is materialized only after all its predecessor tasks reach `accepted`.
+7. When the initiative reaches a terminal state, record a concise lesson and evidence with `record_initiative_learning`. The learning fingerprint suppresses rediscovery of the same resolved root cause. Use `abandon_initiative` when the Owner or valid project decision stops the initiative; it refuses to cancel work while tasks are running or submitted.
+
+### Candidate routing
+
+- **Low-risk bounded implementation with explicit autonomous activation:** use the existing discovery-task path when it is truly a direct executable defect and no reserved decision/resource is needed.
+- **A worthwhile goal requiring Owner approval or prioritization:** create an Initiative proposal; do not make it claimable before approval.
+- **A missing resource, permission, access path, paid service, or physical-world action:** create an Initiative support request and keep the blocked action out of the task queue.
+- **A product/security/production/destructive decision:** preserve evidence in the Initiative and wait at the decision boundary.
+- **A duplicate active proposal or a known completed lesson:** reuse the returned initiative/learning record instead of creating another root.
+
+This is session-driven coordination. A temporary GPT conversation can continue an initiative by reading its Supabase records; no permanent Coordinator, session identity, background daemon, or automatic GPT launcher is implied.
