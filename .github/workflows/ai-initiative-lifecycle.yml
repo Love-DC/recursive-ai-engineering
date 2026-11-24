@@ -1,0 +1,68 @@
+name: AI initiative lifecycle integration
+
+on:
+  push:
+    branches:
+      - main
+      - "ai/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  initiative-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Prepare isolated Supabase-compatible PostgreSQL fixture
+        run: |
+          set -euo pipefail
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE SCHEMA auth;
+          CREATE TABLE auth.users (id uuid PRIMARY KEY, deleted_at timestamptz, created_at timestamptz DEFAULT now());
+          CREATE FUNCTION auth.uid()
+          RETURNS uuid
+          LANGUAGE sql
+          STABLE
+          AS $function$
+            SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
+          $function$;
+          SQL
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/database-schema.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611230003_failure_reporting_retry.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611240001_ai_initiative_lifecycle.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
+          SQL
+
+      - name: Run initiative lifecycle acceptance tests
+        run: bash scripts/test-ai-initiative-lifecycle.sh
