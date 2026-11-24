@@ -55,7 +55,7 @@ The database gate permits ordinary project-scoped task/execution lifecycle write
 
 The eight-migration claim-safety gate does **not** authorize arbitrary production DDL, migration deployment, destructive operations, product decisions, or project activation changes. Production migrations require their separate authorization. Colony Sim remains `explicit_owner_authorization_only`; do not activate its task queue or change gameplay/product behavior under this platform gate.
 
-Do not probe `claim_task` with a dummy task, invalid Worker, or replay key: the deployed function can expire/fail an eligible stale execution before it selects a task. Prove mutation/race behavior only in isolated PostgreSQL fixtures. If the gate is closed, stale, contradictory, or cannot be proven open, do not invoke any production task/initiative/problem-report write RPC; do not call any task/initiative/Problem Inbox write RPC and remain read-only/repository-only.
+Do not probe `claim_task` with a dummy task, invalid Worker, or replay key: the deployed function can expire/fail an eligible stale execution before it selects a task. Prove mutation/race behavior only in isolated PostgreSQL fixtures. If the gate is closed, stale, contradictory, or cannot be proven open, do not invoke any production task/initiative/problem-report write RPC; do not call any task/initiative/Problem Inbox write RPC and remain read-only/repository-only. If the database gate becomes closed or cannot be proven open, do not invoke `claim_task` or any task-lifecycle write RPC. Before any claim, still verify the live migration registry and project-specific activation policy.
 
 ## Autonomous discovery
 
