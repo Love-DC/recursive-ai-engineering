@@ -197,7 +197,7 @@ BEGIN
               THEN dependent.requirements->'dependencies' ELSE '[]'::jsonb END
           ) d(value)
           WHERE d.value->>'type'='task'
-            AND d.value->>'task_id'=ANY(ARRAY(SELECT x::text FROM unnest(v_related_task_ids) x))
+            AND d.value->>'task_id'=ANY(ARRAY(SELECT related_id::text FROM unnest(v_related_task_ids) AS ids(related_id)))
         )
         OR EXISTS (
           SELECT 1
