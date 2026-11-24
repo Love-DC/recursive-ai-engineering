@@ -176,6 +176,8 @@ DECLARE
   v_exec uuid;
   v_review uuid;
   v_dependent uuid;
+  v_live_delivery uuid;
+  v_live_execution uuid;
   v_expected timestamptz;
   v_result jsonb;
   v_replay jsonb;
@@ -263,7 +265,9 @@ BEGIN
     RAISE EXCEPTION 'FAIL: idempotent reconciliation replay changed its result: %',v_replay;
   END IF;
 
-  -- Any running execution / live task lease blocks reconciliation.
+  -- A submitted original whose latest fix delivery has a live lease is blocked.
+  -- Keep the original task itself in a valid submitted state; the active execution
+  -- belongs to a separate running fix delivery, matching the production state model.
   INSERT INTO public.tasks(
     project_id,task_type,title,description,requirements,requires_review,status,priority
   ) VALUES (
@@ -271,15 +275,27 @@ BEGIN
     true,'submitted',-190
   ) RETURNING id INTO v_target;
   INSERT INTO public.executions(task_id,worker_id,attempt,status)
-  VALUES(v_target,v_worker,1,'running') RETURNING id INTO v_exec;
+  VALUES(v_target,v_worker,1,'submitted') RETURNING id INTO v_exec;
+  INSERT INTO public.tasks(
+    project_id,task_type,title,description,requirements,requires_review,status,priority,fixes_task_id
+  ) VALUES (
+    v_project,'fix','Reconciliation fixture: active fix delivery','Disposable fixture','{}'::jsonb,
+    true,'pending',-189,v_target
+  ) RETURNING id INTO v_live_delivery;
+  INSERT INTO public.executions(task_id,worker_id,attempt,status)
+  VALUES(v_live_delivery,v_worker,1,'running') RETURNING id INTO v_live_execution;
   UPDATE public.tasks
-  SET current_execution_id=v_exec,lease_until=clock_timestamp()+interval '5 minutes',
-      latest_delivery_task_id=v_target,latest_delivery_execution_id=v_exec
+  SET status='running',assigned_worker_id=v_worker,current_execution_id=v_live_execution,
+      lease_until=clock_timestamp()+interval '5 minutes'
+  WHERE id=v_live_delivery;
+  UPDATE public.tasks
+  SET latest_delivery_task_id=v_live_delivery,latest_delivery_execution_id=v_live_execution,
+      updated_at=clock_timestamp()
   WHERE id=v_target
   RETURNING updated_at INTO v_expected;
   BEGIN
     PERFORM public.reconcile_submitted_task(
-      v_target,v_expected,'Attempt to reconcile a live execution',v_evidence,
+      v_target,v_expected,'Attempt to reconcile while its fix delivery has a live lease',v_evidence,
       'reconcile-live-lease-'||gen_random_uuid()::text
     );
     RAISE EXCEPTION 'FAIL: live execution was unexpectedly reconciled';
