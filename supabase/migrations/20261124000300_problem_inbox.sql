@@ -207,7 +207,7 @@ BEGIN
     RAISE EXCEPTION USING errcode='22023',message='PROBLEM_REPORT_LIMIT_OUT_OF_RANGE';
   END IF;
   IF p_status IS NOT NULL AND p_status NOT IN
-    ('open','triaged','in_progress','owner_input_required','resolved','wont_fix') THEN
+    ('unresolved','open','triaged','in_progress','owner_input_required','resolved','wont_fix') THEN
     RAISE EXCEPTION USING errcode='22023',message='INVALID_PROBLEM_REPORT_STATUS';
   END IF;
   IF p_severity IS NOT NULL AND p_severity NOT IN ('info','low','medium','high','critical') THEN
@@ -223,7 +223,9 @@ BEGIN
     JOIN public.projects p ON p.id=r.project_id
     WHERE p.owner_id=auth.uid()
       AND p.status='active'
-      AND (p_status IS NULL OR r.status=p_status)
+      AND (p_status IS NULL
+        OR (p_status='unresolved' AND r.status IN ('open','triaged','in_progress','owner_input_required'))
+        OR r.status=p_status)
       AND (p_severity IS NULL OR r.severity=p_severity)
     ORDER BY r.created_at DESC
     LIMIT p_limit
