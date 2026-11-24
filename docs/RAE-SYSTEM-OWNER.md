@@ -65,8 +65,19 @@ Ordinary `anon` and `authenticated` sessions cannot call the private context ent
 
 Never expose the Supabase database-management connection or private context functions to public clients. Do not add service-role keys, database credentials, or synthetic JWT claims to prompts, tasks, repository files, or project config.
 
-## Deployment status
+## Live deployment status — verified 2026-11-25
 
-The migration and isolated PostgreSQL regression tests are maintained in this repository. A GitHub merge does not deploy production DDL. Until the migration is applied and the live principal, context helper, audit path, engineering RPCs, and human-decision negative tests are verified against the shared Supabase database, sessions must continue using only the previously deployed Owner-MCP context and must not claim that RAE has assumed live system-Owner authority.
+The system-owner migration `20261125130000_rae_system_owner_authority.sql` is deployed in the shared Supabase migration registry as `20261124220606`. The companion Problem Inbox context migration `20261125120000_owner_mcp_problem_inbox_context.sql` is deployed as `20261124220548`.
 
-The migration intentionally does not change existing projects' `owner_id`, `autonomy.paused`, execution caps, tasks, leases, or project data. It does not authorize production deployment by itself.
+Live verification confirmed:
+
+- The private `rae-core` principal is present and `active`.
+- `private.begin_rae_system_context(project_id)`, `private.assert_owner(project_id)`, and `private.assert_worker_actor(project_id, worker_id)` succeed for the registered RAE project and its own shared-executor Worker.
+- `private.system_principals` and `private.system_actor_audit` have RLS enabled and no direct table privileges for `anon` or `authenticated`.
+- Project-scoped `list_tasks` and Problem Inbox `list_problem_reports`, `get_problem_report`, and `update_problem_report` work in the bound System Owner context.
+- A live negative test confirmed that `private.set_project_execution_controls` rejects the `rae-core` context with `HUMAN_OWNER_DECISION_REQUIRED`; pause/kill-switch authority remains human-only.
+- RAE is currently `autonomy.paused=false`, `autonomy.max_active_executions=2`, enabled through the human Owner-MCP control path after explicit Owner instruction. Other projects were not changed by that operation.
+
+Routine RAE engineering sessions must use `private.begin_rae_system_context(project_id)` in the same transaction as all project-scoped RPCs. The legacy `private.begin_owner_mcp_context(project_id, owner_id)` is reserved for explicitly authorized human decisions and controls. Neither context fabricates `auth.uid()`, creates a JWT/Auth user, or grants public client access.
+
+The migration did not change any project's `owner_id`, gameplay, product design, or project settings beyond the explicitly authorized RAE operational pause control. The trusted Supabase MCP SQL connection still runs as PostgreSQL `postgres`; the scoped principal is not cryptographic isolation from a compromised admin connection.
