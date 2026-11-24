@@ -29,9 +29,14 @@ BEGIN
     RETURN '{}'::text[];
   END IF;
 
-  v_route := p_requirements->'required_worker_key';
-
-  IF v_route IS NULL OR jsonb_typeof(v_route)='null' THEN
+  -- A missing task route may inherit project routing. An explicitly present
+  -- JSON null is malformed and must fail closed rather than falling back.
+  IF coalesce(p_requirements ? 'required_worker_key',false) THEN
+    v_route := p_requirements->'required_worker_key';
+    IF jsonb_typeof(v_route)='null' THEN
+      RETURN '{}'::text[];
+    END IF;
+  ELSE
     v_route := v_config->'worker_routing'->'task_type_worker_keys'->p_task_type;
   END IF;
 
