@@ -75,13 +75,18 @@ BEGIN
     'summary','A second conversation observed the same root cause.',
     'impact','The same project delivery remains blocked.',
     'evidence',jsonb_build_array(jsonb_build_object(
-      'kind','execution','ref','fixture:execution-1','observation','Same missing handoff.'
+      'kind','execution','ref','fixture:execution-2','observation','A second session independently observed the same missing handoff.'
     )),
     'source','conversation','fingerprint','test:problem-inbox:handoff-gap'
   ),v_key||'-duplicate');
   IF v_duplicate->'data'->>'duplicate'<>'true'
      OR v_duplicate->'data'->>'report_id'<>v_report_id::text THEN
     RAISE EXCEPTION 'FAIL: active fingerprint did not deduplicate: %',v_duplicate;
+  END IF;
+  v_state:=public.get_problem_report(v_report_id);
+  IF jsonb_array_length(v_state->'data'->'report'->'evidence')<>2
+     OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_state->'data'->'events') e WHERE e->>'event_type'='duplicate_observed') THEN
+    RAISE EXCEPTION 'FAIL: duplicate observation evidence was not merged into the canonical report';
   END IF;
 
   -- Owner decisions are inbox records, never claimable tasks.
