@@ -36,12 +36,20 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 - Shared Worker ID: `78953b49-db9d-4fbc-9d3c-be3421a1c975`
 - Project ID: `61e32c05-39b7-47a6-ab5c-592c8e37d72d`
 
+## Mandatory production claim-safety gate
+
+Before using any task-pool write operation, follow the **Mandatory production claim-safety deployment gate** in `docs/SESSION-START.md`. The current documented live baseline is closed: the shared database has not applied the eight ordered safety/lifecycle migrations, and the deployed `claim_task` is missing task-type routing, dependency eligibility, and repository/branch exclusion. Re-check live state on every session; do not treat merged migrations or green CI as deployment evidence.
+
+While closed, use only read-only Supabase inspection plus authorized GitHub/repository work. Do not call `claim_task` (including dummy or failed probes), create/reassign/requeue/cancel/review tasks, mutate executions, or call Initiative/Problem Inbox write RPCs. The deployed `claim_task` can mutate expired executions before returning, so it is not a safe health probe. Record material findings in temporary Issue #42 as specified in `docs/PROBLEM-INBOX.md`.
+
+Opening this gate requires the separately authorized ordered migration rollout, live migration-registry and function-definition checks, exact-head isolated PostgreSQL integration evidence, and safe read-only live smoke checks. Mutation and race behavior must be proven in the isolated PostgreSQL fixture, not by synthetic production claims. Repository code merge, CI success, and this standing engineering authorization do not authorize production migration deployment.
+
 ## How to work
 
 1. Read the task queue and current task details from Supabase before acting. Never rely on another conversation's memory.
 2. If no eligible task exists, run the authorized discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md; do not stop before discovery and do not manufacture work.
 3. Create a task only when evidence, scope, deduplication, and project activation policy all permit it. Use that project's project UUID and its own active shared Worker UUID.
-4. Claim a task atomically with `claim_task`, using the shared Worker ID and a fresh idempotency key. A database-generated UUID is suitable for the key; it is not a session identity.
+4. Claim a task atomically with `claim_task` only after the mandatory production claim-safety gate in `docs/SESSION-START.md` is verified open for that database. If closed or uncertain, do not call any task-lifecycle write RPC and stay read-only; a failed `claim_task` probe is not safe because the deployed function may mutate expired executions before returning.
 5. Read the task requirements and relevant GitHub files.
 6. Do the work. Commit durable code/documentation changes to GitHub and record the resulting commit or file references in the task result/artifacts.
 7. If the task is too large, create child implementation tasks using `create_task` and the original task's ID as `parent_task_id`. Record the child task IDs in the parent result. Other sessions can claim those children without knowing anything about the decomposing session.
@@ -184,7 +192,7 @@ The Owner is **not expected** to manually provide task decomposition, implementa
 
 ### Standing authorization for autonomous engineering
 
-The initial instruction is standing authorization for the AI Coordinator to carry an in-scope engineering objective through its complete lifecycle, within the permissions of the already-connected accounts and the target repository's governance:
+The initial instruction is standing authorization for the AI Coordinator to carry an in-scope engineering objective through its complete lifecycle, within the permissions of the already-connected accounts and the target repository's governance. All task-pool writes remain conditional on the mandatory production claim-safety gate in `docs/SESSION-START.md`; this standing authorization does not open that gate or authorize production migration deployment:
 
 - inspect project state, repositories, task queues, Issues, PRs, CI, logs, and relevant operational evidence;
 - identify and prioritize evidence-backed work; create and decompose project-scoped tasks; claim and execute them;

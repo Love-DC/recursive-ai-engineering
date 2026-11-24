@@ -8,6 +8,18 @@ A Worker must not treat an empty queue as the end of useful work. It should insp
 
 Autonomy means initiative within a declared project boundary—not authority to make product decisions, bypass risk gates, deploy production systems, or turn arbitrary backlog into permission. The AI coordinator is authorized to independently review and merge eligible engineering PRs under the project's review checklist; leaf Workers hand off PRs and do not merge their own work.
 
+## Production task-pool write gate
+
+Autonomous discovery and repository inspection do not override the production claim-safety gate in `docs/SESSION-START.md`. The current shared Supabase database is documented as gate-closed until the ordered migrations are separately authorized, deployed and verified. While closed:
+
+- Discovery is read-only: inspect project-scoped queues, tasks, executions, repository files, Issues, PRs and CI without changing production task/execution state.
+- Do not call `create_task`, `claim_task`, task reassignment/requeue/review/cancellation RPCs, execution mutation RPCs, or Initiative/Problem Inbox write RPCs.
+- Do not use a dummy or failed `claim_task` call as a probe; it can mutate expired execution/task state before returning.
+- Record material findings on the single temporary intake issue in `docs/PROBLEM-INBOX.md` (Issue #42). Do not create a parallel intake issue or convert an Owner decision into a task.
+- Continue authorized repository-only maintenance and exact-head review work; keep all Supabase task state unchanged.
+
+The gate is database-scoped and applies to every project sharing that database. A project's explicit task-activation policy is an additional requirement, never a substitute for this platform safety gate. Re-check the live migration registry and deployed RPC behavior every session; do not rely on this dated snapshot.
+
 ## Discovery loop
 
 Run this loop at session start when no eligible task exists, and after completing a task when the current objective permits continued work:
