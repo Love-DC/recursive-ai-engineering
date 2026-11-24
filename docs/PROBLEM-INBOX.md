@@ -9,7 +9,7 @@ The problem inbox is the durable cross-session register for defects, blockers, r
 - GitHub remains authoritative for code, Issues, PRs, commits, and CI. Store links to those records in the report.
 - Do not leave a material finding only in a ChatGPT transcript, task description, or PR comment.
 
-The additive migration `20261124000400_problem_inbox.sql` is deployed in the shared RAE Supabase database. On 2026-11-25, the live `problem_reports` and `problem_report_events` tables and Problem Inbox RPCs were verified, and the owner-scoped `list_problem_reports('unresolved', null, 200)` read succeeded. Use this Supabase inbox as the normal cross-session source of truth; re-check availability at each session start.
+The additive migration `20261124000400_problem_inbox.sql` is deployed in the shared RAE Supabase database. On 2026-11-25, the live `problem_reports` and `problem_report_events` tables and Problem Inbox RPCs were verified, and the owner-scoped `list_problem_reports('unresolved', null, 200)` read succeeded. The active-session guard (`20261124181019`) and submitted-task reconciliation (`20261124182111`) migrations are also deployed; project activation remains separately controlled by each project's `task_activation` config. Use this Supabase inbox as the normal cross-session source of truth; re-check availability at each session start.
 
 ## What to report
 
@@ -121,6 +121,14 @@ During execution:
 3. If it requires Owner input, preserve it as `owner_input_required`; do not put it in the claimable task queue.
 4. Update the report as work progresses and resolve only with verified evidence.
 5. If a session cannot finish, leave the report and task state truthful so another fresh session can continue.
+
+## Current unresolved reports — 2026-11-25
+
+- Colony Sim bounded-autonomy activation and paused kill-switch policy: `0e5e40f3-f099-4810-a316-26f5f7e26e79`. The guard and reconciliation migrations are deployed. PR #432's bounded-autonomy policy is merged and independently accepted; follow-up PR #433 clarifies the paused-versus-unverified-gate wording in `AI_START_HERE.md`. Project activation still awaits the corrected owner-scoped config RPC in RAE PR #64.
+- RAE startup/live-deployment documentation drift: `adc5c02c-d9ce-4850-9181-0c137317f7ae`. This documentation refresh is the linked work.
+- Initiative/Problem Inbox foreign-key index review opportunity: `5dc26ae9-b877-47ed-a2fc-1036ff6fbe8b`.
+
+The legacy submitted-task reconciliation RPC gap (`af8b1fdd-785c-4a07-88a9-1cfbc06388c7`) is resolved by the deployed `reconcile_submitted_task` RPC; deployment did not bulk-mutate historical records.
 
 ## Exceptional fallback when the live inbox RPC is unavailable
 
