@@ -111,7 +111,7 @@ The deployed RPCs enforce project-owner/System Owner scope and preserve the exis
 At session start:
 1. Read this contract.
 2. Attempt the owner-scoped inbox read only after verifying the live connection context and RPC behavior. On success, inspect unresolved high/critical reports and all `owner_input_required` reports.
-3. If `list_problem_reports` returns `UNAUTHENTICATED` under Owner-MCP, treat the inbox status as unknown—not empty—and stop attempts to enumerate individual reports through that path.
+3. Use the project-bound `rae-core` context for RAE triage. If a live Inbox RPC fails, treat the inbox status as unknown—not empty—and stop attempts to infer individual report states through that path.
 4. Continue existing reports before creating overlapping work only when their current status and links were retrieved through an authorized read.
 5. If a required read/update RPC is unavailable, do not fabricate success or write directly to tables. Use only the exceptional Issue #42 fallback below and keep the exact availability blocker visible.
 
