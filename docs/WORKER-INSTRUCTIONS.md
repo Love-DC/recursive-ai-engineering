@@ -82,17 +82,14 @@ Use the same transaction for context initialization and protected RAE engineerin
 ```sql
 BEGIN;
 
--- Resolve the live Owner UUID from the project row; do not assume it is static.
-SELECT private.begin_owner_mcp_context(p.id, p.owner_id)
-FROM public.projects AS p
-WHERE p.id = 'PROJECT_UUID'::uuid
-  AND p.status = 'active';
+-- Normal RAE engineering context: bind the System Owner to one active project.
+SELECT private.begin_rae_system_context('PROJECT_UUID'::uuid);
 
--- Use the project's own Worker UUID and existing task RPCs.
+-- Use that project's own Worker UUID and existing task RPCs.
 SELECT public.list_tasks(
   'PROJECT_UUID'::uuid,
   NULL,
-  NULL,
+  'PROJECT_WORKER_UUID'::uuid,
   100,
   NULL
 );
