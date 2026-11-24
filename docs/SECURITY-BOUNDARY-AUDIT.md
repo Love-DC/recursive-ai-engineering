@@ -1,5 +1,7 @@
 # Supabase Security Boundary Audit
 
+> **Current live refresh — 2026-11-24 11:34 UTC:** The original audit sections below are historical snapshots. The eight task-safety, routing, dependency, Initiative, reassignment, Problem Inbox, review-recovery, and branch-exclusion migrations were separately authorized and applied to the shared production project. Current catalog/advisor results are appended at the end of this document. The owner-MCP pilot remains restricted to the trusted project owner; no independent/non-owner exposure is approved.
+
 **Initial inspection date:** 2026-11-23 (table/RLS and initial RPC baseline); **Live RPC/advisor refresh:** 2026-11-24 05:57 UTC  
 **Scope:** Read-only inspection of the live `recursive-ai-engineering` Supabase project and the default branch of this repository. No schema, grants, Auth settings, or deployment state were changed.
 
@@ -87,3 +89,33 @@ Before proposing any index removal:
 4. If removal remains justified, prepare a separate reviewed migration, validate it against a disposable database and workload, and obtain explicit authorization before any production DDL.
 
 **Disposition:** No indexes were dropped or altered. These observations are a dated baseline only; repeat the measurement after the pilot has accumulated representative workload. The existing security findings and production-exposure gates above remain unchanged.
+
+
+## Current live refresh — 2026-11-24 11:34 UTC
+
+**Project:** `rgztxilqcfuclkekyojl`  
+**Migration rollout:** eight ordered migrations applied; see `docs/SESSION-START.md` for the live version-to-filename registry.
+
+### Live privilege and RLS results
+
+- Public application tables: **14**; all **14** have RLS enabled.
+- `anon`: no direct table SELECT/INSERT/UPDATE/DELETE privileges and no EXECUTE privileges on public RPCs.
+- `authenticated`: SELECT only on the six existing owner-readable core tables; no direct table writes. The eight RLS/no-policy tables (`operation_requests`, `initiatives`, `initiative_work_items`, `initiative_support_requests`, `initiative_learnings`, `initiative_events`, `problem_reports`, `problem_report_events`) have no direct table privileges for either client role.
+- Public functions: **38**; SECURITY DEFINER: **38**; fixed `search_path=pg_catalog, public, auth, private`: **38**; effective EXECUTE for `anon`: **0**; effective EXECUTE for `authenticated`: **38**.
+- Owner-scoped read-only smoke checks passed for `list_tasks`, `list_initiatives`, and `list_problem_reports`.
+
+The Supabase Security Advisor reports **38** `authenticated_security_definer_function_executable` WARN findings, **8** `rls_enabled_no_policy` INFO findings, and **1** `auth_leaked_password_protection` WARN finding. The eight RLS/no-policy findings are fail-closed: direct table privileges are absent and the supported access path is the owner-authorized RPC layer. The SECURITY DEFINER warnings are not permission to admit independent authenticated users; the trusted owner-MCP pilot remains the only approved caller model. Leaked-password protection remains a gate before user-managed password authentication, not a requirement for the current owner-MCP connection.
+
+### Performance Advisor results
+
+- **12** `unindexed_foreign_keys` INFO findings across Initiative and Problem Inbox tables.
+- **8** `unused_index` INFO findings in the current low-traffic pilot sample.
+- Health Advisor: no findings.
+
+The unindexed-FK findings are recorded as a medium-priority Problem Inbox opportunity (`5dc26ae9-b877-47ed-a2fc-1036ff6fbe8b`). Review composite foreign-key index coverage and query patterns before adding indexes. Do not remove indexes solely because they have not yet been used in this small pilot dataset.
+
+### Disposition
+
+No direct table grants were added for the new tables. No SECURITY DEFINER function was exposed to `anon`. The live owner-scoped read checks passed. The production task claim-safety database gate is open for project-specific authorized work; project activation policies remain independently binding. Colony Sim autonomous activation remains blocked pending its approved policy rollout and the separate database-enforced concurrency/pause guard.
+
+No task claim or execution lifecycle mutation was performed as a smoke test. The audit does not approve independent/non-owner clients, new Auth users, production game deployment, or unrelated schema changes.
