@@ -16,6 +16,19 @@ DECLARE
   v_project uuid := current_setting('test.project_id')::uuid;
   v_keys text[];
 BEGIN
+  -- Missing task route inherits the configured project route; explicit JSON null
+  -- is malformed and must not inherit that same route.
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation','{}'::jsonb);
+  IF v_keys IS DISTINCT FROM ARRAY['test-worker-a']::text[] THEN
+    RAISE EXCEPTION 'FAIL: missing task route did not inherit project routing: %',v_keys;
+  END IF;
+
+  v_keys := private.resolve_task_worker_keys(v_project,'implementation',
+    '{"required_worker_key":null}'::jsonb);
+  IF v_keys IS DISTINCT FROM '{}'::text[] THEN
+    RAISE EXCEPTION 'FAIL: explicit JSON null task route fell back to project routing: %',v_keys;
+  END IF;
+
   v_keys := private.resolve_task_worker_keys(v_project,'implementation',
     '{"required_worker_key":[123]}'::jsonb);
   IF v_keys IS DISTINCT FROM '{}'::text[] THEN
