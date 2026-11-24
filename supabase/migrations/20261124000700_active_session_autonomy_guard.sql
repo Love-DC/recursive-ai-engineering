@@ -168,7 +168,34 @@ BEGIN
   PERFORM pg_advisory_xact_lock(hashtextextended('project-active-claims:'||p_project_id::text,0));
 
   SELECT CASE
-    WHEN (p.config #>> '{autonomy,max_active_executions}') ~ '^[1-9][0-9]? A PL/pgSQL cursor loop may
+    WHEN (p.config #>> '{autonomy,max_active_executions}') ~ '^[1-9][0-9]?$'
+      THEN LEAST((p.config #>> '{autonomy,max_active_executions}')::integer,2)
+    ELSE 2
+  END
+  INTO v_max_active_executions
+  FROM public.projects p
+  WHERE p.id=p_project_id;
+
+  SELECT count(*)::integer INTO v_active_executions
+  FROM public.tasks t
+  WHERE t.project_id=p_project_id
+    AND t.status='running'
+    AND t.current_execution_id IS NOT NULL
+    AND t.lease_until > v_now;
+
+  IF v_active_executions >= v_max_active_executions THEN
+    v_response := jsonb_build_object('success',true,'data',jsonb_build_object(
+      'task',null,
+      'dependency_blockers',v_dependency_blockers,
+      'blocked_reason','PROJECT_CONCURRENCY_LIMIT_REACHED',
+      'active_executions',v_active_executions,
+      'max_active_executions',v_max_active_executions
+    ));
+    PERFORM private.idempotency_put(p_project_id,'claim_task',p_idempotency_key,v_hash,v_response);
+    RETURN v_response;
+  END IF;
+
+  -- Select and lock one candidate per iteration. A PL/pgSQL cursor loop may
   -- prefetch and lock several rows before the loop body runs, starving another
   -- session that should be able to claim a different task for the same Worker.
   -- Remember branch-conflicted candidates and continue in queue order without
@@ -897,178 +924,6 @@ begin
   perform private.add_event(p_project_id,v_id,null,p_worker_id,'task_created',jsonb_build_object('task_type','implementation'));
   v_response:=jsonb_build_object('success',true,'data',(select to_jsonb(t) from public.tasks t where t.id=v_id));
   perform private.idempotency_put(p_project_id,'create_task',p_idempotency_key,v_hash,v_response);
-  return v_response;
-end;
-$function$
-;
-CREATE OR REPLACE FUNCTION public.create_review_task(p_original_task_id uuid, p_delivery_task_id uuid, p_delivery_execution_id uuid, p_reviewer_worker_id uuid, p_idempotency_key text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'pg_catalog', 'public', 'auth', 'private'
-AS $function$
-DECLARE
-  v_original public.tasks%rowtype;
-  v_delivery public.tasks%rowtype;
-  v_exec public.executions%rowtype;
-  v_reviewer_key text;
-  v_allowed_worker_keys text[];
-  v_hash text;
-  v_replay jsonb;
-  v_response jsonb;
-  v_review_id uuid;
-BEGIN
-  SELECT * INTO v_original FROM public.tasks WHERE id=p_original_task_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION USING errcode='P0002',message='ORIGINAL_TASK_NOT_FOUND';
-  END IF;
-  PERFORM private.assert_owner(v_original.project_id);
-
-  v_hash := private.request_hash(jsonb_build_object(
-    'original_task_id',p_original_task_id,'delivery_task_id',p_delivery_task_id,
-    'delivery_execution_id',p_delivery_execution_id,'reviewer_worker_id',p_reviewer_worker_id
-  ));
-  v_replay := private.idempotency_get(v_original.project_id,'create_review_task',p_idempotency_key,v_hash);
-  if v_replay is not null then return v_replay; end if;
-  perform private.assert_task_activation(v_original.project_id);
-
-  SELECT * INTO v_delivery
-  FROM public.tasks
-  WHERE id=p_delivery_task_id AND project_id=v_original.project_id
-  FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION USING errcode='23503',message='DELIVERY_TASK_PROJECT_MISMATCH';
-  END IF;
-
-  SELECT * INTO v_exec
-  FROM public.executions
-  WHERE id=p_delivery_execution_id AND task_id=p_delivery_task_id
-  FOR UPDATE;
-  IF NOT FOUND OR v_exec.status <> 'submitted' THEN
-    RAISE EXCEPTION USING errcode='55000',message='DELIVERY_EXECUTION_NOT_SUBMITTED';
-  END IF;
-
-  IF v_original.status <> 'submitted' THEN
-    RAISE EXCEPTION USING errcode='55000',message='ORIGINAL_TASK_NOT_SUBMITTED';
-  END IF;
-  IF v_delivery.task_type NOT IN ('implementation','fix') THEN
-    RAISE EXCEPTION USING errcode='22023',message='INVALID_DELIVERY_TASK_TYPE';
-  END IF;
-
-  IF p_delivery_task_id=p_original_task_id THEN
-    IF v_original.latest_delivery_task_id IS DISTINCT FROM p_original_task_id
-      OR v_original.latest_delivery_execution_id IS DISTINCT FROM p_delivery_execution_id THEN
-      RAISE EXCEPTION USING errcode='55000',message='DELIVERY_VERSION_NOT_CURRENT';
-    END IF;
-  ELSIF v_delivery.task_type <> 'fix'
-    OR v_delivery.fixes_task_id IS DISTINCT FROM p_original_task_id
-    OR v_original.latest_delivery_task_id IS DISTINCT FROM p_delivery_task_id
-    OR v_original.latest_delivery_execution_id IS DISTINCT FROM p_delivery_execution_id THEN
-    RAISE EXCEPTION USING errcode='55000',message='FIX_DELIVERY_NOT_CURRENT';
-  END IF;
-
-  SELECT w.worker_key INTO v_reviewer_key
-  FROM public.workers w
-  WHERE w.id=p_reviewer_worker_id
-    AND w.project_id=v_original.project_id
-    AND w.status='active';
-  IF NOT FOUND THEN
-    RAISE EXCEPTION USING errcode='42501',message='REVIEWER_PROJECT_MISMATCH';
-  END IF;
-
-  v_allowed_worker_keys := private.resolve_task_worker_keys(
-    v_original.project_id,'review','{}'::jsonb
-  );
-  IF NOT coalesce(v_reviewer_key = ANY(v_allowed_worker_keys),false) THEN
-    RAISE EXCEPTION USING errcode='42501',message='REVIEWER_ROUTE_MISMATCH';
-  END IF;
-
-  IF v_exec.worker_id=p_reviewer_worker_id THEN
-    RAISE EXCEPTION USING errcode='42501',message='REVIEWER_CANNOT_REVIEW_OWN_EXECUTION';
-  END IF;
-
-  -- A cancelled or exhausted review attempt is historical, not a permanent lock.
-  -- The original-task row lock above serializes concurrent replacements for this delivery.
-  IF EXISTS (
-    SELECT 1 FROM public.tasks
-    WHERE task_type='review'
-      AND review_target_original_task_id=p_original_task_id
-      AND review_target_delivery_task_id=p_delivery_task_id
-      AND review_target_execution_id=p_delivery_execution_id
-      AND status NOT IN ('cancelled','failed')
-  ) THEN
-    RAISE EXCEPTION USING errcode='23505',message='REVIEW_ALREADY_EXISTS';
-  END IF;
-
-  INSERT INTO public.tasks(
-    project_id,parent_task_id,task_type,title,description,requirements,requires_review,status,
-    assigned_worker_id,review_target_original_task_id,review_target_delivery_task_id,
-    review_target_execution_id,created_by_worker_id
-  )
-  VALUES(
-    v_original.project_id,p_original_task_id,'review','Review: '||v_original.title,
-    'Review fixed delivery execution '||p_delivery_execution_id,
-    jsonb_build_object(
-      'original_task_id',p_original_task_id,
-      'delivery_task_id',p_delivery_task_id,
-      'delivery_execution_id',p_delivery_execution_id
-    ),
-    false,'pending',p_reviewer_worker_id,p_original_task_id,p_delivery_task_id,
-    p_delivery_execution_id,null
-  )
-  RETURNING id INTO v_review_id;
-
-  PERFORM private.add_event(v_original.project_id,v_review_id,null,p_reviewer_worker_id,
-    'review_created',jsonb_build_object(
-      'original_task_id',p_original_task_id,
-      'delivery_task_id',p_delivery_task_id,
-      'delivery_execution_id',p_delivery_execution_id
-    ));
-
-  v_response := jsonb_build_object(
-    'success',true,'data',(SELECT to_jsonb(t) FROM public.tasks t WHERE t.id=v_review_id)
-  );
-  PERFORM private.idempotency_put(v_original.project_id,'create_review_task',p_idempotency_key,v_hash,v_response);
-  RETURN v_response;
-END;
-$function$
-;
-CREATE OR REPLACE FUNCTION public.create_fix_task(p_original_task_id uuid, p_review_task_id uuid, p_title text, p_description text, p_requirements jsonb, p_worker_id uuid, p_idempotency_key text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'pg_catalog', 'public', 'auth', 'private'
-AS $function$
-declare v_original public.tasks%rowtype; v_review public.tasks%rowtype; v_hash text; v_replay jsonb; v_response jsonb; v_fix_id uuid;
-begin
-  select * into v_original from public.tasks where id=p_original_task_id for update;
-  if not found then raise exception using errcode='P0002',message='ORIGINAL_TASK_NOT_FOUND'; end if;
-  perform private.assert_owner(v_original.project_id);
-  v_hash:=private.request_hash(jsonb_build_object('original_task_id',p_original_task_id,'review_task_id',p_review_task_id,'title',p_title,'description',p_description,'requirements',coalesce(p_requirements,'{}'::jsonb),'worker_id',p_worker_id));
-  v_replay:=private.idempotency_get(v_original.project_id,'create_fix_task',p_idempotency_key,v_hash);
-  if v_replay is not null then return v_replay; end if;
-  perform private.assert_task_activation(v_original.project_id);
-  select * into v_review from public.tasks where id=p_review_task_id and task_type='review' and project_id=v_original.project_id;
-  if not found or v_review.status <> 'accepted' or v_review.review_decision <> 'rejected'
-    or v_review.review_target_original_task_id <> p_original_task_id or v_original.status <> 'rejected' then
-    raise exception using errcode='55000',message='REJECTED_REVIEW_REQUIRED';
-  end if;
-  if v_review.review_evidence ? 'issues'
-    and coalesce(p_requirements,'{}'::jsonb)->'issues' is distinct from v_review.review_evidence->'issues' then
-    raise exception using errcode='22023',message='FIX_REQUIREMENTS_MUST_MATCH_REVIEW_ISSUES';
-  end if;
-  if not exists(select 1 from public.workers where id=p_worker_id and project_id=v_original.project_id and status='active') then
-    raise exception using errcode='42501',message='WORKER_PROJECT_MISMATCH';
-  end if;
-  insert into public.tasks(project_id,parent_task_id,fixes_task_id,task_type,title,description,requirements,
-    requires_review,status,created_by_worker_id)
-  values(v_original.project_id,p_original_task_id,p_original_task_id,'fix',p_title,p_description,
-    coalesce(p_requirements,'{}'::jsonb),true,'pending',p_worker_id)
-  returning id into v_fix_id;
-  perform private.add_event(v_original.project_id,v_fix_id,null,p_worker_id,'fix_task_created',
-    jsonb_build_object('original_task_id',p_original_task_id,'review_task_id',p_review_task_id));
-  v_response:=jsonb_build_object('success',true,'data',(select to_jsonb(t) from public.tasks t where t.id=v_fix_id));
-  perform private.idempotency_put(v_original.project_id,'create_fix_task',p_idempotency_key,v_hash,v_response);
   return v_response;
 end;
 $function$
