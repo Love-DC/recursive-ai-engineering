@@ -42,7 +42,7 @@ Before using any task-pool write operation, follow the **Mandatory production cl
 
 While closed, use only read-only Supabase inspection plus authorized GitHub/repository work. Do not call `claim_task` (including dummy or failed probes), create/reassign/requeue/cancel/review tasks, mutate executions, or call Initiative/Problem Inbox write RPCs. The deployed `claim_task` can mutate expired executions before returning, so it is not a safe health probe. Record material findings in temporary Issue #42 as specified in `docs/PROBLEM-INBOX.md`.
 
-Opening this gate requires the separately authorized ordered migration rollout, live migration-registry and function-definition checks, exact-head isolated PostgreSQL integration evidence, and safe read-only live smoke checks. Mutation and race behavior must be proven in the isolated PostgreSQL fixture, not by synthetic production claims. Repository code merge, CI success, and this standing engineering authorization do not authorize production migration deployment.
+Opening this gate requires the separately authorized ordered migration rollout, live migration-registry and function-definition checks, exact-head isolated PostgreSQL integration evidence, and safe read-only live smoke checks. The live predicate review must cover task-type routing and malformed-route failure behavior, dependency eligibility, normalized branch exclusion, reviewer routing and self-review prevention, safe pending-only reassignment/recovery, and execution/lease fencing. Mutation and race behavior must be proven in the isolated PostgreSQL fixture, not by synthetic production claims. Repository code merge, CI success, and this standing engineering authorization do not authorize production migration deployment.
 
 ## How to work
 
