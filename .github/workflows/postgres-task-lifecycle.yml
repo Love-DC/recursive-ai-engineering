@@ -17,7 +17,7 @@ permissions:
 jobs:
   postgres-integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:17
@@ -48,6 +48,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes postgresql-client jq
 
+      - name: Validate migration version inventory and dependency order
+        run: python3 scripts/test_migration_versions.py
+
       - name: Validate Worker-routing migration structure
         run: python3 scripts/test_worker_routing_migration_shape.py
 
@@ -61,7 +64,7 @@ jobs:
           CREATE ROLE anon NOLOGIN;
           CREATE ROLE authenticated NOLOGIN;
           CREATE SCHEMA auth;
-          CREATE TABLE auth.users (id uuid PRIMARY KEY);
+          CREATE TABLE auth.users (id uuid PRIMARY KEY, deleted_at timestamptz, created_at timestamptz DEFAULT now());
           CREATE FUNCTION auth.uid()
           RETURNS uuid
           LANGUAGE sql
@@ -74,6 +77,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611230003_failure_reporting_retry.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611230004_worker_task_routing_safe_release.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611240001_task_dependency_eligibility.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611240002_ai_initiative_lifecycle.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
           INSERT INTO public.projects(id,name,owner_id,status,config)
@@ -103,6 +107,12 @@ jobs:
 
       - name: Run task dependency eligibility integration tests
         run: psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -v owner_id="$SUPABASE_OWNER_ID" -v project_id="$SUPABASE_PROJECT_ID" -v worker_id="$SHARED_WORKER_ID" -f tests/task-dependency-eligibility-tests.sql
+
+      - name: Run AI Initiative lifecycle acceptance tests
+        run: bash scripts/test-ai-initiative-lifecycle.sh
+
+      - name: Run Initiative support/advance concurrency regression
+        run: bash scripts/test-initiative-support-advance-race.sh
 
       - name: Run failure reporting and bounded retry integration tests
         env:

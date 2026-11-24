@@ -1,6 +1,7 @@
 # AI Initiative Lifecycle
 
 **Status:** Implementation candidate; migration is not deployed.  
+**Migration source:** `supabase/migrations/202611240002_ai_initiative_lifecycle.sql` (applied only in isolated CI fixtures; not deployed to the live Supabase project).  
 **Scope:** Durable AI-originated proposals, Owner decisions, human-support requests, dependency-aware task materialization, and reusable learning.
 
 ## Design boundary

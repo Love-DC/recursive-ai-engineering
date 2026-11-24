@@ -14,6 +14,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Validate Supabase migration versions and ordering
+        run: python3 scripts/test_migration_versions.py
+
       - name: Validate Bash syntax
         run: |
           bash -n scripts/test-claim-concurrency.sh
