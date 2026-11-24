@@ -39,7 +39,21 @@ Never include credentials, secrets, personal data, or unbounded environment dump
 
 ## RPC contract
 
-The RPCs are deployed, but compatibility with the trusted Owner-MCP context is function-specific. The live function bodies were inspected on 2026-11-25; the following restrictions apply until a reviewed fix is separately authorized and deployed:
+The deployed Problem Inbox RPCs support three trusted authorization paths:
+
+- A genuine Supabase Auth Owner session, where `auth.uid()` resolves to the existing `projects.owner_id`.
+- The private, transaction-bound human Owner-MCP context, `private.begin_owner_mcp_context(project_id, owner_id)`, for explicit human Owner decisions and operational controls.
+- The private, transaction-bound RAE System Owner context, `private.begin_rae_system_context(project_id)`, for routine engineering and Problem Inbox work.
+
+When `auth.uid()` is NULL, the deployed authorization helpers recognize the exact project-bound Owner-MCP or RAE System Owner context. The context is not a JWT, is not exposed to public clients, and must be initialized in the same transaction as the protected RPCs. It clears at COMMIT or ROLLBACK.
+
+The RPCs have deliberately different project-scoping behavior:
+
+- `list_problem_reports(status, severity, limit)` establishes the human Owner scope from the active project bound to the current context, then lists matching reports across all active projects owned by that same `projects.owner_id`. Each returned report includes its own `project_id`.
+- `get_problem_report(report_id)` and `update_problem_report(report_id, ...)` require the current context to be bound to the exact project that owns that report. A context bound to the RAE project must not be reused to read or update a Colony Sim report; start a new transaction bound to that report's `project_id`.
+- `report_problem(project_id, worker_id, payload, idempotency_key)` calls `private.assert_owner(project_id)`; bind the RAE System Owner or human Owner-MCP context to the same target project. If a Worker ID is supplied, it must be active and belong to that project.
+
+All of these operations must use their documented RPCs. Never read or modify Problem Inbox tables directly. Preserve the existing JWT Owner path and project isolation. Do not synthesize `auth.uid()`, set JWT claim GUCs, or expose private context functions to public clients.
 
 ### Report a finding
 
@@ -69,7 +83,7 @@ Payload example:
 }
 ```
 
-Use a stable idempotency key derived from project + fingerprint. The function body delegates owner authorization to `private.assert_owner`, which recognizes the transaction-scoped Owner-MCP context for task RPCs; however, this session did not execute this mutating RPC and has not verified that `report_problem` succeeds end-to-end through Owner-MCP. Do not use a production mutation as a health probe. Treat Owner-MCP write compatibility as unverified until covered by isolated tests and an explicitly authorized end-to-end check.
+Use a stable idempotency key derived from project + fingerprint. The deployed `private.assert_owner` accepts the exact project-bound RAE System Owner or human Owner-MCP context when `auth.uid()` is NULL, while retaining the normal JWT Owner path. The live verification recorded here exercised the read/detail/update RPCs; it did not perform a live `report_problem` write. Do not use a production mutation as a health probe: call `report_problem` only when recording a concrete material finding, with the correct project UUID, project-scoped Worker (when supplied), evidence and stable fingerprint.
 
 ### Owner decisions
 
@@ -79,33 +93,47 @@ When a concrete Owner decision is required, create the report with:
 - evidence and impact
 - the alternatives and their consequences in the summary/recommended action
 
-This state is deliberately separate from the executable task queue. Do not create a pending implementation task for work that cannot proceed without the decision.
+This state is deliberately separate from the executable task queue. Do not create a pending implementation task for work that cannot proceed without the decision. RAE may prepare evidence and options but cannot decide the reserved product/Owner question.
 
 ### Link and resolve work
 
-**Owner-MCP limitation:** `update_problem_report` first filters the report by `projects.owner_id=auth.uid()` before calling `private.assert_owner`. With `auth.uid()` NULL, this path cannot resolve the report. Do not call it through the current Owner-MCP connection and do not update the tables directly. Production repair of this authorization path requires a reviewed security change and separate deployment authorization.
+Use `update_problem_report(report_id, status, note, linked_task_id, linked_pr_url, idempotency_key)` through the project-bound RAE System Owner context for routine engineering triage and resolution. The deployed function checks the report's owning project against the active RAE System Owner or Owner-MCP context before calling `private.assert_owner`; it is not limited to a non-NULL `auth.uid()`.
 
-When a supported authenticated Owner context is available and the RPC has been live-verified, use `update_problem_report(report_id, status, note, linked_task_id, linked_pr_url, idempotency_key)` to:
-- move a report through `open`, `triaged`, `in_progress`, and `owner_input_required`;
-- link the actual project-scoped task and PR;
-- mark it `resolved` only after verifying the fix or decision outcome;
-- mark it `wont_fix` only with a concise rationale.
-
-Terminal reports can be reopened explicitly to `open` or `triaged`. Every state transition is appended to `problem_report_events`; event history is immutable.
-
-### Read the Owner's inbox
-
-Use the bound RAE System Owner context for normal engineering triage:
+First list the Owner's unresolved reports. For a selected report, use the `project_id` returned with that report to initialize a new transaction-bound context. Read the report detail before changing its status. Example:
 
 ```sql
 BEGIN;
-SELECT private.begin_rae_system_context('<RAE project UUID>'::uuid);
-SELECT public.list_problem_reports('unresolved', null, 200);
+SELECT private.begin_rae_system_context('<report project UUID>'::uuid);
 SELECT public.get_problem_report('<report UUID>'::uuid);
+SELECT public.update_problem_report(
+  '<report UUID>'::uuid,
+  'in_progress',
+  'Linked to the verified project-scoped engineering task.',
+  '<same-project task UUID>'::uuid,
+  'https://github.com/owner/repo/pull/123',
+  'inbox-update:<stable-report-and-transition-key>'
+);
 COMMIT;
 ```
 
-The deployed RPCs enforce project-owner/System Owner scope and preserve the existing JWT Owner path. Pass `unresolved` to return open, triaged, in-progress, and Owner-input-required reports. Verify the live list/get result before updating a report; never treat an RPC failure as an empty inbox.
+The report UUID, task UUID, PR URL and bound project must refer to the same project. For an explicitly human-authorized decision/control operation only, the human Owner-MCP context may be used instead, bound to that same project and actual `projects.owner_id`. Do not use the human route as a substitute for routine System Owner work.
+
+Valid status transitions include `open`, `triaged`, `in_progress`, and `owner_input_required`; mark `resolved` only after verifying the fix or decision outcome, and `wont_fix` only with a concise rationale. Terminal reports can be reopened explicitly to `open` or `triaged`. Every state transition is appended to `problem_report_events`; event history is immutable.
+
+### Read the Owner's inbox
+
+Use an active RAE System Owner context to list the Owner's unresolved reports across registered projects:
+
+```sql
+BEGIN;
+SELECT private.begin_rae_system_context('<active project UUID owned by this Owner>'::uuid);
+SELECT public.list_problem_reports('unresolved', null, 200);
+COMMIT;
+```
+
+The list response includes each report's `project_id`. For every report that needs detail or an update, start a separate transaction with `private.begin_rae_system_context('<that report project_id>'::uuid)`, then call `get_problem_report` or `update_problem_report`. The RAE context is project-bound; do not carry a single project's context across another project's detail or update RPC.
+
+
 ## Required session behavior
 
 At session start:
