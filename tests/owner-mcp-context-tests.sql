@@ -551,7 +551,7 @@ BEGIN
     SELECT 1 FROM jsonb_array_elements(v_list->'data') AS items(item)
     WHERE item->>'id'=v_primary_report->'data'->>'report_id'
   ) THEN
-    RAISE EXCEPTION 'FAIL: Owner-MCP inbox list omitted the bound project's report: %',v_list;
+    RAISE EXCEPTION 'FAIL: Owner-MCP inbox list omitted the bound project report: %',v_list;
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM jsonb_array_elements(v_list->'data') AS items(item)
