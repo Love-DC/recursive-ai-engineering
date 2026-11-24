@@ -24,7 +24,8 @@ jobs:
           bash -n scripts/test-failure-recovery.sh
           bash -n scripts/test-fail-reclaim-race.sh
           bash -n scripts/test-same-worker-concurrency.sh
-          bash -n scripts/test-initiative-support-advance-race.sh
+          bash -n scripts/test-initiative-support-advance-race.sh scripts/test-problem-inbox.sh
+          bash -n scripts/test-problem-inbox.sh
 
       - name: Validate lifecycle workflow YAML
         run: ruby -e 'require "yaml"; YAML.load_file(".github/workflows/resource-lifecycle.yml")'
