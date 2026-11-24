@@ -28,6 +28,7 @@ A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversati
 
 ## Start here
 
+- [RAE Problem Inbox](docs/PROBLEM-INBOX.md): cross-session findings, Owner decisions, evidence, deduplication, and the temporary intake fallback until deployment.
 - [Autonomous Task Discovery & Generation](docs/AUTONOMOUS-TASK-DISCOVERY.md): evidence-based discovery, project authorization, deduplication, and empty-queue behavior.
 - [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the coordinator route and execute it.
 - [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, and task metadata.
