@@ -614,6 +614,58 @@ END
 $owner_mcp_problem_inbox$;
 ROLLBACK;
 
+-- Preserve the original authenticated-JWT Owner path after the function
+-- replacement, including list, detail, and update.
+BEGIN;
+SELECT set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000001',
+  true
+);
+SELECT set_config(
+  'request.jwt.claims',
+  '{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',
+  true
+);
+SET LOCAL ROLE authenticated;
+DO $jwt_problem_inbox$
+DECLARE
+  v_list jsonb;
+  v_report_id uuid;
+  v_detail jsonb;
+  v_update jsonb;
+BEGIN
+  v_list := public.list_problem_reports('unresolved',NULL,200);
+  SELECT (item->>'id')::uuid INTO v_report_id
+  FROM jsonb_array_elements(v_list->'data') AS items(item)
+  WHERE item->>'project_id'='00000000-0000-4000-8000-000000000011'
+  LIMIT 1;
+  IF v_report_id IS NULL THEN
+    RAISE EXCEPTION 'FAIL: authenticated Owner could not list its Problem Inbox report';
+  END IF;
+
+  v_detail := public.get_problem_report(v_report_id);
+  IF v_detail->'data'->'report'->>'id' IS DISTINCT FROM v_report_id::text THEN
+    RAISE EXCEPTION 'FAIL: authenticated Owner could not read report detail: %',v_detail;
+  END IF;
+
+  v_update := public.update_problem_report(
+    v_report_id,
+    'in_progress',
+    'Verified existing JWT Owner authorization after migration.',
+    NULL,
+    NULL,
+    'jwt-owner-problem-inbox-regression'
+  );
+  IF v_update->'data'->>'status' IS DISTINCT FROM 'in_progress' THEN
+    RAISE EXCEPTION 'FAIL: authenticated Owner update path regressed: %',v_update;
+  END IF;
+
+  RAISE NOTICE 'PASS: authenticated JWT Owner Problem Inbox list/get/update';
+END
+$jwt_problem_inbox$;
+ROLLBACK;
+
 -- The normal PostgREST auth boundary remains unchanged. An authenticated role
 -- with no JWT does not inherit the trusted postgres Owner-MCP context.
 BEGIN;
