@@ -118,6 +118,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000300_task_worker_routing_safe_reassignment.sql"),
                 Path("20261124000400_problem_inbox.sql"),
                 Path("20261124000500_review_task_cancellation_recovery.sql"),
+                Path("20261124000600_exclusive_branch_claim.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -132,6 +133,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000300_task_worker_routing_safe_reassignment.sql"),
                 Path("20261124000400_problem_inbox.sql"),
                 Path("20261124000500_review_task_cancellation_recovery.sql"),
+                Path("20261124000600_exclusive_branch_claim.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -146,6 +148,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
                 Path("20261124000400_problem_inbox.sql"),
                 Path("20261124000500_review_task_cancellation_recovery.sql"),
+                Path("20261124000600_exclusive_branch_claim.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -158,6 +161,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000100_task_dependency_eligibility.sql"),
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
                 Path("20261124000300_review_task_cancellation_recovery.sql"),
+                Path("20261124000600_exclusive_branch_claim.sql"),
                 Path("20261124000400_task_worker_routing_safe_reassignment.sql"),
                 Path("20261124000500_problem_inbox.sql"),
             ]
@@ -173,6 +177,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
                 Path("20261124000300_task_worker_routing_safe_reassignment.sql"),
                 Path("20261124000400_review_task_cancellation_recovery.sql"),
+                Path("20261124000600_exclusive_branch_claim.sql"),
                 Path("20261124000500_problem_inbox.sql"),
             ]
         )
