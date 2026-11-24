@@ -442,7 +442,7 @@ BEGIN
   IF v_replay IS NOT NULL THEN RETURN v_replay; END IF;
 
   PERFORM pg_advisory_xact_lock(hashtextextended(
-    p_initiative_id::text||':'||p_payload->>'request_kind'||':'||lower(btrim(p_payload->>'capability')),0
+    p_initiative_id::text||':'||(p_payload->>'request_kind')||':'||lower(btrim(p_payload->>'capability')),0
   ));
   SELECT id INTO v_existing_id FROM public.initiative_support_requests
     WHERE initiative_id=p_initiative_id AND request_kind=p_payload->>'request_kind'
@@ -676,7 +676,7 @@ BEGIN
   UPDATE public.initiative_work_items SET status='cancelled',updated_at=clock_timestamp()
     WHERE initiative_id=p_initiative_id AND status='planned';
   UPDATE public.initiatives SET status='abandoned',decision_note=left(p_reason,2000),
-    updated_at=clock_timestamp() WHERE id=p_initiative_id;
+    completed_at=clock_timestamp(),updated_at=clock_timestamp() WHERE id=p_initiative_id;
   INSERT INTO public.initiative_events(initiative_id,project_id,event_type,payload)
   VALUES (p_initiative_id,v_initiative.project_id,'initiative_abandoned',
     jsonb_build_object('reason',left(p_reason,1000)));
