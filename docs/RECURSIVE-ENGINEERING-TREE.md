@@ -1,19 +1,20 @@
 # Recursive Engineering Tree
 
-**Status:** Initial architecture contract for the session-triggered RAE runtime  
-**Version:** 1.0  
-**Runtime boundary:** One manually started ChatGPT conversation at a time
+**Status:** Repository-local context-navigation contract for the shared-state RAE runtime  
+**Version:** 1.1  
+**Runtime boundary:** Multiple Owner-started ChatGPT conversations may run concurrently
 
 ## Purpose
 
-RAE must grow with the engineering work without requiring one conversation to understand the entire system. The tree is a persistent, recursively extensible map of goals, knowledge, project domains, dependencies, and executable work. It is not a pre-generated taxonomy and it is not a second task queue.
+RAE must grow with the engineering work without requiring one conversation to understand the entire system. The tree is a repository-local, recursively extensible navigation map for durable technical context, project domains, formal decisions, and evidence references. It is not the live coordination bus, initiative ledger, executable task queue, dependency engine, lease store, or execution history; those mutable coordination records remain in Supabase.
 
-The root stores navigation and a compact global state. Project and domain branches own their local context. A branch may create children whenever new evidence, scope, or complexity justifies a split. A leaf is work that can be completed and verified without further decomposition.
+The root stores compact navigation pointers and context wake-up hints, not active task priority or queue state. Project and domain branches own their local durable context. A branch may create children when new evidence, scope, or complexity justifies a split. Executable work remains represented by project-scoped Supabase tasks.
 
 ## Runtime contract
 
-- The only assumed AI runtime is the GPT conversation the Owner manually starts.
-- No permanent Coordinator, daemon, timer, background scheduler, automatic session launch, or concurrent GPT conversation is required.
+- The Owner may manually start multiple GPT conversations and run them concurrently; each conversation is temporary and replaceable.
+- RAE does not launch GPT conversations or require a permanent Coordinator, daemon, timer, or background scheduler.
+- Every conversation follows the same startup and shared-state protocol; atomic project-scoped claims and execution fencing coordinate concurrent work.
 - Coordinator, Worker, Reviewer, Researcher, and Auditor describe responsibilities, not guaranteed model instances. The active conversation performs the responsibilities it is authorized and capable of performing.
 - A Supabase Worker row is a project-scoped task-routing identifier. It is not an AI process, session, or proof of independent review.
 - A fresh conversation must recover from GitHub tree records and Supabase task state without the previous chat transcript.
@@ -23,7 +24,7 @@ The root stores navigation and a compact global state. Project and domain branch
 
 ### Knowledge and engineering-context tree
 
-Stored in the owning GitHub repository. It contains durable goals, project facts, architecture, decisions, domain summaries, dependencies, evidence references, wake conditions, and checkpoints. Its nodes may exist without executable tasks.
+Stored in the owning GitHub repository. It contains durable technical context, architecture, formal decisions, domain summaries, and evidence references. It may include a concise goal summary, but active goal/initiative state and executable dependencies remain authoritative in Supabase.
 
 ### Executable task tree
 
@@ -39,7 +40,7 @@ A knowledge node may reference zero or more task IDs. A task may reference a kno
 - Session checkpoints: `knowledge/rae-tree/checkpoints/<date>-<short-id>.md`.
 - Node schema: `knowledge/rae-tree/node.schema.json`.
 
-The RAE root contains only compact project pointers and global attention items. Project facts, project decisions, domain context, and detailed checkpoints stay in the owning project repository. Supabase remains the central registry and task/execution coordination plane; it must not become a second knowledge store.
+The RAE root contains compact repository/context pointers and bounded wake-up hints, not the authoritative active-project registry or executable-work queue. Project-specific durable facts, technical context, formal decisions, and evidence references stay in the owning repository. Supabase remains authoritative for project registration, goals/initiatives, project-scoped tasks, dependencies, leases, executions, artifacts, events, and temporary collaboration handoffs. GitHub repositories are not a session registry or transient message bus.
 
 A project that has not yet adopted the tree is marked `pending_bootstrap`. A pointer is not evidence that the target file already exists. Adoption is incremental and repository-local.
 
@@ -77,24 +78,25 @@ Completed branches can be compacted and archived. Archive means no longer loaded
 
 ## Lazy context loading
 
-Default session bootstrap loads only:
+Default session bootstrap loads:
 
 1. This RAE entrypoint and its required platform security/governance rules.
-2. `knowledge/rae-root/index.json`.
-3. The selected project tree index, if the objective or attention queue selects that project.
-4. The selected node, its ancestor summaries, and only the explicit dependencies/context references required for the next action.
-5. The specific task and execution records needed to perform the selected work.
+2. `knowledge/rae-root/index.json` as a context-navigation index only.
+3. A compact live registry and task-queue overview: inspect every active `public.projects` row and each corresponding project-scoped task queue, without loading full descriptions or history.
+4. Select eligible work from the shared union of queues using persisted status, priority, dependencies, lease state, authorization, and task-required Worker route. Atomic `claim_task` is the authority for ownership.
+5. After a successful claim, load the selected project's tree index, selected node, ancestor summaries, and only explicit dependencies/context references required for that task.
+6. Load full task/execution context and repository governance from the target project's pinned SHA. Read every declared governance file at that same SHA.
 
 Do not, by default:
-- enumerate every task in every project;
-- fetch all task descriptions, child trees, executions, artifacts, or task events;
-- read every project's governance and knowledge documents;
-- recursively expand all descendants;
+- load every task description, execution, artifact, child task, or event history across all projects;
+- read every project's repository governance and knowledge documents;
+- recursively expand all tree descendants;
 - replay conversation history or old session reports.
 
-If the Owner supplies a specific project/objective, route directly to that project and branch. If no objective is supplied, consult the compact root attention queue and select the highest-priority due or resumable branch. Resolve the selected project's live registry row and repository before accessing project-local state. Do not scan unrelated projects just to prove they exist; the root index and registry summary are sufficient until routing requires more.
+The root attention list helps navigate durable knowledge and wake due context branches; it does not replace Supabase project/initiative/task discovery or determine the highest-priority executable task by itself. If the Owner supplies a specific objective, prioritize work relevant to it while still respecting the active project registry, task authorization, and project isolation. Otherwise, select suitable work from the shared project-scoped queues. If a queue has no eligible task, follow that project's authorized discovery policy.
 
-If the root index is missing, malformed, or stale, repair only the root index from authoritative live project registry data and repository evidence. Do not rebuild every project tree.
+If the root index is missing, malformed, or stale, repair only that context index from authoritative repository evidence. Never reconstruct the active project registry or task queues from the tree; read them from Supabase.
+
 
 ## Wake-up, staleness, and inactivity
 
@@ -143,8 +145,8 @@ A checkpoint is a continuation packet, not a transcript. Keep one current checkp
 2. Add the RAE root index and initialize the RAE project-local tree.
 3. Add project-local trees to other repositories only after reading their own governance and receiving the required repository authorization. Until then, mark their pointer as pending.
 4. Link existing root tasks to relevant knowledge nodes only when a real relationship is known. Do not bulk-convert or rewrite historical tasks.
-5. Update session startup to navigate by root index, objective, and attention queue rather than reading every project queue.
-6. Introduce task queue queries only after a project branch has been selected; use existing project-scoped RPCs and atomic claim.
+5. Use the root index to navigate durable context, while session startup continues to inspect compact project-scoped queues across all active registered projects.
+6. Select and atomically claim eligible work from the shared union of queues before loading full task details or expanding the selected project tree.
 7. Add context-budget and fresh-session acceptance tests before considering any schema expansion.
 8. Consider a Supabase schema change only if measured limitations cannot be solved with repository-local indexes and existing task metadata. Such a change requires a separate reviewed migration and must not duplicate project knowledge.
 
@@ -159,9 +161,10 @@ The credential-free structural and context-budget check is `python scripts/test_
 - A child update is reflected in its ancestors without loading unrelated siblings.
 - Dormant nodes can be awakened by due review, dependency/evidence change, or new objective.
 - Inactivity never triggers destructive cleanup.
-- A fresh conversation can resume from a checkpoint without chat history.
-- Existing task lifecycle, execution fencing, and project isolation remain unchanged.
-- No fixed Coordinator process or independent GPT session is assumed.
+- A fresh conversation can resume from persisted Supabase state and repository context without chat history.
+- Multiple concurrently active conversations coordinate through project-scoped atomic claims and execution fencing.
+- Existing task lifecycle, dependency eligibility, execution fencing, and project isolation remain authoritative.
+- No fixed Coordinator process, session identity, or background GPT launcher is assumed.
 
 ## Checkpoint and live-state authority
 
