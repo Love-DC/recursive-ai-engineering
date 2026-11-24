@@ -11,19 +11,29 @@ on:
       - "docs/REPOSITORY-GOVERNANCE-PROTOCOL.md"
       - "docs/ADR-001-REPOSITORY-LOCAL-GOVERNANCE.md"
       - "docs/SESSION-START.md"
+      - "docs/COORDINATOR-PR-REVIEW-AND-MERGE.md"
+      - "docs/MULTI-PROJECT-ARCHITECTURE.md"
       - "docs/WORKER-INSTRUCTIONS.md"
       - "docs/AUTONOMOUS-TASK-DISCOVERY.md"
+      - "docs/SECURITY-BOUNDARY-AUDIT.md"
+      - "docs/PROBLEM-INBOX.md"
       - ".github/workflows/repository-governance.yml"
   push:
     branches: [main]
     paths:
       - "rae-governance.json"
+      - "README.md"
       - "scripts/repository_governance.py"
       - "tests/test_repository_governance.py"
       - "docs/REPOSITORY-GOVERNANCE-PROTOCOL.md"
+      - "docs/ADR-001-REPOSITORY-LOCAL-GOVERNANCE.md"
       - "docs/SESSION-START.md"
+      - "docs/COORDINATOR-PR-REVIEW-AND-MERGE.md"
+      - "docs/MULTI-PROJECT-ARCHITECTURE.md"
       - "docs/WORKER-INSTRUCTIONS.md"
       - "docs/AUTONOMOUS-TASK-DISCOVERY.md"
+      - "docs/SECURITY-BOUNDARY-AUDIT.md"
+      - "docs/PROBLEM-INBOX.md"
       - ".github/workflows/repository-governance.yml"
 
 permissions:
