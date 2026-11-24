@@ -21,11 +21,14 @@ The Coordinator may merge only when every applicable item is true:
 2. **Exact revision**
    - Record the current PR base SHA and head SHA.
    - Inspect the complete diff, changed paths, and any relevant base changes.
+   - Compare every changed path against the exact task `requirements.allowed_paths` and any separately recorded maintenance authorization. The PR's changed-path set must be a subset of the authorized set; do not retroactively widen an existing task allowlist. Put out-of-scope changes in a separately authorized task/PR.
    - The review result must name the exact head SHA. If the head moves after review, review the new head again.
 
 3. **Independent review**
    - Review implementation correctness, requirements, edge cases, authorization/security boundaries, migration/rollback implications, and test adequacy.
    - Record an explicit decision: accepted, or changes required. Include evidence and blocking findings.
+   - The latest review disposition for the exact current head is authoritative. A later `CHANGES_REQUIRED` finding supersedes any earlier acceptance/comment until the finding is fixed and a fresh review explicitly accepts the new exact head.
+   - Treat the semantic disposition in review evidence as authoritative even when GitHub records the review event as `COMMENTED`; never merge while the latest review says changes are required or any blocking finding remains.
    - A blocking finding creates or updates a bounded fix task. The Coordinator tracks the repair and performs a fresh review; do not ask the Owner to coordinate routine fixes.
    - Resolve blocking review threads before merge.
 
