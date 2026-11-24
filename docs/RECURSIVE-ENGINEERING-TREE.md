@@ -59,7 +59,7 @@ Every node has:
 - `wake_conditions`, `last_reviewed_at`, `next_review_at`, and `last_activity_at`.
 - A checkpoint pointer when work is in progress or has an unresolved handoff.
 
-The schema is versioned. A node summary is a maintained index, not a transcript. Keep it concise and move detail into child nodes or source documents.
+The schema is versioned. A node summary is a maintained index, not a transcript. Keep it concise and move detail into child nodes or source documents. A node's bounded `goal` describes its knowledge-navigation scope; it is not the live RAE initiative or executable task record.
 
 ## Recursive growth and compaction
 
