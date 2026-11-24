@@ -37,7 +37,7 @@ SELECT public.list_tasks(
 COMMIT;
 ```
 
-The context is transaction-local and bound to exactly one active project. Use a separate transaction for another project. Its audit row records the system principal, project, human product-owner reference, database role, backend and transaction. It never sets `auth.uid()` or invents a JWT.
+The context is transaction-local and bound to exactly one active project. Use a separate transaction for another project. Its audit row records the system principal, project, human product-owner reference, database role, backend and transaction. It never sets `auth.uid()` or invents a JWT. The RAE system context and legacy human Owner-MCP context are mutually exclusive in one transaction; use separate transactions, and never use the Owner-MCP context unless the human has explicitly supplied the relevant decision.
 
 The RAE context uses the existing engineering RPCs and preserves their independent project routing, task activation, dependency, concurrency, lease, retry, branch-exclusion, and review checks. A system context cannot be reused for another project.
 
