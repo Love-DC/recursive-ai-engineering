@@ -179,7 +179,7 @@ jobs:
           bash -n scripts/test-task-branch-claim-race.sh
           bash scripts/test-task-branch-claim-race.sh
 
-      - name: Apply repository-authoritative activation and trusted Owner-MCP migrations
+      - name: Apply repository-authoritative activation and Owner-MCP registration migrations
         run: |
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124181237_owner_scoped_project_activation.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124183843_repository_authoritative_activation_guard.sql
