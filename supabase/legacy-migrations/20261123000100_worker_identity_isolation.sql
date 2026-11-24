@@ -1,3 +1,6 @@
+-- ARCHIVED: Historical change already incorporated into supabase/migrations/database-schema.sql.
+-- Do not apply this file after the current baseline schema snapshot.
+
 -- Worker identity isolation v1.2
 -- Apply after database-schema.sql. Safe for an existing MVP v1.1 database.
 

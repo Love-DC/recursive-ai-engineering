@@ -3,7 +3,7 @@
 
 from pathlib import Path
 
-MIGRATION = Path("supabase/migrations/202611240001_task_dependency_eligibility.sql")
+MIGRATION = Path("supabase/migrations/20261124000100_task_dependency_eligibility.sql")
 
 
 def one_definition(sql: str, marker: str) -> str:

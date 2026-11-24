@@ -1,3 +1,6 @@
+-- ARCHIVED: Historical change already incorporated into supabase/migrations/database-schema.sql.
+-- Do not apply this file after the current baseline schema snapshot.
+
 -- Worker identity isolation hardening v1.2.1
 -- Restrict worker reads and task-scoped operations to the authenticated Worker.
 

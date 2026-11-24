@@ -45,7 +45,7 @@ Do not substitute `fail_execution`, `requeue_failed_task`, direct table updates,
 
 ## Production deployment gate
 
-The migration in `supabase/migrations/202611230004_worker_task_routing_safe_release.sql` is prepared for review and isolated CI only. It has not been applied to production. Production deployment requires independent review and explicit deployment authorization.
+The migration in `supabase/migrations/20261123000400_worker_task_routing_safe_release.sql` is prepared for review and isolated CI only. It has not been applied to production. Production deployment requires independent review and explicit deployment authorization.
 
 ## Validation
 
@@ -54,7 +54,7 @@ The PostgreSQL task lifecycle workflow runs `tests/worker-routing-release-tests.
 
 ## Task dependency eligibility
 
-The migration `202611240001_task_dependency_eligibility.sql` extends `claim_task` without changing table schemas or deploying to the live project.
+The migration `20261124000100_task_dependency_eligibility.sql` extends `claim_task` without changing table schemas or deploying to the live project.
 
 ### Declaring prerequisites
 

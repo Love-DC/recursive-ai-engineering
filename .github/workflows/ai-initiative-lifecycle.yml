@@ -15,7 +15,7 @@ permissions:
 jobs:
   initiative-integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:17
@@ -41,6 +41,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes postgresql-client
 
+      - name: Validate migration version inventory and dependency order
+        run: python3 scripts/test_migration_versions.py
+
+      - name: Validate Worker-routing and task-dependency migration structure
+        run: |
+          python3 scripts/test_worker_routing_migration_shape.py
+          python3 scripts/test_task_dependency_migration_shape.py
+
       - name: Prepare isolated Supabase-compatible PostgreSQL fixture
         run: |
           set -euo pipefail
@@ -58,11 +66,10 @@ jobs:
           $function$;
           SQL
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/database-schema.sql
-          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611230003_failure_reporting_retry.sql
-          if [[ -f supabase/migrations/202611230004_worker_task_routing_safe_release.sql ]]; then
-            psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611230004_worker_task_routing_safe_release.sql
-          fi
-          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611240001_ai_initiative_lifecycle.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261123000300_failure_reporting_retry.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261123000400_worker_task_routing_safe_release.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000100_task_dependency_eligibility.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000200_ai_initiative_lifecycle.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
           SQL

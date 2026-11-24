@@ -1,7 +1,7 @@
 # Failure Reporting and Retry Contract
 
 **Status:** Deployed to the production Supabase project for the trusted owner-MCP pilot.  
-**Source migration:** `supabase/migrations/202611230003_failure_reporting_retry.sql`  
+**Source migration:** `supabase/migrations/20261123000300_failure_reporting_retry.sql`  
 **Applied migration history version:** `20261122221942_failure_reporting_retry`  
 **Deployment PR:** [RAE #8](https://github.com/Love-DC/recursive-ai-engineering/pull/8), merged as `801a651434a76e8ab52776f0685ddb2e0b11bd37`.
 
