@@ -24,6 +24,7 @@ DECLARE
   v_old_execution_id uuid;
   v_attempt integer;
   v_status text;
+  v_exec_status text;
   v_blocked_events integer;
   v_unblocked_events integer;
   v_dependency_events integer;
@@ -200,9 +201,9 @@ BEGIN
     RAISE EXCEPTION 'FAIL: expired dependency blocker prevented independent claim: %',v_claim;
   END IF;
   SELECT status INTO v_status FROM public.tasks WHERE id=v_expired_id;
-  SELECT status INTO v_key FROM public.executions WHERE id=v_old_execution_id;
-  IF v_status <> 'running' OR v_key <> 'running' THEN
-    RAISE EXCEPTION 'FAIL: dependency-blocked expired task/execution was swept: task %, execution %',v_status,v_key;
+  SELECT status INTO v_exec_status FROM public.executions WHERE id=v_old_execution_id;
+  IF v_status <> 'running' OR v_exec_status <> 'running' THEN
+    RAISE EXCEPTION 'FAIL: dependency-blocked expired task/execution was swept: task %, execution %',v_status,v_exec_status;
   END IF;
   PERFORM public.complete_execution(
     v_expired_independent_id,(v_claim->'data'->>'execution_id')::uuid,v_worker,
@@ -221,9 +222,9 @@ BEGIN
     RAISE EXCEPTION 'FAIL: resolved expired task did not reclaim as attempt 2: %',v_claim;
   END IF;
   v_execution_id := (v_claim->'data'->>'execution_id')::uuid;
-  SELECT status INTO v_key FROM public.executions WHERE id=v_old_execution_id;
-  IF v_key <> 'expired' THEN
-    RAISE EXCEPTION 'FAIL: prior expired execution was not fenced; status %',v_key;
+  SELECT status INTO v_exec_status FROM public.executions WHERE id=v_old_execution_id;
+  IF v_exec_status <> 'expired' THEN
+    RAISE EXCEPTION 'FAIL: prior expired execution was not fenced; status %',v_exec_status;
   END IF;
   PERFORM public.complete_execution(
     v_expired_id,v_execution_id,v_worker,
@@ -255,9 +256,9 @@ BEGIN
     RAISE EXCEPTION 'FAIL: claim unexpectedly leased a dependency-blocked retry-cap task: %',v_claim;
   END IF;
   SELECT status INTO v_status FROM public.tasks WHERE id=v_cap_id;
-  SELECT status INTO v_key FROM public.executions WHERE id=v_execution_id;
-  IF v_status <> 'running' OR v_key <> 'running' THEN
-    RAISE EXCEPTION 'FAIL: unresolved dependency caused retry-cap task to terminally fail: task %, execution %',v_status,v_key;
+  SELECT status INTO v_exec_status FROM public.executions WHERE id=v_execution_id;
+  IF v_status <> 'running' OR v_exec_status <> 'running' THEN
+    RAISE EXCEPTION 'FAIL: unresolved dependency caused retry-cap task to terminally fail: task %, execution %',v_status,v_exec_status;
   END IF;
 
   PERFORM public.resolve_task_dependency(
@@ -267,12 +268,12 @@ BEGIN
   );
   v_claim := public.claim_task(v_project,v_worker,120,'dependency-cap-finalize-claim-'||gen_random_uuid()::text);
   SELECT status INTO v_status FROM public.tasks WHERE id=v_cap_id;
-  SELECT status INTO v_key FROM public.executions WHERE id=v_execution_id;
+  SELECT status INTO v_exec_status FROM public.executions WHERE id=v_execution_id;
   SELECT count(*) INTO v_exec_count FROM public.executions WHERE task_id=v_cap_id;
-  IF v_status <> 'failed' OR v_key <> 'expired' OR v_exec_count <> 1
+  IF v_status <> 'failed' OR v_exec_status <> 'expired' OR v_exec_count <> 1
     OR v_claim->'data'->>'task_id' = v_cap_id::text THEN
     RAISE EXCEPTION 'FAIL: satisfied dependency at retry cap did not terminally expire without attempt 2: task %, execution %, attempts %, claim %',
-      v_status,v_key,v_exec_count,v_claim;
+      v_status,v_exec_status,v_exec_count,v_claim;
   END IF;
 
   RAISE NOTICE 'PASS: legacy external dependency evidence/idempotency, blocker event dedupe and claim reporting, independent eligible work, structured same-project task dependency, expired lease dependency gating, retry-cap dependency gating, and no extra attempts';
