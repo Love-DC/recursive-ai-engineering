@@ -552,13 +552,13 @@ BEGIN
 
   v_list := public.list_problem_reports('unresolved',NULL,200);
   IF NOT EXISTS (
-    SELECT 1 FROM jsonb_array_elements(v_list->'data') AS item
+    SELECT 1 FROM jsonb_array_elements(v_list->'data') AS items(item)
     WHERE item->>'id'=v_primary_report->'data'->>'report_id'
   ) THEN
     RAISE EXCEPTION 'FAIL: Owner-MCP inbox list omitted the bound project's report: %',v_list;
   END IF;
   IF NOT EXISTS (
-    SELECT 1 FROM jsonb_array_elements(v_list->'data') AS item
+    SELECT 1 FROM jsonb_array_elements(v_list->'data') AS items(item)
     WHERE item->>'id'=v_secondary_report_id::text
   ) THEN
     RAISE EXCEPTION 'FAIL: Owner-MCP inbox list omitted another active project owned by the same Owner: %',v_list;
