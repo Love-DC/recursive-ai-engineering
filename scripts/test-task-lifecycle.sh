@@ -43,6 +43,8 @@ DECLARE
   v_replay jsonb;
   v_root_exec uuid;
   v_child_exec uuid;
+  v_grandchild_exec uuid;
+  v_limited jsonb;
   v_reclaimed jsonb;
   v_new_root_exec uuid;
   v_completion jsonb;
@@ -117,11 +119,49 @@ BEGIN
   END IF;
   v_child_exec := (v_claim->'data'->>'execution_id')::uuid;
 
+  -- Two active executions exhaust the project-wide cap; a third claim is held.
+  v_limited := public.claim_task(v_project,v_worker,600,'lifecycle-cap-third-' || gen_random_uuid()::text);
+  IF v_limited->'data'->>'blocked_reason' <> 'PROJECT_CONCURRENCY_LIMIT_REACHED'
+     OR (v_limited->'data'->>'max_active_executions')::integer <> 2
+     OR (v_limited->'data'->>'active_executions')::integer <> 2 THEN
+    RAISE EXCEPTION 'FAIL: project concurrency cap was not enforced: %',v_limited;
+  END IF;
+
   v_completion := public.complete_execution(v_child_id,v_child_exec,v_worker,
     '{"summary":"child complete"}'::jsonb,'lifecycle-child-complete-' || gen_random_uuid()::text);
   IF v_completion->'data'->>'status' <> 'accepted' THEN
     RAISE EXCEPTION 'FAIL: child completion did not accept';
   END IF;
+
+  -- Releasing one slot allows the next independent task to be claimed.
+  v_claim := public.claim_task(v_project,v_worker,600,'lifecycle-grandchild-claim-' || gen_random_uuid()::text);
+  IF (v_claim->'data'->>'task_id')::uuid <> v_grandchild_id THEN
+    RAISE EXCEPTION 'FAIL: concurrency slot was not released after completion: %',v_claim;
+  END IF;
+  v_grandchild_exec := (v_claim->'data'->>'execution_id')::uuid;
+
+  -- The pause switch blocks both new task creation and new task claims.
+  UPDATE public.projects
+  SET config=jsonb_set(coalesce(config,'{}'::jsonb),'{task_activation}','"paused"'::jsonb,true)
+  WHERE id=v_project;
+  BEGIN
+    PERFORM public.claim_task(v_project,v_worker,600,'lifecycle-paused-claim-' || gen_random_uuid()::text);
+    RAISE EXCEPTION 'FAIL: claim_task ignored the project pause switch';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'PROJECT_TASK_ACTIVATION_PAUSED' THEN RAISE; END IF;
+  END;
+  BEGIN
+    PERFORM public.create_task(v_project,v_worker,'implementation',
+      'Paused creation must fail','Fixture for pause switch','{}'::jsonb,100,false,
+      null,null,'lifecycle-paused-create-' || gen_random_uuid()::text);
+    RAISE EXCEPTION 'FAIL: create_task ignored the project pause switch';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'PROJECT_TASK_ACTIVATION_PAUSED' THEN RAISE; END IF;
+  END;
+  UPDATE public.projects SET config=config-'task_activation' WHERE id=v_project;
+
+  PERFORM public.complete_execution(v_grandchild_id,v_grandchild_exec,v_worker,
+    '{"summary":"grandchild complete"}'::jsonb,'lifecycle-grandchild-complete-' || gen_random_uuid()::text);
 
   -- Force only this disposable fixture's lease to expire, then reclaim it.
   UPDATE public.tasks SET lease_until=clock_timestamp()-interval '1 second'
@@ -158,7 +198,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL: list_tasks omitted recursive descendant';
   END IF;
 
-  RAISE NOTICE 'PASS: recursive parent linkage, ordered claims, claim idempotency replay, execution heartbeat and lease renewal, child completion, lease expiry/reclaim, stale-execution fencing, completion, get_task and list_tasks';
+  RAISE NOTICE 'PASS: recursive parent linkage, ordered claims, idempotency, project concurrency cap and slot release, pause kill switch, heartbeat/lease renewal, completion, lease expiry/reclaim, stale-execution fencing, get_task and list_tasks';
 END
 $test$;
 
