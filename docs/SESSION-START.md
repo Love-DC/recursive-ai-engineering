@@ -1,95 +1,66 @@
 # Session Start — Recursive AI Engineering
 
-This is the only RAE conversation entrypoint. Read it first. The Owner manually starts one GPT conversation at a time; RAE must not depend on a fixed Coordinator, another GPT session, a daemon, or background scheduling.
+This is the common entrypoint for every RAE conversation. Multiple GPT conversations may be started and run concurrently by the Owner. Each conversation is temporary and replaceable; shared Supabase/GitHub state, not a permanent Coordinator or chat transcript, coordinates work.
 
 ## Universal initial instruction
 
-> Act as the RAE engineering system through the current GPT conversation. Read `docs/SESSION-START.md`, restore the compact root index at `knowledge/rae-root/index.json`, and follow `docs/RECURSIVE-ENGINEERING-TREE.md`. Determine the current objective and select only the relevant project/branch. Load that branch's local governance and context at pinned revisions. Perform the responsibilities required by the work in this conversation; Coordinator, Worker, Reviewer and Auditor are responsibilities, not fixed session identities or guaranteed separate agents. Use Supabase only for project routing and project-scoped task/execution state; use each GitHub repository for its own knowledge tree and governance. Expand the tree only when evidence or complexity requires it, update bounded summaries upward, and persist a checkpoint before ending. Do not enumerate all projects' task queues, load all descendants/history, invent a background process, or claim another GPT session was launched. Preserve the Owner's product/architecture decision authority and ask only for genuinely missing decisions, permissions, or external inputs.
+> Act as an autonomous RAE participant. Read `docs/SESSION-START.md`, the repository governance manifest and its declared files at one pinned SHA, then recover the shared project/task state. Discover active registered projects and inspect their project-scoped task queues as a compact logical shared pool. Resolve the correct project-local Worker route, respect task dependencies and authorization, and claim eligible work atomically. Load full task details and the selected repository's context only after selecting/claiming work. Use the recursive engineering tree as a lazy context-navigation aid, not as a replacement for Supabase project registration, task/initiative state, dependencies, leases, execution history, or handoffs. Coordinate through durable shared state; do not assume a fixed Coordinator, session identity, Worker process, daemon, or automatic GPT-session launcher. Execute, validate, persist evidence, and continue with useful eligible work without waiting for routine Owner direction.
 
-## Bootstrap: bounded reads only
+## Required startup and shared-pool workflow
 
-1. Read this entrypoint and the platform security rules referenced by the RAE governance manifest.
-2. Read `knowledge/rae-root/index.json`. It is a navigation index, not a full project context dump.
-3. Resolve the current objective:
-   - If the Owner named a project or supplied an artifact/goal that maps unambiguously to a project, resolve only that active `public.projects` row and follow its tree pointer.
-   - Otherwise, select from the root's compact global attention list (resumable checkpoints, due wake-ups, blockers, and highest-priority active branches).
-   - If the root pointer is missing or stale, reconcile the root index against the live project registry. Do not enumerate all project queues or rebuild all trees.
-4. Load only the selected project's `knowledge/rae-tree/index.json`, selected node, ancestor summaries, and the exact context/dependency references needed for the next action.
-5. Load the selected repository's `rae-governance.json` and every declared instruction, entrypoint, required file, and applicable rule set at one pinned SHA before changing that repository.
-6. Read only the specific Supabase task, execution, artifact, or event records referenced by the selected node/checkpoint or needed to select eligible work.
+1. Read this entrypoint, `docs/MULTI-PROJECT-ARCHITECTURE.md`, `docs/WORKER-INSTRUCTIONS.md`, `docs/AUTONOMOUS-TASK-DISCOVERY.md`, and every RAE platform-security/governance file declared by the root `rae-governance.json`.
+2. Read `knowledge/rae-root/index.json` as a compact navigation index. It helps select relevant durable context; it is not the authoritative registry of projects, tasks, or initiatives.
+3. Query live active rows from `public.projects`. For each active project, inspect its own project-scoped task queue using the existing `list_tasks` RPC. The logical shared task pool is the union of these project-scoped queues; there is no unscoped cross-project task queue.
+4. Keep this first pass bounded: compare task identity, type, status, priority, dependency/eligibility state, required Worker route, and lease information. Do not load every task description, execution, artifact, child tree, or event history.
+5. Select eligible work using its persisted authorization, status, dependencies, priority, and project policy. Resolve the Worker route from that same project's active Worker rows and routing metadata, including any task-level required Worker key. Never reuse a Worker UUID across projects. If routing is ambiguous or a required safety gate is not enforced, do not claim through that route.
+6. Validate that the live `claim_task` behavior enforces project isolation, Worker routing, dependency eligibility, lease fencing, and exact review assignment for the route being used. Claim with the exact project UUID and its own Worker UUID. The atomic claim response is authoritative; a queue listing is never proof of a successful claim. Use a fresh idempotency key.
+7. After a successful claim, read the full task, requirements, parent/child context, and only the execution records needed for that task. Resolve the repository from the claimed task's live project row, not from an inferred project name or an unrelated tree pointer.
+8. Pin the task's authorized base SHA. Fetch the target repository's root `rae-governance.json` and every declared instruction, entrypoint, required file, and applicable rule set at that exact SHA. Validate protocol/version, project key, paths, conflicts, compatibility, and SHA freshness before modifying the repository.
+9. Load only the selected project's `knowledge/rae-tree/index.json`, selected node, ancestor summaries, and explicit context/dependency references needed for the task. The tree is optional project context; it never overrides Supabase task/initiative status or live GitHub branch/PR/CI state.
+10. Execute the claimed task only. Use a unique branch from its pinned base SHA, keep one task per write scope, inspect the final diff, run the repository-declared validations, and open/update a PR when required. Do not implement unrelated work in a claimed execution.
+11. Follow the target repository's independent-review and merge policy. When it requires a genuinely separate GPT context, another conversation must actually receive the handoff; a Worker row, role label, or second pass in the same conversation is not proof of independence. Never claim a review or merge that did not happen.
+12. Persist truthful execution results, commit/PR references, exact head SHA, changed paths, validation evidence, and blockers through project-scoped execution APIs. Complete only when the current execution fence is valid and the task's acceptance criteria have been verified.
 
-Default startup must not:
-- list every task in every registered project;
-- load all task descriptions, child trees, executions, artifacts, or event history;
-- read all project repositories' governance and knowledge files;
-- recursively expand all descendants;
-- replay or request prior ChatGPT conversation history.
+## Concurrent sessions and role responsibilities
 
-## Select and execute work
+- The Owner may start multiple GPT conversations and run them concurrently. Every conversation reads this same protocol and coordinates through shared state.
+- No conversation is a permanent Coordinator or system owner. Coordination is a protocol performed by whichever active conversation is handling the relevant work.
+- Coordinator, implementation, research, review, testing, and recovery are responsibilities, not persistent identities. A conversation may take the responsibilities permitted by its work, but changing a label does not create an independent reviewer.
+- Supabase Worker rows are project-scoped routing identifiers, not GPT-session identities. Multiple conversations may use the same route; distinct Worker rows do not prove distinct sessions.
+- Atomic claims, task dependencies, execution fencing, unique task branches, and exact-head validation prevent concurrent work from colliding. If two sessions race, the database claim result decides which one owns the task.
+- RAE does not launch, wake, or monitor GPT conversations. Session creation is an Owner/platform action. No progress is claimed between active conversations unless an actual scheduled runtime has separately been deployed and verified.
 
-1. Use the selected branch's attention index and current objective to choose one bounded next action. A task queue is not the whole engineering context tree.
-2. When executable work is needed, resolve the selected project's actual UUID and its own active Worker route from live Supabase data. Never reuse a Worker UUID across projects.
-3. Query only that project's relevant task slice. Use existing project-scoped RPCs and atomic `claim_task`; the atomic response is authoritative. Do not claim a task from a stale listing.
-4. Read the claimed task and only its necessary execution context. Determine repository routing from the live project row, not from guessed names or task text alone.
-5. If work is too large, create child execution tasks only at real ownership, interface, dependency, or validation boundaries. Link them to the parent using the existing `parent_task_id`; do not create children merely to simulate multiple agents.
-6. If no eligible task exists in the selected branch, follow `docs/AUTONOMOUS-TASK-DISCOVERY.md` within that project's local activation policy. Discovery is performed during this live session, not in the background.
-7. Execute, test, and persist truthful evidence. A task lease is a bounded lock, not a session identity or a background heartbeat.
-8. For PRs requiring independent review, prepare and persist the review handoff. A separate-context reviewer is independent only if a genuinely separate GPT session actually receives the assignment. A Worker row, role label, or second reasoning pass in the same conversation is not proof of independence. Do not claim dispatch or merge if the required independent context is unavailable.
-9. Continue with the next relevant branch while the current conversation has capacity. Do not spend the context budget loading unrelated branches.
+## Task-pool and discovery behavior
 
-## Responsibilities, not fixed session identities
+- Supabase is authoritative for registered projects, initiatives/goals, project-scoped task status, dependencies, leases, executions, events, artifacts, and temporary collaboration/handoff state.
+- GitHub is authoritative for source code, repository-local governance, formal project decisions, Issues, branches, PRs, commits, and CI.
+- If a project has no eligible task, follow `docs/AUTONOMOUS-TASK-DISCOVERY.md` using that repository's activation policy. Evidence, impact, risk, deduplication, acceptance criteria, and validation are required before creating an executable task.
+- An open GitHub Issue is evidence/backlog, not authorization by itself. Never bulk-import or claim unapproved Issues.
+- Inspect each project queue without importing all project histories into the current context. Expand full context only for the selected work; continue discovery on other active projects when useful and within the session's capacity.
+- If no eligible task or authorized discovery candidate exists, record what was inspected and the concrete reason no task was created. Do not invent work to keep a queue busy.
 
-The current GPT conversation may perform coordination, implementation, research, testing, or review responsibilities as required by the selected work and its authorization. There is no mandatory role declaration at startup and no requirement to label the entire conversation as Coordinator, Worker, or Reviewer.
+## Recursive tree and bounded context
 
-A responsibility switch does not create a new model instance or independent review context. When repository governance requires a genuinely independent reviewer, persist a complete handoff and leave the review pending until a real separate context can receive it. Never impersonate that context.
+The recursive engineering tree is a navigation and durable knowledge aid. It may organize repository-owned architecture, decisions, technical context, and evidence references. It is not the live message bus, session registry, initiative ledger, task queue, dependency engine, lease store, or execution history. Those coordination concerns remain in Supabase.
 
-## Tree navigation and lifecycle
+- The RAE root index contains compact project/context pointers and wake-up hints, not the authoritative project list or active task priority queue.
+- Project-local trees remain in their owning repositories. A project may be marked `pending_bootstrap` until its repository governance is read and it is explicitly onboarded.
+- Load selected nodes lazily. Keep parent summaries bounded and expand descendants only when evidence, complexity, or task dependencies require it.
+- A node may reference project-scoped task or initiative IDs, but must not copy their mutable payloads or claim their current status. Re-read live Supabase state.
+- A checkpoint is a recovery hint. Re-read current leases, executions, branches, PR heads, reviews, and CI from their authoritative live systems before acting.
 
-- The RAE global root is `knowledge/rae-root/index.json`.
-- Each project's knowledge tree is stored in that project's own repository at `knowledge/rae-tree/index.json`.
-- Node records live under `knowledge/rae-tree/nodes/`; checkpoints live under `knowledge/rae-tree/checkpoints/`.
-- Knowledge nodes and Supabase executable tasks are related but distinct. The knowledge tree stores durable context; Supabase `tasks.parent_task_id` stores execution hierarchy and task lifecycle.
-- A child publishes a bounded status/summary, evidence references, blockers, and next-review hint to its parent. Propagate only the changed summary along the ancestor path.
-- Dormant branches are revalidated when their review time is due, dependencies/evidence change, the Owner's objective intersects them, or a parent requests attention. Inactivity alone never authorizes deletion or invalidation.
-- Archive completed/obsolete context by removing it from default loading while preserving its decisions, evidence, task references, and history.
+See `docs/RECURSIVE-ENGINEERING-TREE.md` for node structure, lazy loading, compaction, wake-up, and checkpoint rules.
 
-See `docs/RECURSIVE-ENGINEERING-TREE.md` for the complete node contract, recursive growth, lazy loading, wake-up, compaction, and migration rules.
+## Project routing and safety boundaries
 
-## Checkpoint and continuation
-
-Before ending the conversation, or when context capacity is becoming constrained, persist a checkpoint in the selected project's repository. Include:
-- selected project and full node path;
-- current task/execution IDs and task lease expiry, if applicable;
-- branch, pinned base SHA, current head/commit SHA, PR URL, and changed paths;
-- work completed and exact validation evidence;
-- current state, blockers, unresolved decisions, and next concrete action;
-- exact files/nodes a fresh session must load next.
-
-Update the selected node and its ancestors with concise summaries and the root attention index when the global next-work pointer changes. The checkpoint is a continuation packet, not a chat transcript.
-
-## Project governance and source of truth
-
-- Supabase is authoritative for project registration, project-scoped task state, leases, execution history, artifacts, and task events.
-- GitHub is authoritative for repository content, project knowledge, governance, Issues, PRs, commits, and CI.
-- Resolve the repository from the selected active Supabase project row.
-- Validate the repository's root `rae-governance.json` and read every declared file at the same pinned SHA.
-- Apply the target repository's own activation, design, validation, review, merge, and release rules. RAE platform security, Owner authorization, RLS, project isolation, execution fencing, and branch protection remain non-overridable.
-- Missing, incompatible, stale, or contradictory governance blocks only the affected branch; continue independent safe work where possible.
-- Never store secrets in tasks, config, commits, knowledge nodes, checkpoints, or prompts.
-- Never mark a task complete based only on source inspection. Distinguish source review, executed tests, and exact-head CI evidence.
+- Resolve repositories only from active Supabase project rows. Resolve Worker rows only from the same `project_id`.
+- Every create/claim/complete/child-task call must use the selected task's real project UUID and its corresponding project-local Worker UUID.
+- Never bypass task dependencies, priority, lease, task activation, repository governance, RLS, branch protection, or execution fencing.
+- Do not store secrets, tokens, passwords, private keys, or privileged connection strings in Supabase task records, repositories, commits, or prompts.
+- Do not change production schema/data, credentials, Auth/RLS/grants, or deploy production systems unless the work has the required explicit authorization.
+- Platform security, Owner authorization, project isolation, and repository-declared product/design approval gates are non-overridable.
 
 ## Owner interaction boundary
 
-The Owner supplies initial goals, constraints, connected access, and genuine product/architecture decisions. The Owner is not expected to dispatch workers, prepare task breakdowns/context packs, relay prompts, monitor leases, manage routine PRs, or manually repair the tree. Ask only when a concrete decision, permission, or external input is genuinely unavailable from existing records and authorized tools.
+The Owner supplies initial goals, ideas, constraints, connected resources, and decisions reserved for the Owner. The AI participants organize routine work, task decomposition, implementation, testing, repair, review handoffs, and evidence. Ask only for a concrete decision, missing permission, or essential external resource that cannot be obtained from existing instructions or connected tools. Do not ask the Owner to manage routine coordination.
 
-Do not claim background execution between manually started GPT conversations. Persist state and resume at the next session.
-
-## Task-claim safety preflight
-
-Before calling `claim_task`, resolve the selected project's Worker key and the task's required route. Worker descriptions and prompt instructions are not enforcement.
-
-- An `independent-reviewer` Worker may only claim review tasks explicitly assigned to that Worker.
-- An implementation/fix task must resolve to the project's configured executor route or an explicit task-level `required_worker_key`.
-- Before using the reviewer route, verify that the live database `claim_task` function enforces project Worker-key routing and exact review assignment. If this is not verified, do not call `claim_task` with the reviewer Worker ID; leave review tasks untouched and continue with read-only review or other eligible work.
-- Before relying on an accidental-claim release, verify that `release_execution` exists in the live database. Use the exact Worker ID stored on the current execution. If the RPC is absent, do not update task/execution rows directly; let the lease expire.
-- A pending review task is not permission to claim arbitrary work. Never infer that a Worker route is safe from task priority or description alone.
