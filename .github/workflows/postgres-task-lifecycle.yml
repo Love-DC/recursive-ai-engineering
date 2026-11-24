@@ -78,6 +78,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261123000400_worker_task_routing_safe_release.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000100_task_dependency_eligibility.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000200_ai_initiative_lifecycle.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000300_task_worker_routing_safe_reassignment.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
           INSERT INTO public.projects(id,name,owner_id,status,config)
@@ -113,6 +114,14 @@ jobs:
 
       - name: Run Initiative support/advance concurrency regression
         run: bash scripts/test-initiative-support-advance-race.sh
+
+      - name: Run safe task reassignment and cancelled-review integration tests
+        run: psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -v owner_id="$SUPABASE_OWNER_ID" -v project_id="$SUPABASE_PROJECT_ID" -v worker_a="$SHARED_WORKER_ID" -v worker_b="$SECOND_WORKER_ID" -v reviewer_worker="$REVIEWER_WORKER_ID" -f tests/task-routing-reassignment-tests.sql
+
+      - name: Run two-session task reassignment versus claim race
+        run: |
+          bash -n scripts/test-task-reassignment-race.sh
+          bash scripts/test-task-reassignment-race.sh
 
       - name: Run failure reporting and bounded retry integration tests
         env:
