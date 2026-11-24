@@ -269,7 +269,7 @@ BEGIN
     PERFORM public.update_problem_report(
       v_other_report_id,'triaged','Foreign-owned report must not be mutable.',
       NULL,NULL,v_key||'-foreign-owner-update');
-    RAISE EXCEPTION 'FAIL: Owner updated another project's report';
+    RAISE EXCEPTION 'FAIL: Owner updated a report owned by another project';
   EXCEPTION WHEN SQLSTATE 'P0002' THEN
     IF SQLERRM<>'PROBLEM_REPORT_NOT_FOUND' THEN RAISE; END IF;
   END;
