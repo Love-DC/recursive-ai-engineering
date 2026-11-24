@@ -217,6 +217,42 @@ def validator_self_tests(schema: dict, valid_node: dict) -> None:
     )
 
 
+def validate_shared_runtime_contract() -> None:
+    """Guard concurrent shared-pool semantics independently of tree context size."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    startup = (ROOT / "docs/SESSION-START.md").read_text(encoding="utf-8")
+    architecture = (ROOT / "docs/MULTI-PROJECT-ARCHITECTURE.md").read_text(encoding="utf-8")
+    tree = (ROOT / "docs/RECURSIVE-ENGINEERING-TREE.md").read_text(encoding="utf-8")
+    worker = (ROOT / "docs/WORKER-INSTRUCTIONS.md").read_text(encoding="utf-8")
+
+    combined = "\\n".join((readme, startup, architecture, tree, worker)).lower()
+    check("runtime docs still impose a one-conversation-at-a-time boundary",
+          "one gpt conversation at a time" not in combined)
+    check("README does not describe concurrent GPT conversations",
+          "multiple gpt conversations" in readme.lower() and "concurrently" in readme.lower())
+    check("startup does not inspect active project-scoped queues",
+          "each active project" in startup.lower() and "project-scoped task queue" in startup.lower())
+    check("startup does not preserve the logical shared pool",
+          "logical shared task pool" in startup.lower() and "union" in startup.lower())
+    check("startup does not require atomic project-scoped claim",
+          "claim_task" in startup and "exact project uuid" in startup.lower()
+          and "atomic claim response" in startup.lower())
+    check("startup does not preserve project-local Worker routing",
+          "worker uuid across projects" in startup.lower() and "project's active worker" in startup.lower())
+    check("startup does not keep lazy context loading after task selection",
+          "after a successful claim" in startup.lower() and "selected node" in startup.lower())
+    check("tree is not explicitly scoped as context navigation only",
+          "not the live coordination bus" in tree.lower() and "context-navigation aid" in startup.lower())
+    check("tree does not defer active task state to Supabase",
+          "leases, executions, artifacts" in tree.lower() and "supabase remains authoritative" in tree.lower())
+    check("architecture lacks concurrent-session shared-state semantics",
+          "run them concurrently" in architecture.lower() and "shared supabase" in architecture.lower())
+    check("architecture still defers project queues until after tree selection",
+          "task queues are queried only after branch selection" not in architecture.lower())
+    check("Worker instructions still claim a single-session runtime",
+          "one gpt conversation at a time" not in worker.lower())
+
+
 def main() -> int:
     root = load_json("knowledge/rae-root/index.json")
     schema = load_json("knowledge/rae-tree/node.schema.json")
@@ -329,14 +365,15 @@ def main() -> int:
     startup = (ROOT / "docs/SESSION-START.md").read_text(encoding="utf-8")
     check("startup does not load the RAE root index", "knowledge/rae-root/index.json" in startup)
     check("startup lacks explicit bounded-read section", "Default startup must not:" in startup)
-    check("startup still requires full project task enumeration", "list every task in every registered project" in startup)
+    check("startup preserves bounded history loading",
+          "do not load every task description" in startup.lower() and "project-scoped task queue" in startup.lower())
     check("startup permits eager descendant expansion", "recursively expand all descendants" in startup)
     check("startup lacks no-fixed-role statement", "There is no mandatory role declaration at startup" in startup)
-    check(
-        "startup lacks single-session runtime boundary",
-        "The Owner manually starts one GPT conversation at a time" in startup
-        and "a daemon, or background scheduling" in startup,
-    )
+    check("startup incorrectly imposes a single-session runtime",
+          "one GPT conversation at a time" not in startup.lower())
+    check("startup excludes active project queue discovery",
+          "each active project" in startup.lower() and "project-scoped task queue" in startup.lower())
+    validate_shared_runtime_contract()
     check(
         "startup lacks Worker claim-routing safety preflight",
         "Task-claim safety preflight" in startup
