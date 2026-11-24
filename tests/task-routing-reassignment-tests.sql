@@ -182,6 +182,32 @@ BEGIN
   END IF;
   v_delivery_execution_id := (v_claim->'data'->>'execution_id')::uuid;
 
+  -- Submit the delivery first so this assertion exercises the terminal
+  -- submitted state after submit_result has cleared its execution and lease.
+  PERFORM public.submit_result(
+    v_delivery_task_id,v_delivery_execution_id,v_a,
+    '{"summary":"delivery submitted for review reassignment tests"}'::jsonb,
+    'review-delivery-submit-'||gen_random_uuid()::text
+  );
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.tasks
+    WHERE id=v_delivery_task_id
+      AND status='submitted'
+      AND current_execution_id IS NULL
+      AND lease_until IS NULL
+  ) THEN
+    RAISE EXCEPTION 'FAIL: submit_result did not leave the delivery submitted and unleased';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.executions
+    WHERE id=v_delivery_execution_id
+      AND task_id=v_delivery_task_id
+      AND status='submitted'
+  ) THEN
+    RAISE EXCEPTION 'FAIL: submit_result did not mark the delivery execution submitted';
+  END IF;
+
   -- Submitted deliveries are terminal for reassignment even after their
   -- execution lease has been cleared.
   BEGIN
@@ -193,12 +219,6 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '55000' THEN
     IF SQLERRM <> 'TASK_NOT_PENDING' THEN RAISE; END IF;
   END;
-
-  PERFORM public.submit_result(
-    v_delivery_task_id,v_delivery_execution_id,v_a,
-    '{"summary":"delivery submitted for review reassignment tests"}'::jsonb,
-    'review-delivery-submit-'||gen_random_uuid()::text
-  );
 
   v_result := public.create_review_task(
     v_delivery_task_id,v_delivery_task_id,v_delivery_execution_id,v_reviewer,
