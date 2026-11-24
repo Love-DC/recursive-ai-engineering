@@ -7,6 +7,7 @@ set -euo pipefail
 : "${SUPABASE_OWNER_ID:?Set SUPABASE_OWNER_ID}"
 : "${SUPABASE_PROJECT_ID:?Set SUPABASE_PROJECT_ID}"
 : "${SHARED_WORKER_ID:?Set SHARED_WORKER_ID}"
+: "${REVIEWER_WORKER_ID:?Set REVIEWER_WORKER_ID}"
 [[ "${TASK_LIFECYCLE_TEST_ALLOW_MUTATIONS:-}" == "YES" ]] || {
   echo "Refusing to run: set TASK_LIFECYCLE_TEST_ALLOW_MUTATIONS=YES to acknowledge transactional fixture writes." >&2
   exit 2
@@ -14,18 +15,21 @@ set -euo pipefail
 command -v psql >/dev/null || { echo "psql is required" >&2; exit 2; }
 
 uuid_re='^[0-9a-fA-F-]{36}$'
-for value in "$SUPABASE_OWNER_ID" "$SUPABASE_PROJECT_ID" "$SHARED_WORKER_ID"; do
+for value in "$SUPABASE_OWNER_ID" "$SUPABASE_PROJECT_ID" "$SHARED_WORKER_ID" "$REVIEWER_WORKER_ID"; do
   [[ "$value" =~ $uuid_re ]] || { echo "Expected UUID environment values" >&2; exit 2; }
 done
 
 psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 \
   -v owner_id="$SUPABASE_OWNER_ID" \
   -v project_id="$SUPABASE_PROJECT_ID" \
-  -v worker_id="$SHARED_WORKER_ID" <<'SQL'
+  -v worker_id="$SHARED_WORKER_ID" \
+  -v reviewer_worker_id="$REVIEWER_WORKER_ID" <<'SQL'
 BEGIN;
 SELECT set_config('request.jwt.claim.sub', :'owner_id', true);
 SELECT set_config('test.project_id', :'project_id', true);
 SELECT set_config('test.worker_id', :'worker_id', true);
+SELECT set_config('test.reviewer_worker_id', :'reviewer_worker_id', true);
+\i supabase/migrations/20261124172155_submitted_task_reconciliation.sql
 
 DO $test$
 DECLARE
@@ -161,6 +165,242 @@ BEGIN
   RAISE NOTICE 'PASS: recursive parent linkage, ordered claims, claim idempotency replay, execution heartbeat and lease renewal, child completion, lease expiry/reclaim, stale-execution fencing, completion, get_task and list_tasks';
 END
 $test$;
+
+
+DO $reconciliation_test$
+DECLARE
+  v_project uuid := current_setting('test.project_id')::uuid;
+  v_worker uuid := current_setting('test.worker_id')::uuid;
+  v_reviewer uuid := current_setting('test.reviewer_worker_id')::uuid;
+  v_target uuid;
+  v_exec uuid;
+  v_review uuid;
+  v_dependent uuid;
+  v_live_delivery uuid;
+  v_live_execution uuid;
+  v_expected timestamptz;
+  v_result jsonb;
+  v_replay jsonb;
+  v_history_status text;
+  v_event_count integer;
+  v_evidence jsonb := '[{"kind":"github_pr","ref":"https://github.com/Love-DC/recursive-ai-engineering/pull/28","observation":"PR is closed unmerged; no active execution, review, or dependent task remains. Accidental note token=fixture-secret-marker."}]'::jsonb;
+BEGIN
+  -- One eligible submitted delivery is reconciled and replayed idempotently.
+  INSERT INTO public.tasks(
+    project_id,task_type,title,description,requirements,requires_review,status,priority
+  ) VALUES (
+    v_project,'implementation','Reconciliation fixture: eligible','Disposable fixture','{}'::jsonb,
+    true,'submitted',-200
+  ) RETURNING id INTO v_target;
+  INSERT INTO public.executions(task_id,worker_id,attempt,status)
+  VALUES(v_target,v_worker,1,'submitted') RETURNING id INTO v_exec;
+  UPDATE public.tasks
+  SET latest_delivery_task_id=v_target,
+      latest_delivery_execution_id=v_exec,
+      result='{"existing":"preserve-me"}'::jsonb,
+      updated_at=clock_timestamp()
+  WHERE id=v_target
+  RETURNING updated_at INTO v_expected;
+
+  -- Invalid reason and evidence are rejected before the state transition.
+  BEGIN
+    PERFORM public.reconcile_submitted_task(
+      v_target,v_expected,'   ',v_evidence,'reconcile-missing-reason-'||gen_random_uuid()::text
+    );
+    RAISE EXCEPTION 'FAIL: empty reconciliation reason unexpectedly passed';
+  EXCEPTION WHEN SQLSTATE '22023' THEN
+    IF SQLERRM <> 'RECONCILIATION_REASON_REQUIRED' THEN RAISE; END IF;
+  END;
+  BEGIN
+    PERFORM public.reconcile_submitted_task(
+      v_target,v_expected,'Evidence-backed obsolete delivery','[]'::jsonb,
+      'reconcile-missing-evidence-'||gen_random_uuid()::text
+    );
+    RAISE EXCEPTION 'FAIL: empty reconciliation evidence unexpectedly passed';
+  EXCEPTION WHEN SQLSTATE '22023' THEN
+    IF SQLERRM <> 'RECONCILIATION_EVIDENCE_REQUIRED' THEN RAISE; END IF;
+  END;
+  BEGIN
+    PERFORM public.reconcile_submitted_task(
+      v_target,v_expected-interval '1 second','Evidence-backed obsolete delivery',v_evidence,
+      'reconcile-stale-state-'||gen_random_uuid()::text
+    );
+    RAISE EXCEPTION 'FAIL: stale submitted-task state unexpectedly passed';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'TASK_STATE_STALE' THEN RAISE; END IF;
+  END;
+
+  v_result := public.reconcile_submitted_task(
+    v_target,v_expected,'PR #28 is closed unmerged; no live work remains',v_evidence,
+    'reconcile-success-'||gen_random_uuid()::text
+  );
+  IF v_result->'data'->>'status' <> 'cancelled' THEN
+    RAISE EXCEPTION 'FAIL: eligible submitted task was not reconciled: %',v_result;
+  END IF;
+  SELECT status INTO v_history_status FROM public.executions WHERE id=v_exec AND task_id=v_target;
+  IF v_history_status <> 'submitted' THEN
+    RAISE EXCEPTION 'FAIL: reconciliation rewrote historical execution status: %',v_history_status;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.tasks
+    WHERE id=v_target AND status='cancelled'
+      AND result->>'existing'='preserve-me'
+      AND result->'reconciliation'->>'reason'='PR #28 is closed unmerged; no live work remains'
+  ) THEN
+    RAISE EXCEPTION 'FAIL: task result/history was not preserved with reconciliation metadata';
+  END IF;
+  IF (SELECT result->'reconciliation'->'evidence'->0->>'observation'
+      FROM public.tasks WHERE id=v_target) LIKE '%fixture-secret-marker%'
+    OR (SELECT result->'reconciliation'->'evidence'->0->>'observation'
+      FROM public.tasks WHERE id=v_target) NOT LIKE '%token=[REDACTED]%' THEN
+    RAISE EXCEPTION 'FAIL: evidence credential marker was not safely redacted';
+  END IF;
+  SELECT count(*) INTO v_event_count FROM public.task_events
+  WHERE project_id=v_project AND task_id=v_target AND event_type='task_reconciled';
+  IF v_event_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: expected one task_reconciled audit event, found %',v_event_count;
+  END IF;
+  v_replay := public.reconcile_submitted_task(
+    v_target,v_expected,'PR #28 is closed unmerged; no live work remains',v_evidence,
+    (SELECT idempotency_key FROM public.operation_requests
+      WHERE project_id=v_project AND operation='reconcile_submitted_task'
+      ORDER BY created_at DESC LIMIT 1)
+  );
+  IF v_replay->'data'->>'task_id' <> v_target::text
+    OR v_replay->'data'->>'status' <> 'cancelled' THEN
+    RAISE EXCEPTION 'FAIL: idempotent reconciliation replay changed its result: %',v_replay;
+  END IF;
+
+  -- A submitted original whose latest fix delivery has a live lease is blocked.
+  -- Keep the original task itself in a valid submitted state; the active execution
+  -- belongs to a separate running fix delivery, matching the production state model.
+  INSERT INTO public.tasks(
+    project_id,task_type,title,description,requirements,requires_review,status,priority
+  ) VALUES (
+    v_project,'implementation','Reconciliation fixture: live lease','Disposable fixture','{}'::jsonb,
+    true,'submitted',-190
+  ) RETURNING id INTO v_target;
+  INSERT INTO public.executions(task_id,worker_id,attempt,status)
+  VALUES(v_target,v_worker,1,'submitted') RETURNING id INTO v_exec;
+  INSERT INTO public.tasks(
+    project_id,task_type,title,description,requirements,requires_review,status,priority,fixes_task_id
+  ) VALUES (
+    v_project,'fix','Reconciliation fixture: active fix delivery','Disposable fixture','{}'::jsonb,
+    true,'pending',-189,v_target
+  ) RETURNING id INTO v_live_delivery;
+  INSERT INTO public.executions(task_id,worker_id,attempt,status)
+  VALUES(v_live_delivery,v_worker,1,'running') RETURNING id INTO v_live_execution;
+  UPDATE public.tasks
+  SET status='running',assigned_worker_id=v_worker,current_execution_id=v_live_execution,
+      lease_until=clock_timestamp()+interval '5 minutes'
+  WHERE id=v_live_delivery;
+  UPDATE public.tasks
+  SET latest_delivery_task_id=v_live_delivery,latest_delivery_execution_id=v_live_execution,
+      updated_at=clock_timestamp()
+  WHERE id=v_target
+  RETURNING updated_at INTO v_expected;
+  BEGIN
+    PERFORM public.reconcile_submitted_task(
+      v_target,v_expected,'Attempt to reconcile while its fix delivery has a live lease',v_evidence,
+      'reconcile-live-lease-'||gen_random_uuid()::text
+    );
+    RAISE EXCEPTION 'FAIL: live execution was unexpectedly reconciled';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'TASK_HAS_LIVE_EXECUTION' THEN RAISE; END IF;
+  END;
+
+  -- Pending review and accepted review outcomes both block retirement.
+  INSERT INTO public.tasks(
+    project_id,task_type,title,description,requirements,requires_review,status,priority
+  ) VALUES (
+    v_project,'implementation','Reconciliation fixture: pending review','Disposable fixture','{}'::jsonb,
+    true,'submitted',-180
+  ) RETURNING id INTO v_target;
+  INSERT INTO public.executions(task_id,worker_id,attempt,status)
+  VALUES(v_target,v_worker,1,'submitted') RETURNING id INTO v_exec;
+  UPDATE public.tasks
+  SET latest_delivery_task_id=v_target,latest_delivery_execution_id=v_exec
+  WHERE id=v_target RETURNING updated_at INTO v_expected;
+  INSERT INTO public.tasks(
+    project_id,parent_task_id,task_type,title,description,requirements,requires_review,status,priority,
+    assigned_worker_id,review_target_original_task_id,review_target_delivery_task_id,review_target_execution_id
+  ) VALUES (
+    v_project,v_target,'review','Reconciliation fixture pending review','Disposable fixture','{}'::jsonb,
+    false,'pending',-170,v_reviewer,v_target,v_target,v_exec
+  ) RETURNING id INTO v_review;
+  BEGIN
+    PERFORM public.reconcile_submitted_task(
+      v_target,v_expected,'Attempt to reconcile while a review is pending',v_evidence,
+      'reconcile-pending-review-'||gen_random_uuid()::text
+    );
+    RAISE EXCEPTION 'FAIL: pending review did not block reconciliation';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'TASK_HAS_PENDING_REVIEW' THEN RAISE; END IF;
+  END;
+
+  INSERT INTO public.tasks(
+    project_id,task_type,title,description,requirements,requires_review,status,priority
+  ) VALUES (
+    v_project,'implementation','Reconciliation fixture: accepted review','Disposable fixture','{}'::jsonb,
+    true,'submitted',-160
+  ) RETURNING id INTO v_target;
+  INSERT INTO public.executions(task_id,worker_id,attempt,status)
+  VALUES(v_target,v_worker,1,'submitted') RETURNING id INTO v_exec;
+  UPDATE public.tasks
+  SET latest_delivery_task_id=v_target,latest_delivery_execution_id=v_exec
+  WHERE id=v_target RETURNING updated_at INTO v_expected;
+  INSERT INTO public.tasks(
+    project_id,parent_task_id,task_type,title,description,requirements,requires_review,status,priority,
+    assigned_worker_id,review_target_original_task_id,review_target_delivery_task_id,review_target_execution_id,
+    review_decision
+  ) VALUES (
+    v_project,v_target,'review','Reconciliation fixture accepted review','Disposable fixture','{}'::jsonb,
+    false,'accepted',-150,v_reviewer,v_target,v_target,v_exec,'accepted'
+  ) RETURNING id INTO v_review;
+  BEGIN
+    PERFORM public.reconcile_submitted_task(
+      v_target,v_expected,'Attempt to reconcile an accepted review',v_evidence,
+      'reconcile-accepted-review-'||gen_random_uuid()::text
+    );
+    RAISE EXCEPTION 'FAIL: accepted review did not block reconciliation';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'TASK_HAS_ACCEPTED_REVIEW' THEN RAISE; END IF;
+  END;
+
+  -- A live, non-terminal task depending on the delivery prevents reconciliation.
+  INSERT INTO public.tasks(
+    project_id,task_type,title,description,requirements,requires_review,status,priority
+  ) VALUES (
+    v_project,'implementation','Reconciliation fixture: dependency target','Disposable fixture','{}'::jsonb,
+    true,'submitted',-140
+  ) RETURNING id INTO v_target;
+  INSERT INTO public.executions(task_id,worker_id,attempt,status)
+  VALUES(v_target,v_worker,1,'submitted') RETURNING id INTO v_exec;
+  UPDATE public.tasks
+  SET latest_delivery_task_id=v_target,latest_delivery_execution_id=v_exec
+  WHERE id=v_target RETURNING updated_at INTO v_expected;
+  INSERT INTO public.tasks(
+    project_id,task_type,title,description,requirements,requires_review,status,priority
+  ) VALUES (
+    v_project,'implementation','Reconciliation fixture dependent task','Disposable fixture',
+    jsonb_build_object('dependencies',jsonb_build_array(jsonb_build_object(
+      'type','task','task_id',v_target::text,'required_status','accepted'
+    ))),
+    true,'pending',-130
+  ) RETURNING id INTO v_dependent;
+  BEGIN
+    PERFORM public.reconcile_submitted_task(
+      v_target,v_expected,'Attempt to reconcile a required prerequisite',v_evidence,
+      'reconcile-dependent-work-'||gen_random_uuid()::text
+    );
+    RAISE EXCEPTION 'FAIL: dependent task did not block reconciliation';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'TASK_HAS_DEPENDENT_WORK' THEN RAISE; END IF;
+  END;
+
+  RAISE NOTICE 'PASS: submitted reconciliation owner gate, evidence/reason validation, stale-state fencing, audit/history preservation, idempotency replay, live-execution guard, pending/accepted review guards, and dependency guard';
+END
+$reconciliation_test$;
 
 ROLLBACK;
 SQL
