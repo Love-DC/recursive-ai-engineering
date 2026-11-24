@@ -24,25 +24,28 @@ psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 \
   -v project_id="$SUPABASE_PROJECT_ID" \
   -v worker_id="$SHARED_WORKER_ID" \
   -v reviewer_worker_id="$REVIEWER_WORKER_ID" <<'SQL'
+-- Apply forward migrations before opening the rollback-scoped fixture transaction.
+-- The repository-authoritative migration owns a BEGIN/COMMIT block; sourcing it
+-- inside this harness transaction would commit the fixture and clear SET LOCAL
+-- values such as test.project_id.
+\i supabase/migrations/20261124172155_submitted_task_reconciliation.sql
+\i supabase/migrations/20261124181237_owner_scoped_project_activation.sql
+\i supabase/migrations/20261124183843_repository_authoritative_activation_guard.sql
+
 BEGIN;
 SELECT set_config('request.jwt.claim.sub', :'owner_id', true);
 SELECT set_config('test.project_id', :'project_id', true);
 SELECT set_config('test.worker_id', :'worker_id', true);
 SELECT set_config('test.reviewer_worker_id', :'reviewer_worker_id', true);
-\i supabase/migrations/20261124172155_submitted_task_reconciliation.sql
-\i supabase/migrations/20261124181237_owner_scoped_project_activation.sql
 \i tests/project-activation-config-tests.sql
 
 -- This test explicitly exercises the opt-in project-wide concurrency cap.
 -- Keep the config change inside the existing transaction so ROLLBACK restores
 -- the caller's project settings after all fixture rows are removed.
 UPDATE public.projects
-SET config = coalesce(config,'{}'::jsonb)
-  || jsonb_build_object(
-    'task_activation','active_session_autonomy',
-    'autonomy',coalesce(config->'autonomy','{}'::jsonb)
-      || jsonb_build_object('max_active_executions',2)
-  )
+SET config = (coalesce(config,'{}'::jsonb) - 'task_activation')
+  || jsonb_build_object('autonomy',coalesce(config->'autonomy','{}'::jsonb)
+    || jsonb_build_object('paused',false,'max_active_executions',2))
 WHERE id=current_setting('test.project_id')::uuid;
 
 DO $config$
@@ -52,7 +55,8 @@ BEGIN
   SELECT config INTO v_config
   FROM public.projects
   WHERE id=current_setting('test.project_id')::uuid;
-  IF v_config->>'task_activation' IS DISTINCT FROM 'active_session_autonomy'
+  IF v_config ? 'task_activation'
+    OR v_config #>> '{autonomy,paused}' IS DISTINCT FROM 'false'
     OR v_config #>> '{autonomy,max_active_executions}' IS DISTINCT FROM '2' THEN
     RAISE EXCEPTION 'FAIL: lifecycle fixture did not opt into the two-execution cap: %',v_config;
   END IF;
@@ -175,7 +179,7 @@ BEGIN
 
   -- The pause switch blocks both new task creation and new task claims.
   UPDATE public.projects
-  SET config=jsonb_set(coalesce(config,'{}'::jsonb),'{task_activation}','"paused"'::jsonb,true)
+  SET config=jsonb_set(coalesce(config,'{}'::jsonb),'{autonomy,paused}','true'::jsonb,true)
   WHERE id=v_project;
   BEGIN
     PERFORM public.claim_task(v_project,v_worker,600,'lifecycle-paused-claim-' || gen_random_uuid()::text);
@@ -191,7 +195,7 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '55000' THEN
     IF SQLERRM <> 'PROJECT_TASK_ACTIVATION_PAUSED' THEN RAISE; END IF;
   END;
-  UPDATE public.projects SET config=config-'task_activation' WHERE id=v_project;
+  UPDATE public.projects SET config=jsonb_set(config,'{autonomy,paused}','false'::jsonb,true) WHERE id=v_project;
 
   PERFORM public.complete_execution(v_grandchild_id,v_grandchild_exec,v_worker,
     '{"summary":"grandchild complete"}'::jsonb,'lifecycle-grandchild-complete-' || gen_random_uuid()::text);
@@ -474,4 +478,19 @@ $reconciliation_test$;
 ROLLBACK;
 SQL
 
-echo "PASS: lifecycle integration assertions completed; transaction rolled back."
+# The migration intentionally defaults every registered project to paused.
+# The disposable CI project must be re-enabled after the rollback-scoped
+# default-state assertions so later independent concurrency/review suites run.
+enabled_fixture="$(psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
+UPDATE public.projects
+SET config=jsonb_set(config,'{autonomy,paused}','false'::jsonb,true)
+WHERE id='$SUPABASE_PROJECT_ID'
+RETURNING id;
+SQL
+)"
+[[ "$enabled_fixture" == "$SUPABASE_PROJECT_ID" ]] || {
+  echo "FAIL: could not enable exactly the disposable lifecycle fixture for subsequent CI suites." >&2
+  exit 1
+}
+
+echo "PASS: lifecycle integration assertions completed; transaction rolled back and disposable fixture prepared for later suites."

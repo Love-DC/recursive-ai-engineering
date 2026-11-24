@@ -211,5 +211,21 @@ class RepositoryGovernanceTests(unittest.TestCase):
         self.assertIn("keep all Supabase task state unchanged", discovery)
 
 
+
+    def test_rae_task_activation_policy_is_repository_owned(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        manifest = json.loads((root / "rae-governance.json").read_text(encoding="utf-8"))
+        rule_sets = manifest["governance"]["rule_sets"]
+        activation_rules = [
+            item for item in rule_sets
+            if item.get("path") == "docs/AUTONOMOUS-TASK-DISCOVERY.md"
+        ]
+        self.assertEqual(len(activation_rules), 1)
+        policy = (root / "docs/AUTONOMOUS-TASK-DISCOVERY.md").read_text(encoding="utf-8")
+        self.assertIn("active_session_autonomy", policy)
+        self.assertIn("Supabase is not the authority for repository policy decisions", policy)
+        self.assertIn("autonomy.paused", policy)
+        self.assertIn("autonomy.max_active_executions", policy)
+
 if __name__ == "__main__":
     unittest.main()

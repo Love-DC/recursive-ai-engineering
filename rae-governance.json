@@ -26,6 +26,11 @@
         "priority": 100
       },
       {
+        "id": "autonomous-task-activation-policy",
+        "path": "docs/AUTONOMOUS-TASK-DISCOVERY.md",
+        "priority": 95
+      },
+      {
         "id": "rae-execution-contract",
         "path": "docs/WORKER-INSTRUCTIONS.md",
         "priority": 90
