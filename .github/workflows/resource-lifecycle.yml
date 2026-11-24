@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - scripts/resource_inventory.py
+      - scripts/test_resource_inventory.py
       - scripts/cleanup_branches.py
+      - scripts/test_cleanup_branches.py
+      - docs/RESOURCE-LIFECYCLE.md
       - reports/resource-inventory/**
       - .github/workflows/resource-lifecycle.yml
   workflow_dispatch:
@@ -31,6 +34,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Compile resource inventory and cleanup CLI
+        run: python -m py_compile scripts/resource_inventory.py scripts/cleanup_branches.py
+      - name: Run resource inventory and cleanup regression tests
+        run: python -m unittest scripts.test_resource_inventory scripts.test_cleanup_branches -v
       - name: Generate consolidated inventory report
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
