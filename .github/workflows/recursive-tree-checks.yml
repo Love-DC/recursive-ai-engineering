@@ -5,6 +5,9 @@ on:
     paths:
       - "knowledge/rae-root/**"
       - "knowledge/rae-tree/**"
+      - "README.md"
+      - "docs/MULTI-PROJECT-ARCHITECTURE.md"
+      - "docs/WORKER-INSTRUCTIONS.md"
       - "docs/SESSION-START.md"
       - "docs/RECURSIVE-ENGINEERING-TREE.md"
       - "scripts/test_recursive_tree.py"

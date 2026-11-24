@@ -5,6 +5,10 @@ on:
     branches: [main, "ai/**"]
     paths:
       - "rae-governance.json"
+      - "docs/SESSION-START.md"
+      - "docs/MULTI-PROJECT-ARCHITECTURE.md"
+      - "docs/RECURSIVE-ENGINEERING-TREE.md"
+      - "docs/WORKER-INSTRUCTIONS.md"
       - "README.md"
       - "scripts/repository_governance.py"
       - "tests/test_repository_governance.py"
@@ -14,6 +18,11 @@ on:
   push:
     branches: [main, "ai/**"]
     paths:
+      - "README.md"
+      - "docs/SESSION-START.md"
+      - "docs/MULTI-PROJECT-ARCHITECTURE.md"
+      - "docs/RECURSIVE-ENGINEERING-TREE.md"
+      - "docs/WORKER-INSTRUCTIONS.md"
       - "rae-governance.json"
       - "scripts/repository_governance.py"
       - "tests/test_repository_governance.py"
