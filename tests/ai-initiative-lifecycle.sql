@@ -251,9 +251,9 @@ BEGIN
     jsonb_build_object('summary','D accepted'),v_key||'-complete-d');
 
   v_advance:=public.advance_initiative(v_initiative_id,v_worker_id,v_key||'-advance-final');
-  IF v_advance->'data'->>'status'<>'completed'
+  IF v_advance->'data'->>'status'<>'ready_to_close'
      OR (v_advance->'data'->>'remaining_work_items')::integer<>0 THEN
-    RAISE EXCEPTION 'FAIL: initiative did not complete after all work items were accepted: %',v_advance;
+    RAISE EXCEPTION 'FAIL: initiative did not reach ready_to_close after all work items were accepted: %',v_advance;
   END IF;
 
   v_learning:=public.record_initiative_learning(
@@ -262,6 +262,9 @@ BEGIN
     jsonb_build_array(jsonb_build_object('kind','test','ref','tests/ai-initiative-lifecycle.sql','observation','All DAG wave assertions passed')),
     v_key||'-learning'
   );
+  IF (SELECT status FROM public.initiatives WHERE id=v_initiative_id)<>'completed' THEN
+    RAISE EXCEPTION 'FAIL: initiative was not completed after its learning record was persisted';
+  END IF;
   v_known:=public.propose_initiative(v_project_id,v_worker_id,jsonb_build_object(
     'origin','ai_initiative','title','Repeat learned initiative','summary','Same completed root cause.',
     'rationale','The learning record should suppress this proposal.','desired_outcome','Reuse the lesson.',
