@@ -323,8 +323,12 @@ BEGIN
     WHERE t.project_id=p_project_id AND t.latest_delivery_task_id IS NOT NULL
 
     UNION ALL
-    SELECT 'tasks',t.id::text,'latest_delivery_execution_id',t.latest_delivery_execution_id,t.project_id,
-      e.id IS NOT NULL,CASE WHEN e.id IS NOT NULL THEN t.project_id END
+    SELECT 'tasks',t.id::text,'latest_delivery_execution_task_pair',
+      coalesce(t.latest_delivery_execution_id,t.latest_delivery_task_id),t.project_id,
+      t.latest_delivery_execution_id IS NOT NULL
+        AND t.latest_delivery_task_id IS NOT NULL
+        AND e.id IS NOT NULL,
+      CASE WHEN e.id IS NOT NULL THEN t.project_id END
     FROM public.tasks t
     LEFT JOIN public.executions e
       ON e.id=t.latest_delivery_execution_id
@@ -358,14 +362,20 @@ BEGIN
     WHERE t.project_id=p_project_id AND t.review_target_delivery_task_id IS NOT NULL
 
     UNION ALL
-    SELECT 'tasks',t.id::text,'review_target_execution_id',
-      t.review_target_execution_id,t.project_id,
-      e.id IS NOT NULL,CASE WHEN e.id IS NOT NULL THEN t.project_id END
+    SELECT 'tasks',t.id::text,'review_target_execution_delivery_pair',
+      coalesce(t.review_target_execution_id,t.review_target_delivery_task_id),t.project_id,
+      t.review_target_execution_id IS NOT NULL
+        AND t.review_target_delivery_task_id IS NOT NULL
+        AND e.id IS NOT NULL,
+      CASE WHEN e.id IS NOT NULL THEN t.project_id END
     FROM public.tasks t
     LEFT JOIN public.executions e
       ON e.id=t.review_target_execution_id
      AND e.task_id=t.review_target_delivery_task_id
-    WHERE t.project_id=p_project_id AND t.review_target_execution_id IS NOT NULL
+    WHERE t.project_id=p_project_id AND (
+      t.review_target_execution_id IS NOT NULL
+      OR t.review_target_delivery_task_id IS NOT NULL
+    )
 
     UNION ALL
     -- Durable task events and artifact metadata must remain project/task aligned.
