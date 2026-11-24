@@ -9,7 +9,7 @@ The problem inbox is the durable cross-session register for defects, blockers, r
 - GitHub remains authoritative for code, Issues, PRs, commits, and CI. Store links to those records in the report.
 - Do not leave a material finding only in a ChatGPT transcript, task description, or PR comment.
 
-The additive migration `20261124000400_problem_inbox.sql` was applied to the shared production database on 2026-11-24 (live migration record `20261124112617`). Owner-scoped `list_problem_reports` read-only smoke testing passed. The inbox is live; use the RPC contract below.
+The additive migration `20261124000400_problem_inbox.sql` is deployed in the shared RAE Supabase database. On 2026-11-25, the live `problem_reports` and `problem_report_events` tables and Problem Inbox RPCs were verified, and the owner-scoped `list_problem_reports('unresolved', null, 200)` read succeeded. Use this Supabase inbox as the normal cross-session source of truth; re-check availability at each session start.
 
 ## What to report
 
@@ -36,7 +36,7 @@ Never include credentials, secrets, personal data, or unbounded environment dump
 
 ## RPC contract
 
-After the migration is deployed, use these owner-authorized RPCs through the connected Supabase MCP context:
+The following owner-authorized RPCs are deployed and should be used through the connected Supabase MCP context after the live database gate and selected project scope are re-verified:
 
 ### Report a finding
 
@@ -113,7 +113,7 @@ At session start:
 2. Query the cross-project inbox and inspect unresolved high/critical reports and all `owner_input_required` reports.
 3. Continue existing reports before creating overlapping work.
 4. Check whether the report already has a linked task or PR.
-5. If the RPC is not deployed, do not fabricate success or write directly around the missing authorization boundary. Use the documented temporary GitHub intake fallback and keep the deployment blocker visible.
+5. If the live RPC cannot be verified or is unavailable, do not fabricate success or write directly to the tables. Use only the exceptional fallback below and keep the availability blocker visible.
 
 During execution:
 1. Record material findings promptly, not only at session end.
@@ -122,16 +122,15 @@ During execution:
 4. Update the report as work progresses and resolve only with verified evidence.
 5. If a session cannot finish, leave the report and task state truthful so another fresh session can continue.
 
-## Live intake and legacy fallback
+## Exceptional fallback when the live inbox RPC is unavailable
 
-As of 2026-11-24, `public.problem_reports` and its RPCs are deployed and verified in the shared production database. Use `report_problem`, `update_problem_report`, `list_problem_reports`, and `get_problem_report` as the durable cross-session intake and history.
+The Problem Inbox is deployed and was verified live on 2026-11-25. This fallback is exceptional; it is not the normal intake workflow. The database-wide claim-safety gate in `docs/SESSION-START.md` remains a separate prerequisite for every task/execution lifecycle write.
 
-The temporary GitHub issue #42 is retained only as a historical migration record and must not receive new findings while the live inbox is available. Its production claim-safety blocker was migrated to report `7de343b9-999d-4024-9d84-f417211e6724` and resolved after the eight ordered migrations and read-only smoke checks passed.
+- If the live Problem Inbox RPCs are available, record material findings there. Do not route routine findings to GitHub Issue #42.
+- Issue #42 is the closed historical transitional-intake record. Use it only as the documented no-write fallback when the live inbox cannot be verified or the production gate is closed/uncertain; add a comment only if the issue remains writable. Include project/repository, category, severity, exact evidence links, stable fingerprint, recommended action, and whether Owner input is required. Do not create a replacement intake issue.
+- Never write directly to `problem_reports` or `problem_report_events`, bypass owner-scoped RPCs, or claim cross-session inbox availability without a successful live read.
+- If Issue #42 is locked or otherwise unavailable, remain read-only and surface the exact blocker; do not invent another intake location.
+- A closed/uncertain database gate prohibits task, execution, Initiative, and Problem Inbox mutation RPCs. Continue only read-only discovery and repository-only maintenance.
 
-Current unresolved records include:
-- Colony Sim active-session autonomy activation blocker: `0e5e40f3-f099-4810-a316-26f5f7e26e79`.
-- Initiative/Problem Inbox foreign-key index review opportunity: `5dc26ae9-b877-47ed-a2fc-1036ff6fbe8b`.
-
-Use Issue #42 only if the live Problem Inbox RPCs become unavailable or the database claim-safety gate is closed and cannot be verified. In that exceptional case, follow the no-write fallback rule: comments on the single temporary issue only; never bypass missing RPCs with direct table writes.
 
 This is session-driven coordination. No background daemon, external messaging integration, or automatic ChatGPT notification is implied.
