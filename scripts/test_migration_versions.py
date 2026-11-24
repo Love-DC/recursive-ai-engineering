@@ -124,6 +124,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261123000500_failure_reporting_retry.sql"),
                 Path("20261124000100_task_dependency_eligibility.sql"),
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
+                Path("20261124000300_task_worker_routing_safe_reassignment.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
