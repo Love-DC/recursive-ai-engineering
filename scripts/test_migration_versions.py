@@ -12,7 +12,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATIONS_DIR = ROOT / "supabase" / "migrations"
 SNAPSHOT_FILE = "database-schema.sql"
-VERSIONED_SQL = re.compile(r"^(?P<version>\\d{14})_(?P<name>[a-z0-9][a-z0-9_-]*)\\.sql$")
+VERSIONED_SQL = re.compile(r"^(?P<version>\d{14})_(?P<name>[a-z0-9][a-z0-9_-]*)\.sql$")
 
 FEATURE_ORDER = (
     "failure_reporting_retry",
@@ -75,7 +75,7 @@ def validate_inventory(paths: list[Path], *, check_feature_order: bool = True) -
 class MigrationVersionTests(unittest.TestCase):
     def test_repository_inventory_is_valid(self) -> None:
         errors = validate_inventory(list(MIGRATIONS_DIR.glob("*.sql")))
-        self.assertEqual(errors, [], "\\n".join(errors))
+        self.assertEqual(errors, [], "\n".join(errors))
 
     def test_rejects_duplicate_versions(self) -> None:
         errors = validate_inventory(
