@@ -36,6 +36,18 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 - Shared Worker ID: `78953b49-db9d-4fbc-9d3c-be3421a1c975`
 - Project ID: `61e32c05-39b7-47a6-ab5c-592c8e37d72d`
 
+
+## Mandatory production task RPC gate
+
+The MCP SQL recipes below are **templates, not permission to call them immediately**. Before any task-lifecycle write, follow the full [production task-claim safety preflight](SESSION-START.md#mandatory-production-task-claim-safety-preflight).
+
+As observed on 2026-11-24, the live shared database migration registry ends at `20261122221942_failure_reporting_retry`; repository migrations `20261123000300` through `20261124000600` (routing, dependency eligibility, Initiative, reassignment, Problem Inbox, review recovery, and branch exclusion) are not deployed. The live `claim_task` definition does not enforce the configured Worker route, task dependencies, or repository/branch exclusion. All active projects share this database, so none may bypass the gate.
+
+Until a fresh read-only preflight confirms the complete required migration chain and the deployed RPC predicates, do **not** call `create_task`, `claim_task`, `create_review_task`, reassignment/release/retry operations, `submit_result`, `review_result`, `fail_execution`, or `complete_execution`. Do not update task/lease/execution rows directly. Limit Supabase work to read-only inspection and evidence collection; use the temporary GitHub Problem Inbox issue #42 for material findings while its migration is absent.
+
+A production migration must be separately authorized by the Owner. Repository merge or green isolated CI does not grant deployment authority. After an authorized deployment, verify the live migration registry and function definitions again before resuming task writes.
+
+
 ## How to work
 
 1. Read the task queue and current task details from Supabase before acting. Never rely on another conversation's memory.
@@ -69,6 +81,8 @@ The pilot uses the already-authorized project-owner MCP connection; it does not 
 
 
 ## Verified Supabase MCP recipe (2026-11-23)
+
+The snippets in this historical recipe are executable only after the mandatory production task RPC gate above passes. The recipe's prior successful pilot run is not evidence that the current production migration chain is deployed or that current claim safety predicates are present.
 
 ### Project identifiers
 
