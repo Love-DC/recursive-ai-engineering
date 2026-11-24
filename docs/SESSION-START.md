@@ -29,14 +29,14 @@ This gate is evaluated **per Supabase database**, before any task claim or task-
 
 **Verified live baseline on 2026-11-25: OPEN** for the shared production Supabase project `rgztxilqcfuclkekyojl` (the RAE database, ap-northeast-1). The live migration registry contains the complete eight-migration claim-safety/lifecycle set in dependency order:
 
-1. `20261124112550` — `20261123000300_failure_reporting_retry`
-2. `20261124112600` — `20261123000400_worker_task_routing_safe_release`
-3. `20261124112606` — `20261124000100_task_dependency_eligibility`
-4. `20261124112609` — `20261124000200_ai_initiative_lifecycle`
-5. `20261124112613` — `20261124000300_task_worker_routing_safe_reassignment`
-6. `20261124112617` — `20261124000400_problem_inbox`
-7. `20261124112624` — `20261124000500_review_task_cancellation_recovery`
-8. `20261124112627` — `20261124000600_exclusive_branch_claim`
+1. `20261124112550` — `20261123000300_failure_reporting_retry.sql`
+2. `20261124112600` — `20261123000400_worker_task_routing_safe_release.sql`
+3. `20261124112606` — `20261124000100_task_dependency_eligibility.sql`
+4. `20261124112609` — `20261124000200_ai_initiative_lifecycle.sql`
+5. `20261124112613` — `20261124000300_task_worker_routing_safe_reassignment.sql`
+6. `20261124112617` — `20261124000400_problem_inbox.sql`
+7. `20261124112624` — `20261124000500_review_task_cancellation_recovery.sql`
+8. `20261124112627` — `20261124000600_exclusive_branch_claim.sql`
 
 The following live, read-only checks were completed for this snapshot:
 
@@ -46,7 +46,7 @@ The following live, read-only checks were completed for this snapshot:
 - Owner-scoped `list_tasks`, `list_initiatives`, and `list_problem_reports` calls succeeded. The live Problem Inbox tables and RPCs are present.
 - Exact-head isolated CI for the merged eight-migration chain passed on PR #60 head `d9b39dd2d81c397c4d41835f98d98d48787b3036`: PostgreSQL lifecycle run [45449618863](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45449618863), Initiative lifecycle run [45449618986](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45449618986), and Shell static run [45449618919](https://github.com/Love-DC/recursive-ai-engineering/actions/runs/45449618919). These are isolated repository/fixture checks, not synthetic production mutation tests.
 
-The database gate permits ordinary project-scoped task/execution lifecycle writes only while these live checks remain valid and the selected project's own activation policy permits the operation. Before any lifecycle write in a new session, re-check the live migration registry, deployed RPC behavior, project/Worker mapping, and project activation policy. Never rely on this dated snapshot or GitHub merge status alone.
+The database gate permits ordinary project-scoped task/execution lifecycle writes only while these live checks remain valid and the selected project's own activation policy permits the operation. Before any claim, evaluate the mandatory production claim-safety deployment gate in this document. Before any lifecycle write in a new session, re-check the live migration registry, deployed RPC behavior, project/Worker mapping, and project activation policy. Never rely on this dated snapshot or GitHub merge status alone.
 
 ### Separate, not-yet-deployed migration boundaries
 
@@ -55,7 +55,7 @@ The database gate permits ordinary project-scoped task/execution lifecycle write
 
 The eight-migration claim-safety gate does **not** authorize arbitrary production DDL, migration deployment, destructive operations, product decisions, or project activation changes. Production migrations require their separate authorization. Colony Sim remains `explicit_owner_authorization_only`; do not activate its task queue or change gameplay/product behavior under this platform gate.
 
-Never probe `claim_task` with a dummy task, invalid Worker, or replay key: the deployed function can expire/fail an eligible stale execution before it selects a task. Prove mutation/race behavior only in isolated PostgreSQL fixtures. If the gate is closed, stale, contradictory, or cannot be proven open, do not call any task/initiative/Problem Inbox write RPC and remain read-only/repository-only.
+Do not probe `claim_task` with a dummy task, invalid Worker, or replay key: the deployed function can expire/fail an eligible stale execution before it selects a task. Prove mutation/race behavior only in isolated PostgreSQL fixtures. If the gate is closed, stale, contradictory, or cannot be proven open, do not invoke any production task/initiative/problem-report write RPC; do not call any task/initiative/Problem Inbox write RPC and remain read-only/repository-only.
 
 ## Autonomous discovery
 
