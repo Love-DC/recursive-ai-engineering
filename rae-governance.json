@@ -16,7 +16,8 @@
     ],
     "required": [
       "docs/AUTONOMOUS-TASK-DISCOVERY.md",
-      "docs/SECURITY-BOUNDARY-AUDIT.md"
+      "docs/SECURITY-BOUNDARY-AUDIT.md",
+      "docs/PROBLEM-INBOX.md"
     ],
     "rule_sets": [
       {

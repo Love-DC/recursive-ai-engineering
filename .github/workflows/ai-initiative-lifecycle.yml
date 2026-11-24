@@ -70,15 +70,22 @@ jobs:
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261123000400_worker_task_routing_safe_release.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000100_task_dependency_eligibility.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000200_ai_initiative_lifecycle.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000300_task_worker_routing_safe_reassignment.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000400_problem_inbox.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
           SQL
 
       - name: Check test runner syntax
-        run: bash -n scripts/test-ai-initiative-lifecycle.sh
+        run: |
+          bash -n scripts/test-ai-initiative-lifecycle.sh
+          bash -n scripts/test-problem-inbox.sh
 
       - name: Run initiative lifecycle acceptance tests
         run: bash scripts/test-ai-initiative-lifecycle.sh
 
       - name: Run concurrent support/advance race regression
         run: bash scripts/test-initiative-support-advance-race.sh
+
+      - name: Run unified problem inbox integration tests
+        run: bash scripts/test-problem-inbox.sh
