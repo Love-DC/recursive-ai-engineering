@@ -121,9 +121,10 @@ BEGIN
 
   -- Two active executions exhaust the project-wide cap; a third claim is held.
   v_limited := public.claim_task(v_project,v_worker,600,'lifecycle-cap-third-' || gen_random_uuid()::text);
-  IF v_limited->'data'->>'blocked_reason' <> 'PROJECT_CONCURRENCY_LIMIT_REACHED'
-     OR (v_limited->'data'->>'max_active_executions')::integer <> 2
-     OR (v_limited->'data'->>'active_executions')::integer <> 2 THEN
+  IF v_limited->'data'->>'task_id' IS NOT NULL
+     OR v_limited->'data'->>'blocked_reason' IS DISTINCT FROM 'PROJECT_CONCURRENCY_LIMIT_REACHED'
+     OR v_limited->'data'->>'max_active_executions' IS DISTINCT FROM '2'
+     OR v_limited->'data'->>'active_executions' IS DISTINCT FROM '2' THEN
     RAISE EXCEPTION 'FAIL: project concurrency cap was not enforced: %',v_limited;
   END IF;
 
