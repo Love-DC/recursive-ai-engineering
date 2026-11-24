@@ -49,11 +49,18 @@ BEGIN
   END IF;
 
   v_config := coalesce(v_project.config,'{}'::jsonb);
-  v_autonomy := CASE
-    WHEN jsonb_typeof(v_config->'autonomy')='object'
-      THEN v_config->'autonomy'
-    ELSE '{}'::jsonb
-  END;
+  IF jsonb_typeof(v_config) IS DISTINCT FROM 'object' THEN
+    RAISE EXCEPTION USING errcode='22023',
+      message='PROJECT_CONFIG_INVALID';
+  END IF;
+
+  IF v_config ? 'autonomy'
+    AND jsonb_typeof(v_config->'autonomy') IS DISTINCT FROM 'object' THEN
+    RAISE EXCEPTION USING errcode='22023',
+      message='PROJECT_AUTONOMY_CONFIG_INVALID';
+  END IF;
+
+  v_autonomy := coalesce(v_config->'autonomy','{}'::jsonb);
 
   v_config := jsonb_set(
     v_config,
