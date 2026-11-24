@@ -23,6 +23,8 @@ DECLARE
   v_task_id uuid;
   v_execution_id uuid;
   v_fix_task_id uuid;
+  v_fix_execution_id uuid;
+  v_active_executions integer;
   v_delivery_task_id uuid;
   v_delivery_execution_id uuid;
   v_review_id uuid;
@@ -167,6 +169,33 @@ BEGIN
   v_claim := public.claim_task(v_project,v_b,120,'fix-route-b-claim-'||gen_random_uuid()::text);
   IF v_claim->'data'->>'task_id' IS DISTINCT FROM v_fix_task_id::text THEN
     RAISE EXCEPTION 'FAIL: Worker B could not claim its explicitly routed fix task: %',v_claim;
+  END IF;
+  v_fix_execution_id := (v_claim->'data'->>'execution_id')::uuid;
+
+  -- The project cap is global across Workers. Release this fixture execution
+  -- after proving the fix route so the later delivery claim has a free slot.
+  v_result := public.release_execution(
+    v_fix_task_id,v_fix_execution_id,v_b,
+    'Release fixture slot after fix-route assertion',
+    'release-fix-route-'||gen_random_uuid()::text
+  );
+  IF v_result->'data'->>'status' IS DISTINCT FROM 'pending'
+    OR v_result->'data'->>'execution_status' IS DISTINCT FROM 'superseded' THEN
+    RAISE EXCEPTION 'FAIL: routed fix fixture did not release its active execution slot: %',v_result;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.tasks
+    WHERE id=v_fix_task_id AND status='pending'
+      AND assigned_worker_id IS NULL AND current_execution_id IS NULL AND lease_until IS NULL
+  ) THEN
+    RAISE EXCEPTION 'FAIL: released fix fixture did not return to pending/unleased state';
+  END IF;
+  SELECT count(*)::integer INTO v_active_executions
+  FROM public.tasks
+  WHERE project_id=v_project AND status='running'
+    AND current_execution_id IS NOT NULL AND lease_until > clock_timestamp();
+  IF v_active_executions >= 2 THEN
+    RAISE EXCEPTION 'FAIL: fixture did not free a project execution slot before the next claim: %',v_active_executions;
   END IF;
 
   -- Create and submit a delivery, then create a correctly routed review.
