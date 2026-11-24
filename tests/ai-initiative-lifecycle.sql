@@ -129,14 +129,6 @@ BEGIN
      OR (v_support_duplicate->'data'->>'support_request_id')::uuid<>v_support_id THEN
     RAISE EXCEPTION 'FAIL: pending support request was not deduplicated';
   END IF;
-  v_support_decision:=public.decide_initiative_support(
-    v_support_id,'grant','Read-only access granted for this bounded test.',
-    jsonb_build_object('access','read-only'),v_key||'-support-decision'
-  );
-  IF v_support_decision->'data'->>'status'<>'granted' THEN
-    RAISE EXCEPTION 'FAIL: support grant was not recorded';
-  END IF;
-
   -- A/B are independent; C depends on both; D depends on C.
   v_plan:=jsonb_build_array(
     jsonb_build_object('work_key','a','title','Inspect initiative path','description','Inspect the first independent workstream.','priority',10,'requires_review',true,'depends_on',jsonb_build_array()),
@@ -148,6 +140,20 @@ BEGIN
   IF v_decision->'data'->>'status'<>'approved'
      OR (v_decision->'data'->>'work_item_count')::integer<>4 THEN
     RAISE EXCEPTION 'FAIL: initiative approval did not persist the work plan';
+  END IF;
+
+  -- A pending human-support request must block all task materialization.
+  v_advance:=public.advance_initiative(v_initiative_id,v_worker_id,v_key||'-advance-blocked-support');
+  IF v_advance->'data'->>'blocked_by_support'<>'true'
+     OR (v_advance->'data'->>'materialized_count')::integer<>0 THEN
+    RAISE EXCEPTION 'FAIL: unresolved support request did not block task materialization';
+  END IF;
+  v_support_decision:=public.decide_initiative_support(
+    v_support_id,'grant','Read-only access granted for this bounded test.',
+    jsonb_build_object('access','read-only'),v_key||'-support-decision'
+  );
+  IF v_support_decision->'data'->>'status'<>'granted' THEN
+    RAISE EXCEPTION 'FAIL: support grant was not recorded';
   END IF;
 
   -- Cyclic plans must be rejected without changing the proposal.
