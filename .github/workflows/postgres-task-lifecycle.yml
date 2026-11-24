@@ -5,9 +5,11 @@ on:
     branches:
       - main
       - "rae/**"
+      - "ai/**"
   pull_request:
     branches:
       - main
+      - "ai/**"
 
 permissions:
   contents: read
@@ -49,6 +51,9 @@ jobs:
       - name: Validate Worker-routing migration structure
         run: python3 scripts/test_worker_routing_migration_shape.py
 
+      - name: Validate task-dependency migration structure
+        run: python3 scripts/test_task_dependency_migration_shape.py
+
       - name: Prepare isolated Supabase-compatible PostgreSQL fixture
         run: |
           set -euo pipefail
@@ -68,6 +73,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/database-schema.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611230003_failure_reporting_retry.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611230004_worker_task_routing_safe_release.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/202611240001_task_dependency_eligibility.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
           INSERT INTO public.projects(id,name,owner_id,status,config)
@@ -94,6 +100,9 @@ jobs:
           REVIEWER_WORKER_ID: 00000000-0000-4000-8000-000000000005
         run: |
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -v owner_id="$SUPABASE_OWNER_ID" -v project_id="$SUPABASE_PROJECT_ID" -v worker_a="$SHARED_WORKER_ID" -v worker_b="$SECOND_WORKER_ID" -v reviewer_worker="$REVIEWER_WORKER_ID" -f tests/worker-routing-release-tests.sql
+
+      - name: Run task dependency eligibility integration tests
+        run: psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -v owner_id="$SUPABASE_OWNER_ID" -v project_id="$SUPABASE_PROJECT_ID" -v worker_id="$SHARED_WORKER_ID" -f tests/task-dependency-eligibility-tests.sql
 
       - name: Run failure reporting and bounded retry integration tests
         env:
