@@ -65,7 +65,7 @@ Keep the existing task schema stable. Put repository-specific task context in th
     "worker_branch": "ai/123-short-slug"
   },
   "decision_gate": "engineering_only",
-  "owner_authorization": "direct_request | exact_issue_dispatch",
+  "owner_authorization": "direct_owner_request | standing_scope_envelope | repository_defined_dispatch",
   "allowed_paths": [],
   "excluded_scope": [],
   "dependencies": [],
@@ -87,7 +87,7 @@ Every target repository must publish a root `rae-governance.json`. Before planni
 
 Missing manifests/files, incompatible protocol versions, conflicting rule declarations, semantic policy conflicts, or stale SHAs block execution. The Coordinator must report the exact source and ask the Owner when a conflict cannot be resolved by an explicit repository-local precedence rule. See [Repository-local governance discovery protocol](REPOSITORY-GOVERNANCE-PROTOCOL.md).
 
-The Colony Sim manifest identifies `Love-DC/colony-sim-ci` as an independent validation repository. Its workflow is not a Colony Sim subdirectory and must be invoked only through its documented exact-HEAD trigger. Product-owner authority, explicit Worker dispatch, and independent Coordinator review remain enforced by Colony Sim's own repository documents.
+The Colony Sim manifest identifies `Love-DC/colony-sim-ci` as an independent validation repository. Its workflow is not a Colony Sim subdirectory and must be invoked only through its documented exact-HEAD trigger. All task activation, standing-scope delegation, Worker launch, concurrency, and merge rules are repository-local: resolve them from the target repository's current manifest and pinned governance files rather than hardcoding a universal explicit-dispatch or automatic-launch assumption in RAE. Distinguish task publication, claim eligibility, and operational Worker launch as separate states; permission to publish a task does not prove that a scheduler or runtime is deployed.
 
 ## Shared task-pool semantics
 
@@ -111,5 +111,5 @@ Workers inspect their authorized project's code, docs, tests, CI, and read-only 
 ## Explicit limitations
 
 - RAE cannot open or launch another ChatGPT conversation. The default workflow therefore uses one coordinator conversation and performs work there; optional workers require the owner to open additional conversations.
-- Supabase task records do not themselves grant product approval or authorize an Issue. The owner request and project-specific dispatch protocol remain the authority.
+- Supabase task records do not themselves grant product approval or authorize an Issue. The owner request and target repository's current activation policy (including any standing-scope delegation and runtime-readiness gates) remain the authority.
 - A green CI result proves only the jobs and steps that actually ran on the exact commit.
