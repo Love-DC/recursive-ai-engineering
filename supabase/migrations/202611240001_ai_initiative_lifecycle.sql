@@ -391,13 +391,18 @@ BEGIN
       decided_at=clock_timestamp(),updated_at=clock_timestamp()
       WHERE id=p_initiative_id;
   ELSE
-    IF jsonb_typeof(coalesce(p_work_plan,'[]'::jsonb))<>'array'
-       OR jsonb_array_length(coalesce(p_work_plan,'[]'::jsonb))<>0 THEN
+    IF p_work_plan IS NOT NULL AND jsonb_typeof(p_work_plan) IS DISTINCT FROM 'array' THEN
+      RAISE EXCEPTION USING errcode='22023',message='REJECTED_INITIATIVE_CANNOT_HAVE_WORK_PLAN';
+    END IF;
+    IF p_work_plan IS NOT NULL AND jsonb_array_length(p_work_plan)<>0 THEN
       RAISE EXCEPTION USING errcode='22023',message='REJECTED_INITIATIVE_CANNOT_HAVE_WORK_PLAN';
     END IF;
     UPDATE public.initiatives SET status='rejected',decision_note=left(coalesce(p_decision_note,''),2000),
       decided_at=clock_timestamp(),updated_at=clock_timestamp()
       WHERE id=p_initiative_id;
+    UPDATE public.initiative_support_requests
+      SET status='withdrawn',decision_note='Initiative rejected',decided_at=clock_timestamp(),updated_at=clock_timestamp()
+      WHERE initiative_id=p_initiative_id AND status='pending';
   END IF;
 
   INSERT INTO public.initiative_events(initiative_id,project_id,event_type,payload)
@@ -523,11 +528,11 @@ BEGIN
   IF v_request.status<>'pending' THEN
     RAISE EXCEPTION USING errcode='55000',message='SUPPORT_REQUEST_NOT_PENDING';
   END IF;
-  IF p_decision IS NULL OR p_decision NOT IN ('grant','decline') OR jsonb_typeof(coalesce(p_granted_scope,'{}'::jsonb))<>'object' THEN
+  IF p_decision IS NULL OR p_decision NOT IN ('grant','decline','withdraw') OR jsonb_typeof(coalesce(p_granted_scope,'{}'::jsonb))<>'object' THEN
     RAISE EXCEPTION USING errcode='22023',message='INVALID_SUPPORT_DECISION';
   END IF;
   UPDATE public.initiative_support_requests
-    SET status=CASE WHEN p_decision='grant' THEN 'granted' ELSE 'declined' END,
+    SET status=CASE p_decision WHEN 'grant' THEN 'granted' WHEN 'decline' THEN 'declined' ELSE 'withdrawn' END,
       decision_note=left(coalesce(p_decision_note,''),2000),
       granted_scope=CASE WHEN p_decision='grant' THEN coalesce(p_granted_scope,'{}'::jsonb) ELSE NULL END,
       decided_at=clock_timestamp(),updated_at=clock_timestamp()
@@ -536,7 +541,7 @@ BEGIN
   VALUES (v_request.initiative_id,v_request.project_id,'support_'||p_decision,
     jsonb_build_object('support_request_id',p_support_request_id,'decision_note',left(coalesce(p_decision_note,''),1000)));
   v_response:=jsonb_build_object('success',true,'data',jsonb_build_object(
-    'support_request_id',p_support_request_id,'status',CASE WHEN p_decision='grant' THEN 'granted' ELSE 'declined' END
+    'support_request_id',p_support_request_id,'status',CASE p_decision WHEN 'grant' THEN 'granted' WHEN 'decline' THEN 'declined' ELSE 'withdrawn' END
   ));
   PERFORM private.idempotency_put(v_request.project_id,'decide_initiative_support',p_idempotency_key,v_hash,v_response);
   RETURN v_response;
@@ -563,6 +568,8 @@ DECLARE
   v_created jsonb:='[]'::jsonb;
   v_created_count integer:=0;
   v_remaining integer;
+  v_pending_support integer;
+  v_declined_support integer;
   v_response jsonb;
   v_requirements jsonb;
 BEGIN
@@ -579,6 +586,26 @@ BEGIN
   SELECT * INTO v_initiative FROM public.initiatives WHERE id=p_initiative_id FOR UPDATE;
   IF v_initiative.status NOT IN ('approved','in_progress') THEN
     RAISE EXCEPTION USING errcode='55000',message='INITIATIVE_NOT_EXECUTABLE';
+  END IF;
+
+  SELECT count(*) FILTER (WHERE status='pending'),
+         count(*) FILTER (WHERE status='declined')
+    INTO v_pending_support,v_declined_support
+    FROM public.initiative_support_requests
+    WHERE initiative_id=p_initiative_id;
+  IF v_pending_support>0 OR v_declined_support>0 THEN
+    SELECT count(*) INTO v_remaining FROM public.initiative_work_items
+      WHERE initiative_id=p_initiative_id AND status NOT IN ('completed','cancelled');
+    v_response:=jsonb_build_object('success',true,'data',jsonb_build_object(
+      'initiative_id',p_initiative_id,'status',v_initiative.status,'materialized_count',0,
+      'created_tasks','[]'::jsonb,'remaining_work_items',v_remaining,'blocked_by_support',true,
+      'pending_support_count',v_pending_support,'declined_support_count',v_declined_support
+    ));
+    INSERT INTO public.initiative_events(initiative_id,project_id,event_type,payload)
+    VALUES (p_initiative_id,v_initiative.project_id,'initiative_advance_blocked_support',
+      jsonb_build_object('pending_support_count',v_pending_support,'declined_support_count',v_declined_support));
+    PERFORM private.idempotency_put(v_initiative.project_id,'advance_initiative',p_idempotency_key,v_hash,v_response);
+    RETURN v_response;
   END IF;
 
   UPDATE public.initiative_work_items w SET status='completed',updated_at=clock_timestamp()
@@ -689,6 +716,9 @@ BEGIN
   END LOOP;
   UPDATE public.initiative_work_items SET status='cancelled',updated_at=clock_timestamp()
     WHERE initiative_id=p_initiative_id AND status='planned';
+  UPDATE public.initiative_support_requests
+    SET status='withdrawn',decision_note='Initiative abandoned',decided_at=clock_timestamp(),updated_at=clock_timestamp()
+    WHERE initiative_id=p_initiative_id AND status='pending';
   UPDATE public.initiatives SET status='abandoned',decision_note=left(p_reason,2000),
     completed_at=clock_timestamp(),updated_at=clock_timestamp() WHERE id=p_initiative_id;
   INSERT INTO public.initiative_events(initiative_id,project_id,event_type,payload)
