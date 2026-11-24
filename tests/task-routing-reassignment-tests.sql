@@ -181,6 +181,19 @@ BEGIN
     RAISE EXCEPTION 'FAIL: review delivery was not claimed by its routed implementation Worker: %',v_claim;
   END IF;
   v_delivery_execution_id := (v_claim->'data'->>'execution_id')::uuid;
+
+  -- Submitted deliveries are terminal for reassignment even after their
+  -- execution lease has been cleared.
+  BEGIN
+    PERFORM public.reassign_pending_task(
+      v_delivery_task_id,v_a,v_b,'Cannot reassign a submitted delivery',
+      'reassign-submitted-'||gen_random_uuid()::text
+    );
+    RAISE EXCEPTION 'FAIL: submitted delivery was reassigned';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'TASK_NOT_PENDING' THEN RAISE; END IF;
+  END;
+
   PERFORM public.submit_result(
     v_delivery_task_id,v_delivery_execution_id,v_a,
     '{"summary":"delivery submitted for review reassignment tests"}'::jsonb,
@@ -219,6 +232,17 @@ BEGIN
   UPDATE public.tasks
   SET status='cancelled',updated_at=clock_timestamp()
   WHERE id=v_review_id AND status='pending';
+
+  BEGIN
+    PERFORM public.reassign_pending_task(
+      v_review_id,v_reviewer,v_a,'Cannot reassign a cancelled review',
+      'reassign-cancelled-'||gen_random_uuid()::text
+    );
+    RAISE EXCEPTION 'FAIL: cancelled review was reassigned';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'TASK_NOT_PENDING' THEN RAISE; END IF;
+  END;
+
   v_result := public.create_review_task(
     v_delivery_task_id,v_delivery_task_id,v_delivery_execution_id,v_reviewer,
     'review-create-retry-'||gen_random_uuid()::text
