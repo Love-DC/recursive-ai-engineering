@@ -170,5 +170,17 @@ class RepositoryGovernanceTests(unittest.TestCase):
         self.assertIn("keep all Supabase task state unchanged", discovery)
 
 
+    def test_startup_and_worker_docs_trigger_governance_workflow(self):
+        root = Path(__file__).resolve().parent.parent
+        workflow = (root / ".github/workflows/repository-governance.yml").read_text(
+            encoding="utf-8"
+        )
+        pull_request_paths = workflow.split("  push:", 1)[0]
+        push_paths = workflow.split("  push:", 1)[1].split("\npermissions:", 1)[0]
+
+        for path in ("docs/SESSION-START.md", "docs/WORKER-INSTRUCTIONS.md"):
+            self.assertIn(f'      - "{path}"', pull_request_paths)
+            self.assertIn(f'      - "{path}"', push_paths)
+
 if __name__ == "__main__":
     unittest.main()
