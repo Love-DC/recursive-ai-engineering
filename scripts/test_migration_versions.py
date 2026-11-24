@@ -20,6 +20,7 @@ FEATURE_ORDER = (
     "task_dependency_eligibility",
     "ai_initiative_lifecycle",
     "task_worker_routing_safe_reassignment",
+    "review_task_cancellation_recovery",
 )
 
 
@@ -67,7 +68,7 @@ def validate_inventory(paths: list[Path], *, check_feature_order: bool = True) -
                 errors.append(
                     "migration dependency order must be failure reporting/retry, "
                     "Worker routing/safe release, task dependency eligibility, "
-                    "AI Initiative lifecycle, then safe task reassignment"
+                    "AI Initiative lifecycle, safe task reassignment, then review cancellation/failure recovery"
                 )
 
     return errors
@@ -113,6 +114,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000100_task_dependency_eligibility.sql"),
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
                 Path("20261124000300_task_worker_routing_safe_reassignment.sql"),
+                Path("20261124000500_review_task_cancellation_recovery.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -125,6 +127,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000100_task_dependency_eligibility.sql"),
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
                 Path("20261124000300_task_worker_routing_safe_reassignment.sql"),
+                Path("20261124000500_review_task_cancellation_recovery.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -136,7 +139,21 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261123000400_worker_task_routing_safe_release.sql"),
                 Path("20261124000100_task_dependency_eligibility.sql"),
                 Path("20261124000150_task_worker_routing_safe_reassignment.sql"),
+                Path("20261124000500_review_task_cancellation_recovery.sql"),
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
+            ]
+        )
+        self.assertTrue(any("dependency order" in e for e in errors))
+
+    def test_rejects_review_recovery_before_task_reassignment(self) -> None:
+        errors = validate_inventory(
+            [
+                Path("20261123000300_failure_reporting_retry.sql"),
+                Path("20261123000400_worker_task_routing_safe_release.sql"),
+                Path("20261124000100_task_dependency_eligibility.sql"),
+                Path("20261124000200_ai_initiative_lifecycle.sql"),
+                Path("20261124000500_task_worker_routing_safe_reassignment.sql"),
+                Path("20261124000400_review_task_cancellation_recovery.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))

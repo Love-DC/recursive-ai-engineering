@@ -25,6 +25,8 @@ jobs:
           bash -n scripts/test-fail-reclaim-race.sh
           bash -n scripts/test-same-worker-concurrency.sh
           bash -n scripts/test-initiative-support-advance-race.sh
+          bash -n scripts/test-review-lifecycle.sh
+          bash -n scripts/test-review-create-concurrency.sh
 
       - name: Validate lifecycle workflow YAML
         run: ruby -e 'require "yaml"; YAML.load_file(".github/workflows/resource-lifecycle.yml")'
@@ -46,4 +48,4 @@ jobs:
 
       - name: Run ShellCheck
         run: |
-          shellcheck --severity=warning scripts/test-claim-concurrency.sh scripts/test-task-lifecycle.sh scripts/test-failure-recovery.sh scripts/test-fail-reclaim-race.sh scripts/test-same-worker-concurrency.sh scripts/test-initiative-support-advance-race.sh
+          shellcheck --severity=warning scripts/test-claim-concurrency.sh scripts/test-task-lifecycle.sh scripts/test-failure-recovery.sh scripts/test-fail-reclaim-race.sh scripts/test-same-worker-concurrency.sh scripts/test-initiative-support-advance-race.sh scripts/test-review-lifecycle.sh scripts/test-review-create-concurrency.sh
