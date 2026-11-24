@@ -225,6 +225,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000500_review_task_cancellation_recovery.sql"),
                 Path("20261124000550_active_session_autonomy_guard.sql"),
                 Path("20261124000600_exclusive_branch_claim.sql"),
+                Path("20261124172155_submitted_task_reconciliation.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in error for error in errors))
@@ -242,6 +243,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000500_review_task_cancellation_recovery.sql"),
                 Path("20261124000600_submitted_task_reconciliation.sql"),
                 Path("20261124000700_exclusive_branch_claim.sql"),
+                Path("20261124000800_active_session_autonomy_guard.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in error for error in errors))
