@@ -24,14 +24,19 @@ psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 \
   -v project_id="$SUPABASE_PROJECT_ID" \
   -v worker_id="$SHARED_WORKER_ID" \
   -v reviewer_worker_id="$REVIEWER_WORKER_ID" <<'SQL'
+-- Apply forward migrations before opening the rollback-scoped fixture transaction.
+-- The repository-authoritative migration owns a BEGIN/COMMIT block; sourcing it
+-- inside this harness transaction would commit the fixture and clear SET LOCAL
+-- values such as test.project_id.
+\i supabase/migrations/20261124172155_submitted_task_reconciliation.sql
+\i supabase/migrations/20261124181237_owner_scoped_project_activation.sql
+\i supabase/migrations/20261124183843_repository_authoritative_activation_guard.sql
+
 BEGIN;
 SELECT set_config('request.jwt.claim.sub', :'owner_id', true);
 SELECT set_config('test.project_id', :'project_id', true);
 SELECT set_config('test.worker_id', :'worker_id', true);
 SELECT set_config('test.reviewer_worker_id', :'reviewer_worker_id', true);
-\i supabase/migrations/20261124172155_submitted_task_reconciliation.sql
-\i supabase/migrations/20261124181237_owner_scoped_project_activation.sql
-\i supabase/migrations/20261124183843_repository_authoritative_activation_guard.sql
 \i tests/project-activation-config-tests.sql
 
 -- This test explicitly exercises the opt-in project-wide concurrency cap.
