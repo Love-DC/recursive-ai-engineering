@@ -206,13 +206,17 @@ BEGIN
      OR length(btrim(coalesce(p_payload->>'desired_outcome',''))) NOT BETWEEN 1 AND 2000 THEN
     RAISE EXCEPTION USING errcode='22023',message='INITIATIVE_CONTENT_REQUIRED';
   END IF;
-  IF jsonb_typeof(coalesce(p_payload->'scope','[]'::jsonb))<>'array'
-     OR jsonb_array_length(coalesce(p_payload->'scope','[]'::jsonb))=0 THEN
+  IF jsonb_typeof(coalesce(p_payload->'scope','[]'::jsonb)) IS DISTINCT FROM 'array' THEN
     RAISE EXCEPTION USING errcode='22023',message='INITIATIVE_SCOPE_REQUIRED';
   END IF;
-  IF jsonb_typeof(coalesce(p_payload->'evidence','[]'::jsonb))<>'array'
-     OR ((v_origin IN ('ai_initiative','maintenance'))
-       AND jsonb_array_length(coalesce(p_payload->'evidence','[]'::jsonb))=0) THEN
+  IF jsonb_array_length(coalesce(p_payload->'scope','[]'::jsonb))=0 THEN
+    RAISE EXCEPTION USING errcode='22023',message='INITIATIVE_SCOPE_REQUIRED';
+  END IF;
+  IF jsonb_typeof(coalesce(p_payload->'evidence','[]'::jsonb)) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION USING errcode='22023',message='INITIATIVE_EVIDENCE_REQUIRED';
+  END IF;
+  IF v_origin IN ('ai_initiative','maintenance')
+     AND jsonb_array_length(coalesce(p_payload->'evidence','[]'::jsonb))=0 THEN
     RAISE EXCEPTION USING errcode='22023',message='INITIATIVE_EVIDENCE_REQUIRED';
   END IF;
   IF coalesce(p_payload->>'risk','') NOT IN ('low','medium','high')
@@ -315,7 +319,10 @@ BEGIN
   END IF;
 
   IF p_decision='approve' THEN
-    IF p_work_plan IS NULL OR jsonb_typeof(p_work_plan)<>'array' OR jsonb_array_length(p_work_plan) NOT BETWEEN 1 AND 100 THEN
+    IF p_work_plan IS NULL OR jsonb_typeof(p_work_plan) IS DISTINCT FROM 'array' THEN
+      RAISE EXCEPTION USING errcode='22023',message='APPROVED_INITIATIVE_REQUIRES_WORK_PLAN';
+    END IF;
+    IF jsonb_array_length(p_work_plan) NOT BETWEEN 1 AND 100 THEN
       RAISE EXCEPTION USING errcode='22023',message='APPROVED_INITIATIVE_REQUIRES_WORK_PLAN';
     END IF;
     SELECT count(*),count(DISTINCT item->>'work_key')
