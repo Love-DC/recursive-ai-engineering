@@ -1,6 +1,6 @@
 # Supabase Security Boundary Audit
 
-**Initial inspection date:** 2026-11-23 (historical baseline); **Live database/RPC/advisor refresh:** 2026-11-24 18:01 UTC (2026-11-25 JST)  
+**Initial inspection date:** 2026-11-23 (historical baseline); **Live database/RPC/advisor refresh:** 2026-11-24 18:15 UTC (2026-11-25 JST)  
 **Scope:** Read-only inspection of the live `recursive-ai-engineering` Supabase project and the default branch of this repository. No schema, grants, Auth settings, or deployment state were changed.
 
 ## Executive summary
@@ -9,7 +9,7 @@ The current shared-owner MCP pilot boundary is consistent with the documented op
 
 ## Verified database findings
 
-### Verified controls and live RPC/advisor refresh (2026-11-24 18:01 UTC)
+### Verified controls and live RPC/advisor refresh (2026-11-24 18:15 UTC)
 
 Read-only queries against the live Supabase project (`rgztxilqcfuclkekyojl`) verified the following:
 
@@ -29,7 +29,7 @@ The Security Advisor at the same observation time reported **38** `authenticated
 
 | Priority | Finding | Impact / required action |
 |---|---|---|
-| High before non-owner/public exposure | 38 current SECURITY DEFINER RPCs are executable by `authenticated`. | The 2026-11-24 18:01 UTC Supabase security advisor reports 38 warnings. Each function must be reviewed for authorization and data minimization under real non-owner JWTs; test cross-project and cross-worker IDOR cases. Do not solve this by blindly revoking all RPCs: the pilot intentionally relies on RPC access. |
+| High before non-owner/public exposure | 38 current SECURITY DEFINER RPCs are executable by `authenticated`. | The 2026-11-24 18:15 UTC Supabase security advisor reports 38 warnings. Each function must be reviewed for authorization and data minimization under real non-owner JWTs; test cross-project and cross-worker IDOR cases. Do not solve this by blindly revoking all RPCs: the pilot intentionally relies on RPC access. |
 | High before end-user Auth rollout | Leaked-password protection is disabled. | Enable and verify before accepting user-managed passwords. This does not block the current trusted owner-MCP pilot. |
 | Medium / defense in depth | `public.operation_requests` has RLS enabled but no policy. | This is currently fail-closed and client roles have no table privileges. Keep it private; add a narrowly scoped policy only if a documented client access path is introduced. |
 | Unverified | Auth provider, MFA, rate-limit, redirect URL, email/phone confirmation, and session settings were not available through the connected project/database inspection tools. | Review in the Supabase Auth dashboard before production exposure. No claim is made that these controls are enabled. |
@@ -54,7 +54,7 @@ Before any independent/non-owner client is admitted:
 ## Evidence and limitations
 
 - Live SQL inspected table RLS flags, policy expressions, client table privileges, public RPC ACLs, SECURITY DEFINER flags, and function search_path settings.
-- The 2026-11-23 and 2026-11-24 morning observations are historical baselines (20 and 22 authenticated SECURITY DEFINER warnings, respectively). The latest 2026-11-24 18:01 UTC refresh reported 8 `rls_enabled_no_policy` INFO findings, 38 `authenticated_security_definer_function_executable` WARN findings, and 1 `auth_leaked_password_protection` WARN finding.
+- The 2026-11-23 and 2026-11-24 morning observations are historical baselines (20 and 22 authenticated SECURITY DEFINER warnings, respectively). The latest 2026-11-24 18:15 UTC refresh reported 8 `rls_enabled_no_policy` INFO findings, 38 `authenticated_security_definer_function_executable` WARN findings, and 1 `auth_leaked_password_protection` WARN finding.
 - The advisor remediation references are the Supabase database linter rule 0008, rule 0029, and the Auth password security guide.
 - This was a read-only configuration/source audit. It did not attempt exploit tests, inspect provider-specific Auth settings, change grants, or deploy anything.
 
@@ -66,7 +66,7 @@ Before any independent/non-owner client is admitted:
 - A direct read-only query of `pg_stat_user_indexes` returned **19 indexes with `idx_scan = 0`** across the seven public application tables. This broader count also includes primary-key/unique-constraint indexes (for example, `tasks_pkey`, `executions_pkey`, and `operation_requests_project_id_operation_idempotency_key_key`); it is not equivalent to the Advisor's 15 findings and is not a drop list.
 - The statistics reset timestamp was **2026-11-13 21:18:31 UTC**, giving approximately **8 days 22 hours** of accumulated statistics at sampling time. The same sample estimated only 2 project rows, 13 task rows, 61 task-event rows, and 2 worker rows. This is a small pilot dataset, not representative production traffic.
 
-### Live performance advisor snapshot (2026-11-24 17:57:38 UTC)
+### Live performance advisor snapshot (2026-11-24 18:15:19 UTC)
 
 The latest read-only Performance Advisor response reported **12 unindexed foreign-key findings** across `initiative_events`, `initiative_learnings`, `initiative_support_requests`, `initiative_work_items`, `initiatives`, `problem_report_events`, and `problem_reports`. It also reported **6 unused-index INFO findings**, including indexes on task events and Initiative tables. These are investigation signals only; no index was dropped or changed. Do not treat a low-traffic unused-index warning as a deletion instruction.
 
