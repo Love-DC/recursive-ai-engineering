@@ -1,4 +1,4 @@
-"""Manual-only, dry-run-first cleanup for explicitly selected RAE-local branches."""
+"""Read-only inventory and fail-closed preview for RAE-local branch cleanup."""
 import argparse
 import json
 import os
@@ -7,8 +7,6 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
-
-CONFIRMATION = "DELETE SELECTED RESOURCES"
 
 
 def run(command, check=True):
@@ -19,12 +17,20 @@ def gh_json(endpoint):
     return json.loads(run(["gh", "api", endpoint]).stdout)
 
 
+def gh_json_pages(endpoint):
+    """Fetch every API page; --slurp returns one JSON array per page."""
+    pages = json.loads(run(["gh", "api", "--paginate", "--slurp", endpoint]).stdout)
+    if not isinstance(pages, list) or any(not isinstance(page, list) for page in pages):
+        raise RuntimeError("GitHub pagination returned an unexpected response shape.")
+    return [item for page in pages for item in page]
+
+
 def parse_manifest(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(data, dict) or not isinstance(data.get("branches"), dict) or not data["branches"]:
         raise ValueError("Expected a manifest with generated_at and exact branch SHAs.")
     if data.get("task_reference_scan_complete") is not True:
-        raise ValueError("Task-reference scan is incomplete; cleanup is blocked.")
+        raise ValueError("Task-reference scan is incomplete; preview is blocked.")
     task_references = data.get("task_references")
     if not isinstance(task_references, list) or not all(isinstance(x, str) for x in task_references):
         raise ValueError("Manifest must include a task_references string array.")
@@ -55,9 +61,12 @@ def inspect_batch(repository, manifest):
     default = gh_json(f"repos/{repository}").get("default_branch")
     if not default:
         raise RuntimeError("Could not resolve repository default branch.")
-    prs = gh_json(f"repos/{repository}/pulls?state=open&per_page=100")
-    open_heads = {(p.get("head") or {}).get("ref") for p in prs
-                  if ((p.get("head") or {}).get("repo") or {}).get("full_name") == repository}
+    prs = gh_json_pages(f"repos/{repository}/pulls?state=open&per_page=100")
+    open_heads = {
+        (p.get("head") or {}).get("ref")
+        for p in prs
+        if ((p.get("head") or {}).get("repo") or {}).get("full_name") == repository
+    }
     results = []
     for name, expected_sha in sorted(expected.items()):
         try:
@@ -72,11 +81,11 @@ def inspect_batch(repository, manifest):
             elif name in open_heads:
                 reason = "referenced by open pull request"
             elif name in task_references:
-                reason = "referenced by active or submitted task"
+                reason = "referenced by supplied task-reference snapshot"
             else:
                 cmp = gh_json(f"repos/{repository}/compare/{default}...{quote(name, safe='')}")
-                reason = ("eligible after exact-SHA revalidation" if cmp.get("ahead_by") == 0
-                          else "not proven merged into default")
+                reason = ("eligible for read-only preview; live task references are not revalidated"
+                          if cmp.get("ahead_by") == 0 else "not proven merged into default")
             results.append({"branch": name, "sha": sha, "eligible": reason.startswith("eligible"), "reason": reason})
         except Exception as exc:
             results.append({"branch": name, "sha": None, "eligible": False, "reason": f"inspection failed: {exc}"})
@@ -87,33 +96,24 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY"))
     parser.add_argument("--manifest", required=True)
-    parser.add_argument("--execute", action="store_true", help="Default is dry-run.")
-    parser.add_argument("--confirmation", default="")
+    parser.add_argument("--execute", action="store_true", help="Deprecated; execution is disabled.")
     args = parser.parse_args(argv)
     if args.repository != "Love-DC/recursive-ai-engineering":
-        parser.error("Cleanup is restricted to Love-DC/recursive-ai-engineering; cross-repository mutation is disabled.")
-    if args.execute and args.confirmation != CONFIRMATION:
-        parser.error(f"Deletion requires exact confirmation {CONFIRMATION!r}")
+        parser.error("Inventory is restricted to Love-DC/recursive-ai-engineering.")
+    if args.execute:
+        parser.error(
+            "Resource deletion is disabled: this workflow cannot authoritatively re-read live "
+            "Supabase task references. Use read-only inventory/preview only."
+        )
     try:
         manifest = parse_manifest(args.manifest)
         result = inspect_batch(args.repository, manifest)
         print(json.dumps(result, indent=2))
         eligible = [r for r in result if r["eligible"]]
-        if not args.execute:
-            print(f"Dry-run only: {len(eligible)} eligible / {len(result)} requested. No resources deleted.")
-            return 0
-        for item in eligible:
-            # Re-read branch, protection, open PR references and ancestry immediately before deletion.
-            final = inspect_batch(args.repository, {
-                "branches": {item["branch"]: item["sha"]},
-                "task_references": manifest["task_references"],
-            })[0]
-            if not final["eligible"] or final["sha"] != item["sha"]:
-                raise RuntimeError(f"Target failed final revalidation: {item['branch']}: {final['reason']}")
-            ref = f"refs/heads/{item['branch']}"
-            run(["git", "push", f"--force-with-lease={ref}:{item['sha']}",
-                 "origin", f":{ref}"])
-        print(f"Deleted {len(eligible)} explicitly confirmed RAE-local branch(es).")
+        print(
+            f"Read-only preview: {len(eligible)} candidates / {len(result)} requested. "
+            "No resources deleted; task references are snapshot evidence only."
+        )
         return 0
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
