@@ -225,7 +225,12 @@ BEGIN
      OR jsonb_typeof(coalesce(p_payload->'support_needed','[]'::jsonb))<>'array' THEN
     RAISE EXCEPTION USING errcode='22023',message='INVALID_INITIATIVE_RISK_OR_BUDGET';
   END IF;
-  IF coalesce(p_payload->>'priority','100') !~ '^[0-9]{1,4}
+  IF coalesce(p_payload->>'priority','100') !~ '^[0-9]{1,4}$' THEN
+    RAISE EXCEPTION USING errcode='22023',message='INVALID_INITIATIVE_PRIORITY';
+  END IF;
+  IF coalesce((p_payload->>'priority')::integer,100) NOT BETWEEN 0 AND 1000 THEN
+    RAISE EXCEPTION USING errcode='22023',message='INVALID_INITIATIVE_PRIORITY';
+  END IF;
 
   v_hash:=private.request_hash(jsonb_build_object(
     'project_id',p_project_id,'worker_id',p_worker_id,'payload',p_payload
