@@ -96,7 +96,9 @@ complete_claim() {
   local label="$1"
   local task_id="$2"
   local execution_id="$3"
-  psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL >/dev/null
+  local response_file="$tmp/complete-$label.json"
+
+  psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL > "$response_file"
 with auth as (
   select set_config('request.jwt.claim.sub', '$SUPABASE_OWNER_ID', true)
 )
@@ -113,6 +115,27 @@ select public.complete_execution(
 )
 from auth;
 SQL
+
+  if [[ "$(jq -r '.success // false' "$response_file")" != "true" \
+    || "$(jq -r '.data.status // empty' "$response_file")" != "accepted" \
+    || "$(jq -r '.data.task_id // empty' "$response_file")" != "$task_id" ]]; then
+    echo "FAIL: completion did not accept first-case fixture $task_id: $(cat "$response_file")" >&2
+    return 1
+  fi
+
+  local persisted_status
+  persisted_status="$(
+    psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
+select status
+from public.tasks
+where id = '$task_id'
+  and project_id = '$SUPABASE_PROJECT_ID';
+SQL
+  )"
+  if [[ "$persisted_status" != "accepted" ]]; then
+    echo "FAIL: completed fixture $task_id persisted as '$persisted_status', expected accepted" >&2
+    return 1
+  fi
 }
 
 # Case 1: two sessions, two eligible tasks, one shared Worker UUID.
@@ -154,9 +177,55 @@ fi
 complete_claim a "$id_a" "$exec_a"
 complete_claim b "$id_b" "$exec_b"
 
+# The first race must leave no claimable fixtures behind. A completion RPC can
+# return a JSON failure without making psql exit nonzero, so verify persisted
+# terminal state and the project queue before starting the second race.
+remaining_claimable="$(
+  psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
+select count(*)
+from public.tasks
+where project_id = '$SUPABASE_PROJECT_ID'
+  and (status = 'pending' or (status = 'running' and lease_until < clock_timestamp()));
+SQL
+)"
+if [[ "$remaining_claimable" != "0" ]]; then
+  echo "FAIL: first-case fixtures were not fully drained; $remaining_claimable claimable task(s) remain" >&2
+  psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<SQL >&2
+select id, status, assigned_worker_id, current_execution_id, lease_until, requirements
+from public.tasks
+where project_id = '$SUPABASE_PROJECT_ID'
+  and (status = 'pending' or (status = 'running' and lease_until < clock_timestamp()))
+order by created_at, id;
+SQL
+  exit 1
+fi
+
 # Case 2: two sessions, one eligible task, exactly one winner.
 single_task="$(create_task single)"
 [[ "$single_task" =~ $uuid_re ]] || { echo "Could not create single-task fixture" >&2; exit 1; }
+
+# Prove isolation before releasing either claimant: the only claimable task
+# must be the single fixture created for this case.
+single_claimable_count="$(
+  psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
+select count(*)
+from public.tasks
+where project_id = '$SUPABASE_PROJECT_ID'
+  and (status = 'pending' or (status = 'running' and lease_until < clock_timestamp()));
+SQL
+)"
+single_claimable_id="$(
+  psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
+select id
+from public.tasks
+where project_id = '$SUPABASE_PROJECT_ID'
+  and (status = 'pending' or (status = 'running' and lease_until < clock_timestamp()));
+SQL
+)"
+if [[ "$single_claimable_count" != "1" || "$single_claimable_id" != "$single_task" ]]; then
+  echo "FAIL: one-task race is not isolated; expected only $single_task, found count=$single_claimable_count ids=$single_claimable_id" >&2
+  exit 1
+fi
 
 rm -f "$tmp/ready-a" "$tmp/ready-b" "$tmp/go"
 claim_session a &
