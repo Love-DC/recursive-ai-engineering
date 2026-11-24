@@ -3,7 +3,7 @@
 
 from pathlib import Path
 
-MIGRATION = Path("supabase/migrations/202611230004_worker_task_routing_safe_release.sql")
+MIGRATION = Path("supabase/migrations/20261123000400_worker_task_routing_safe_release.sql")
 
 
 def main() -> None:
