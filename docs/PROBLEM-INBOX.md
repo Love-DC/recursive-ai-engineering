@@ -9,10 +9,11 @@ The problem inbox is the durable cross-session register for defects, blockers, r
 - GitHub remains authoritative for code, Issues, PRs, commits, and CI. Store links to those records in the report.
 - Do not leave a material finding only in a ChatGPT transcript, task description, or PR comment.
 
-The additive migration `20261124000400_problem_inbox.sql` and its tables/RPCs are deployed in the shared RAE Supabase database. The repository-only migration `20261125130000_rae_system_owner_authority.sql` extends these scoped RPC checks to the RAE system principal, but it is not deployed to production; until live deployment is separately authorized and verified, continue to treat the existing Owner-MCP limitation described below as authoritative. **Deployment of the schema is not proof that every RPC works through every authorized connection.** On 2026-11-25, this session established `private.begin_owner_mcp_context(project_id, owner_id)` in the supported `postgres` SQL-MCP transaction (`auth.uid()` remains NULL). `list_tasks` and `list_initiatives` succeeded, but `public.list_problem_reports('unresolved', NULL, 200)` failed with SQLSTATE `28000`, `UNAUTHENTICATED`, because the function requires non-NULL `auth.uid()` and scopes by `projects.owner_id=auth.uid()`. The Problem Inbox cannot currently be enumerated through this Owner-MCP connection. The repository migration `20261125120000_owner_mcp_problem_inbox_context.sql` adds Owner-MCP-aware authorization to list/get/update while preserving JWT checks and exact project binding; isolated PostgreSQL regression tests cover same-Owner cross-project listing and reject cross-project detail/update. The migration is code only and is not deployed to production. Re-check all three RPCs against the live database after a separately authorized deployment; never represent an unavailable read as an empty inbox.
+The additive migration `20261124000400_problem_inbox.sql` and the Problem Inbox schema remain deployed. The Owner-MCP compatibility migration `20261125120000_owner_mcp_problem_inbox_context.sql` is deployed as registry version `20261124220548`; the RAE System Owner migration `20261125130000_rae_system_owner_authority.sql` is deployed as `20261124220606`.
 
-PR #66's repository-authoritative activation migration is deployed as `20261124192533`. The trusted Owner-MCP execution-context migration `20261124200149` and project-registration migration `20261124202438` are also deployed. Current live controls rechecked on 2026-11-25: Colony Sim and Hexa Game Kernel `autonomy.paused=false`/max 2; RAE and Lambent `autonomy.paused=true`/max 2. RAE remains paused, so this session performs repository-only RAE maintenance rather than creating or claiming RAE tasks. The deployed Owner-MCP context supports selected task/initiative RPCs, but it does **not** synthesize a JWT or make all Problem Inbox RPCs compatible. The list/detail/update RPCs that directly depend on `auth.uid()` remain unavailable through this connection until the repair migration is deployed. The migration does not change table grants, RLS, or production state. Do not write Problem Inbox tables directly and do not claim a report status is current unless it was obtained through a successful authorized read.
+The private `rae-core` principal is active for project-scoped engineering and Problem Inbox operations. Live `list_problem_reports`, `get_problem_report`, and `update_problem_report` calls succeeded under `private.begin_rae_system_context(project_id)`, with `auth.uid()` remaining NULL. These calls preserve the JWT Owner path and project isolation. `private.system_principals` and `private.system_actor_audit` have RLS enabled and no direct table privileges for `anon` or `authenticated`. The System Owner cannot change project pause controls; that remains human-only.
 
+Live project controls rechecked on 2026-11-25: RAE, Colony Sim and Hexa Game Kernel are `autonomy.paused=false`/max 2; Lambent is `autonomy.paused=true`/max 2. No registered project retains legacy `config.task_activation`. RAE's engineering queue and Inbox are available to the System Owner through the normal project-bound RPC context; never treat an RPC failure as an empty inbox or write Inbox tables directly.
 ## What to report
 
 Create a report when a session discovers a concrete, material item that needs tracking:
@@ -94,24 +95,17 @@ Terminal reports can be reopened explicitly to `open` or `triaged`. Every state 
 
 ### Read the Owner's inbox
 
-**Currently unavailable through the connected Owner-MCP session:** `list_problem_reports(status, severity, limit)` raises `UNAUTHENTICATED` when `auth.uid()` is NULL. Its owner filter also uses `p.owner_id=auth.uid()`. Do not call it repeatedly expecting the private Owner context to change `auth.uid()`, and do not treat a failure as an empty inbox. The same direct `auth.uid()` lookup is present in `get_problem_report(report_id)`, so report detail/event history is likewise unavailable through this connection.
-
-When using a genuine authenticated Owner context (or after a reviewed Owner-MCP compatibility fix is separately deployed), and after a successful live check, `list_problem_reports(status, severity, limit)` is intended to return reports across all active projects owned by the authenticated Owner, including project name and repository. Pass `unresolved` to return only open, triaged, in-progress, and Owner-input-required reports. The default status filter is null; the Owner's main digest should normally include unresolved states:
-- `open`
-- `triaged`
-- `in_progress`
-- `owner_input_required`
-
-Use `get_problem_report(report_id)` for full evidence and event history.
-
-The expected query in a supported authenticated Owner context is:
+Use the bound RAE System Owner context for normal engineering triage:
 
 ```sql
-select public.list_problem_reports('unresolved', null, 200);
+BEGIN;
+SELECT private.begin_rae_system_context('<RAE project UUID>'::uuid);
+SELECT public.list_problem_reports('unresolved', null, 200);
+SELECT public.get_problem_report('<report UUID>'::uuid);
+COMMIT;
 ```
 
-The function itself enforces Owner scope using the authenticated project-owner context. Do not query or expose another project's reports.
-
+The deployed RPCs enforce project-owner/System Owner scope and preserve the existing JWT Owner path. Pass `unresolved` to return open, triaged, in-progress, and Owner-input-required reports. Verify the live list/get result before updating a report; never treat an RPC failure as an empty inbox.
 ## Required session behavior
 
 At session start:
@@ -130,24 +124,23 @@ During execution:
 
 ## Last recorded Problem Inbox digest — historical, not a live status view
 
-The following entries were recorded in the prior PR #67 snapshot on 2026-11-24/25. The Owner-MCP listing RPC has since been verified to fail with `UNAUTHENTICATED`; **none of these statuses or current report links have been re-read in this session**. Preserve these IDs as historical references only. Do not infer that a report is still open, in progress, resolved, or actionable from this list.
+The following entries were recorded in the prior PR #67 snapshot on 2026-11-24/25. The live list/get RPCs are now verified under the RAE System Owner context. The entries below are a prior snapshot, not a current status digest; re-read each report before acting. The report specifically resolved in this session is identified below.
 
 - **RAE — medium defect (last recorded as in progress):** `adc5c02c-d9ce-4850-9181-0c137317f7ae`, “RAE startup and inbox governance snapshots contradict live deployment”. Linked task: `34e01a68-244a-4832-87c3-ce86536a3a49`. PR #66/#67 corrected the cited startup and governance documents. The task record was reported as `failed`; neither that task state nor the Problem Inbox report's current status was changed or revalidated by this documentation update.
 - **RAE — high risk (last recorded as in progress):** `e70803f3-57d4-402c-9823-a38a8a7ef59f`, “Repository-local activation policy conflicts with deployed database task_activation guard”. Linked task: `a16f1098-80e3-4ad6-a4f8-029e2849be4f`. PR #66's guard is now deployed, but no current report status is asserted here.
 - **Colony Sim — high blocker (last recorded as in progress):** `84eeb1f9-4c09-4890-abb2-e5955f898577`, “Colony Sim activation remains gated by policy/runtime boundary reconciliation”. PR #433 is recorded as merged at `5f3cc67d65da584db3640948ee37828104003fea`; the current project is unpaused/max 2 and PR #438 has refreshed its activation documentation. No current Problem Inbox status is asserted here. No gameplay changes are authorized by this infrastructure work.
 - **RAE — medium opportunity (last recorded as triaged):** `5dc26ae9-b877-47ed-a2fc-1036ff6fbe8b`, “Initiative and Problem Inbox tables have unindexed foreign keys”. The prior Performance Advisor snapshot reported 12 unindexed foreign-key findings and 5 unused-index findings as of 2026-11-24 19:09:54 UTC. This is historical evidence, not current measurement or authorization to add/drop production indexes.
 
-A prior Issue #42 comment recorded the Owner-MCP Problem Inbox defect with fingerprint `rae:owner-mcp-problem-inbox-auth-uid-prefilters:20261125` and mentioned report ID `eca33e89-85e3-4beb-af95-82eabc247cc1`. This session did not re-read that report record or verify its current status. See the supplemental verification [Issue #42 comment](https://github.com/Love-DC/recursive-ai-engineering/issues/42#issuecomment-7144406870); do not create a duplicate report or treat the quoted ID/status as a live query result.
+Report `eca33e89-85e3-4beb-af95-82eabc247cc1` (“Owner-MCP Problem Inbox RPCs reject trusted owner context”) was re-read through `get_problem_report`, resolved after PR #74's production migration deployment, and linked to https://github.com/Love-DC/recursive-ai-engineering/pull/74. Do not create a duplicate report.
 
 ## Exceptional fallback when the live inbox RPC is unavailable
 
-The Problem Inbox schema and RPCs are deployed, but the current trusted Owner-MCP connection cannot enumerate or update reports through the RPCs that require `auth.uid()`. This fallback is exceptional; it is not the normal intake workflow. The database-wide claim-safety gate in `docs/SESSION-START.md` remains a separate prerequisite for every task/execution lifecycle write.
+The normal RAE System Owner Problem Inbox RPCs are currently live and verified. This section applies only if a future live read/update check fails for the exact connection/context. The database-wide claim-safety gate remains a separate prerequisite for task/execution lifecycle writes.
 
-- If a live Problem Inbox RPC is proven available for the exact connection/context and the required project scope, use only that RPC with its declared authorization contract. `list_problem_reports`, `get_problem_report`, and `update_problem_report` are currently incompatible with Owner-MCP because they filter directly on `auth.uid()`. `report_problem` delegates to `private.assert_owner`, but its end-to-end Owner-MCP write path remains unverified; do not test it by creating a production record.
-- Issue #42 is the closed historical transitional-intake record. On 2026-11-25 it was confirmed closed but unlocked/writable. Use it only as the documented no-write fallback while the live inbox cannot be verified; add a comment only if it remains writable. Include project/repository, category, severity, exact evidence links, stable fingerprint, recommended action, and whether Owner input is required. Do not create a replacement intake issue.
-- Never write directly to `problem_reports` or `problem_report_events`, bypass owner-scoped RPCs, or claim cross-session inbox availability without a successful live read.
-- If Issue #42 is locked or otherwise unavailable, remain read-only and surface the exact blocker; do not invent another intake location.
-- A closed/uncertain database gate prohibits task, execution, Initiative, and Problem Inbox mutation RPCs. Continue only read-only discovery and repository-only maintenance.
+- If a Problem Inbox RPC becomes unavailable, treat the inbox as unknown—not empty. Do not retry indefinitely, fabricate report status, or bypass owner-scoped RPCs with direct table reads/writes.
+- Issue #42 is a closed historical transitional-intake record, not the normal intake workflow. Do not create a replacement issue or add comments there unless a future session verifies that the exceptional fallback is explicitly required and writable.
+- Never write directly to `problem_reports` or `problem_report_events`, bypass owner-scoped RPCs, or claim cross-session Inbox availability without a successful live read.
+- If the Inbox RPC path remains unavailable and the historical fallback is unusable, remain read-only for Inbox state and surface the exact blocker.
 
 
 This is session-driven coordination. No background daemon, external messaging integration, or automatic ChatGPT notification is implied.
