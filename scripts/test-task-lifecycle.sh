@@ -22,14 +22,14 @@ done
 psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 \
   -v owner_id="$SUPABASE_OWNER_ID" \
   -v project_id="$SUPABASE_PROJECT_ID" \
-  -v worker_id="$SHARED_WORKER_ID" \\
+  -v worker_id="$SHARED_WORKER_ID" \
   -v reviewer_worker_id="$REVIEWER_WORKER_ID" <<'SQL'
 BEGIN;
 SELECT set_config('request.jwt.claim.sub', :'owner_id', true);
 SELECT set_config('test.project_id', :'project_id', true);
 SELECT set_config('test.worker_id', :'worker_id', true);
 SELECT set_config('test.reviewer_worker_id', :'reviewer_worker_id', true);
-\\i supabase/migrations/20261124172155_submitted_task_reconciliation.sql
+\i supabase/migrations/20261124172155_submitted_task_reconciliation.sql
 
 DO $test$
 DECLARE
