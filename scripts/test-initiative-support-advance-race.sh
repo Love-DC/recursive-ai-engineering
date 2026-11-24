@@ -97,44 +97,9 @@ request_pid=$!
 # transaction open in pg_sleep. This avoids relying on connection startup time.
 lock_ready=0
 for _ in $(seq 1 50); do
-  if psql "$SUPABASE_DB_URL" -X -At -v ON_ERROR_STOP=1 \
-    -c "SELECT 1 FROM pg_stat_activity WHERE application_name='initiative-support-race-request' AND state='active' AND query ILIKE '%pg_sleep%'" \
-    | grep -q '^1"$(psql "$SUPABASE_DB_URL" -X -qAt -v ON_ERROR_STOP=1 \
-  -v owner_id="$owner_id" -v initiative_id="$initiative_id" -v worker_id="$worker_id" \
-  -v project_id="$project_id" <<'SQL'
-SELECT set_config('request.jwt.claim.sub', :'owner_id', false) AS auth_context \gset
-WITH advanced AS (
-  SELECT public.advance_initiative(
-    :'initiative_id'::uuid, :'worker_id'::uuid,
-    'support-race-advance-'||gen_random_uuid()::text
-  ) AS result
-), materialized AS (
-  SELECT count(*) AS task_count FROM public.tasks
-  WHERE project_id=:'project_id'::uuid
-    AND requirements->'initiative'->>'initiative_id'=:'initiative_id'
-)
-SELECT CASE
-  WHEN (advanced.result->'data'->>'blocked_by_support')::boolean IS TRUE
-   AND (advanced.result->'data'->>'materialized_count')::integer=0
-   AND materialized.task_count=0
-  THEN 'PASS: pending support serialized before advancement; no task materialized'
-  ELSE 'FAIL: support gate was bypassed: response='||advanced.result::text
-       ||', materialized_task_count='||materialized.task_count::text
-END
-FROM advanced CROSS JOIN materialized;
-SQL
-)"
-wait "$request_pid"
-request_pid=""
-
-if [[ "$advance_result" != PASS:* ]]; then
-  echo "$advance_result" >&2
-  cat "$tmp_dir/request.log" >&2
-  exit 1
-fi
-
-echo "$advance_result"
-; then
+  active_hold="$(psql "$SUPABASE_DB_URL" -X -At -v ON_ERROR_STOP=1 \
+    -c "SELECT count(*) FROM pg_stat_activity WHERE application_name='initiative-support-race-request' AND state='active' AND query ILIKE '%pg_sleep%'")"
+  if [[ "$active_hold" == "1" ]]; then
     lock_ready=1
     break
   fi
