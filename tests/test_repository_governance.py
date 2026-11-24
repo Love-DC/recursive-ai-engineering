@@ -223,7 +223,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
         self.assertEqual(len(activation_rules), 1)
         policy = (root / "docs/AUTONOMOUS-TASK-DISCOVERY.md").read_text(encoding="utf-8")
         self.assertIn("active_session_autonomy", policy)
-        self.assertIn("Supabase is not the source of project activation policy", policy)
+        self.assertIn("Supabase is not the authority for repository policy decisions", policy)
         self.assertIn("autonomy.paused", policy)
         self.assertIn("autonomy.max_active_executions", policy)
 
