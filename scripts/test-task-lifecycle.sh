@@ -27,6 +27,32 @@ SELECT set_config('request.jwt.claim.sub', :'owner_id', true);
 SELECT set_config('test.project_id', :'project_id', true);
 SELECT set_config('test.worker_id', :'worker_id', true);
 
+-- This test explicitly exercises the opt-in project-wide concurrency cap.
+-- Keep the config change inside the existing transaction so ROLLBACK restores
+-- the caller's project settings after all fixture rows are removed.
+UPDATE public.projects
+SET config = coalesce(config,'{}'::jsonb)
+  || jsonb_build_object(
+    'task_activation','active_session_autonomy',
+    'autonomy',coalesce(config->'autonomy','{}'::jsonb)
+      || jsonb_build_object('max_active_executions',2)
+  )
+WHERE id=current_setting('test.project_id')::uuid;
+
+DO $config$
+DECLARE
+  v_config jsonb;
+BEGIN
+  SELECT config INTO v_config
+  FROM public.projects
+  WHERE id=current_setting('test.project_id')::uuid;
+  IF v_config->>'task_activation' IS DISTINCT FROM 'active_session_autonomy'
+    OR v_config #>> '{autonomy,max_active_executions}' IS DISTINCT FROM '2' THEN
+    RAISE EXCEPTION 'FAIL: lifecycle fixture did not opt into the two-execution cap: %',v_config;
+  END IF;
+END
+$config$;
+
 DO $test$
 DECLARE
   v_project uuid := current_setting('test.project_id')::uuid;
