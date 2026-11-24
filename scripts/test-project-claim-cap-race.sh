@@ -156,4 +156,40 @@ if [[ "$after_id" != "$remaining_task" || ! "$after_exec" =~ $uuid_re ]]; then
 fi
 complete_task "$after_id" "$after_exec"
 
-echo "PASS: three concurrent sessions never exceeded two active project executions; the blocked task became claimable after a slot was released."
+# The database pause switch blocks both new autonomous task creation and claims.
+psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
+UPDATE public.projects
+SET config=jsonb_set(config,'{task_activation}','"paused"'::jsonb,true)
+WHERE id='$CAP_TEST_PROJECT_ID';
+SQL
+
+psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<SQL
+SELECT set_config('request.jwt.claim.sub','$SUPABASE_OWNER_ID',true);
+DO \$pause_test\$
+BEGIN
+  BEGIN
+    PERFORM public.create_task(
+      '$CAP_TEST_PROJECT_ID','$CAP_TEST_WORKER_ID','implementation',
+      'Must be blocked while paused $run_key',
+      'Pause kill-switch regression fixture',
+      '{}'::jsonb,0,false,null,null,'project-cap-paused-create-$run_key'
+    );
+    RAISE EXCEPTION 'FAIL: create_task succeeded while project autonomy was paused';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'PROJECT_TASK_ACTIVATION_PAUSED' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    PERFORM public.claim_task(
+      '$CAP_TEST_PROJECT_ID','$CAP_TEST_WORKER_ID',600,
+      'project-cap-paused-claim-$run_key'
+    );
+    RAISE EXCEPTION 'FAIL: claim_task succeeded while project autonomy was paused';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'PROJECT_TASK_ACTIVATION_PAUSED' THEN RAISE; END IF;
+  END;
+END;
+\$pause_test\$;
+SQL
+
+echo "PASS: three-session claims respected the two-execution cap, a released slot was reclaimed, and pause blocked both task creation and claims."
