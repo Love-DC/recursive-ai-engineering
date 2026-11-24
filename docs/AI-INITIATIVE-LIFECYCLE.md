@@ -26,7 +26,7 @@ All new tables have RLS enabled and direct table privileges revoked. The public 
 5. **Validate the DAG.** The approval RPC validates work keys, dependency references, item bounds, and cycles before persisting the plan. The work plan is immutable through the public API after the decision.
 6. **Materialize only ready work.** `advance_initiative` creates ordinary project-scoped tasks only for planned items whose dependencies have all reached task status `accepted`. It creates every currently-ready item in one transaction, allowing independent items in the same wave to run in parallel. A dependent item does not enter `public.tasks` while any prerequisite remains incomplete, so the existing `claim_task` does not need to interpret initiative metadata.
 7. **Advance between waves.** After task acceptance/review, a live coordinator calls `advance_initiative` again with a fresh idempotency key. It marks accepted work items complete and releases the next ready wave. This is session-driven coordination, not a daemon or background scheduler.
-8. **Close and learn.** When all work items are accepted, `advance_initiative` marks the initiative completed. `record_initiative_learning` records a lesson, evidence and stable fingerprint. Future proposals with that fingerprint are surfaced as known learning rather than duplicated. `abandon_initiative` cancels its still-pending tasks; it refuses to abandon while an initiative task is running or submitted.
+8. **Close and learn.** When all work items are accepted, `advance_initiative` moves the initiative to `ready_to_close`. `record_initiative_learning` is required to persist a lesson, evidence and the same stable fingerprint; that transaction moves the initiative to `completed`. Future proposals with that fingerprint are surfaced as known learning rather than duplicated. `abandon_initiative` cancels its still-pending tasks; it refuses to abandon while an initiative task is running or submitted.
 
 Tasks created from a work item carry `requirements.initiative` with initiative ID, work item ID/key, dependency keys and origin. Existing task execution, lease fencing, review, artifact, and event mechanisms remain authoritative.
 
@@ -99,6 +99,7 @@ Support request:
 - Treat high-risk work, external spending, external commitments, production deployment, destructive data changes, and reserved product decisions as explicit decision boundaries.
 - A support grant is a durable decision record, not a mechanism for changing external permissions. Pending/declined support blocks all task materialization; a declined request requires abandoning/re-proposing the initiative with a revised path.
 - A work item becomes claimable only after all prerequisite work items are accepted. Parallelism is limited to the currently ready wave.
+- An initiative is not marked `completed` until its terminal learning record is persisted with the same fingerprint used for proposal deduplication.
 - For tasks requiring review, the existing independent review lifecycle must accept the delivery before its work item unlocks dependents.
 - If a task fails or is rejected, repair/retry it through the existing task lifecycle; do not mark its work item complete.
 - A fresh GPT conversation can continue by calling `list_initiatives`, `get_initiative`, and then the relevant RPC. No originating transcript is required.
