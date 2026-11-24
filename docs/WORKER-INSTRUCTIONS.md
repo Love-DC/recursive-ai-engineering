@@ -38,11 +38,18 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 
 ## Mandatory production claim-safety gate
 
-The production claim-safety gate was verified **OPEN on 2026-11-24** for the shared database. The eight required migrations were applied in dependency order; live function definitions include project/Worker isolation, task-type routing, dependency eligibility, bounded retry/recovery, review routing, and repository/branch exclusion. The Problem Inbox and Initiative tables/RPCs are deployed, and owner-scoped read-only smoke checks passed. See the live evidence and migration-version mapping in `docs/SESSION-START.md`.
+Before any task-pool write, follow the database-wide gate in `docs/SESSION-START.md`. **The live eight-migration claim-safety gate was verified OPEN on 2026-11-25** for RAE's shared Supabase project `rgztxilqcfuclkekyojl`. The migration registry, deployed function definitions, 14-table RLS/grant boundary, and owner-scoped task/Initiative/Problem Inbox read RPCs were inspected; exact-head PostgreSQL, Initiative, and Shell CI passed on merged PR #60 head `d9b39dd2d81c397c4d41835f98d98d48787b3036` (runs `45449618863`, `45449618986`, `45449618919`).
 
-Re-check the live migration registry, function definitions, and project routing before any task-pool write in every session. Do not call `claim_task` unless the current live gate is verified open and the selected task is eligible under its project's activation policy. Do not infer deployment from GitHub merges or CI alone. If the gate is closed, incomplete, stale, or contradictory, do not call `claim_task`, create/reassign/requeue/cancel/review tasks, mutate executions, or invoke Initiative/Problem Inbox write RPCs. Do not probe `claim_task` with dummy tasks or invalid Workers. While closed, use read-only Supabase inspection and repository-only maintenance; record material findings through the deployed Problem Inbox only when its safe path is available.
+This is a dated snapshot, not a permanent permission. Re-check the live migration registry, RPC definitions, project/Worker mapping, and selected project's activation policy at each session start. Use only the correct project UUID and that project's active Worker ID. Claim only real eligible work through the atomic `claim_task` RPC, only after the mandatory production claim-safety gate in `docs/SESSION-START.md` has been re-verified open; never use a dummy claim or failed probe to test health.
 
-The database gate does not override project-specific task activation policy. Colony Sim remains `explicit_owner_authorization_only` until its separate activation guard is reviewed, validated, deployed, and configured. Future production schema changes remain separate high-impact operations requiring their own authorization.
+Two independent migration boundaries remain CLOSED and must not be conflated with the eight-migration gate:
+
+- PR #59's `20261124000700_active_session_autonomy_guard.sql` is not deployed. The project pause switch and two-execution cap are not live.
+- PR #60's `20261124172155_submitted_task_reconciliation.sql` is merged in GitHub but not deployed. Do not use or claim its reconciliation RPC; preserve historical task/execution records.
+
+The database gate permits only normal project-scoped lifecycle operations under the target repository's own activation policy. It does not authorize production DDL/deployment, destructive cleanup, or product decisions. Colony Sim remains `explicit_owner_authorization_only`; never turn its backlog into autonomous work or change gameplay/product behavior because the shared database gate is open.
+
+If any live check is closed, stale, contradictory, or unavailable, Do not call `claim_task`, task creation/reassignment/requeue/cancel/review RPCs, execution mutation RPCs, or Initiative/Problem Inbox mutation RPCs. Continue only read-only inspection and repository-only maintenance. The deployed claim function can expire stale executions, so it is not a safe health probe.
 
 ## How to work
 
