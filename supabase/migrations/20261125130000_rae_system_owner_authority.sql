@@ -285,7 +285,10 @@ BEGIN
     RAISE EXCEPTION USING errcode='42501',message='PROJECT_FORBIDDEN';
   END IF;
 
-  IF private.owner_mcp_context_matches(p_project_id) THEN
+  -- A transaction already bound as RAE system Owner cannot switch to
+  -- the legacy human Owner-MCP context halfway through the same transaction.
+  IF current_setting('rae.system_version',true) IS DISTINCT FROM 'v1'
+     AND private.owner_mcp_context_matches(p_project_id) THEN
     RETURN;
   END IF;
 
@@ -475,9 +478,225 @@ BEGIN
 END;
 $function$;
 
--- Extend only the existing project-bound Problem Inbox checks. Listing retains
--- the original owner-wide scope; report detail and mutation remain bound to
--- the one project selected for the RAE transaction.
+-- The RAE and human Owner-MCP contexts are mutually exclusive within a
+-- transaction. Preserve the old route for explicit human decisions only.
+CREATE OR REPLACE FUNCTION private.begin_owner_mcp_context(
+  p_project_id uuid,
+  p_owner_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog', 'public', 'auth', 'private'
+AS $function$
+DECLARE
+  v_actual_owner_id uuid;
+  v_project_status text;
+  v_existing_project text;
+  v_existing_owner text;
+BEGIN
+  -- Supabase MCP execute_sql connects through the already-authorized,
+  -- privileged postgres management session. No JWT identity is synthesized.
+  IF session_user <> 'postgres' THEN
+    RAISE EXCEPTION USING errcode = '42501',
+      message = 'OWNER_MCP_ADMIN_SESSION_REQUIRED';
+  END IF;
+
+  IF auth.uid() IS NOT NULL THEN
+    RAISE EXCEPTION USING errcode = '42501',
+      message = 'OWNER_MCP_CONTEXT_ONLY_WHEN_AUTH_UID_NULL';
+  END IF;
+
+  IF current_setting('rae.system_version',true) = 'v1'
+     OR nullif(current_setting('rae.system_project_id',true),'') IS NOT NULL
+     OR nullif(current_setting('rae.system_principal_id',true),'') IS NOT NULL THEN
+    RAISE EXCEPTION USING errcode = '42501',
+      message = 'OWNER_MCP_CONTEXT_ALREADY_BOUND';
+  END IF;
+
+  IF p_project_id IS NULL OR p_owner_id IS NULL THEN
+    RAISE EXCEPTION USING errcode = '22023',
+      message = 'OWNER_MCP_CONTEXT_ARGUMENT_INVALID';
+  END IF;
+
+  v_existing_project := nullif(current_setting('rae.owner_mcp_project_id', true), '');
+  v_existing_owner := nullif(current_setting('rae.owner_mcp_owner_id', true), '');
+
+  IF v_existing_project IS NOT NULL OR v_existing_owner IS NOT NULL THEN
+    IF current_setting('rae.owner_mcp_version', true) = 'v1'
+      AND v_existing_project = p_project_id::text
+      AND v_existing_owner = p_owner_id::text
+      AND private.owner_mcp_context_matches(p_project_id) THEN
+      RETURN jsonb_build_object(
+        'success', true,
+        'data', jsonb_build_object(
+          'project_id', p_project_id,
+          'owner_id', p_owner_id,
+          'mode', 'trusted_owner_mcp',
+          'scope', 'current_transaction',
+          'reused', true
+        )
+      );
+    END IF;
+
+    RAISE EXCEPTION USING errcode = '42501',
+      message = 'OWNER_MCP_CONTEXT_ALREADY_BOUND';
+  END IF;
+
+  SELECT p.owner_id, p.status
+  INTO v_actual_owner_id, v_project_status
+  FROM public.projects p
+  WHERE p.id = p_project_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING errcode = 'P0002',
+      message = 'PROJECT_NOT_FOUND';
+  END IF;
+
+  IF v_project_status <> 'active' THEN
+    RAISE EXCEPTION USING errcode = '55000',
+      message = 'PROJECT_NOT_ACTIVE';
+  END IF;
+
+  IF v_actual_owner_id IS DISTINCT FROM p_owner_id THEN
+    RAISE EXCEPTION USING errcode = '42501',
+      message = 'PROJECT_FORBIDDEN';
+  END IF;
+
+  PERFORM set_config('rae.owner_mcp_project_id', p_project_id::text, true);
+  PERFORM set_config('rae.owner_mcp_owner_id', p_owner_id::text, true);
+  PERFORM set_config('rae.owner_mcp_version', 'v1', true);
+
+  INSERT INTO private.owner_mcp_audit (
+    transaction_id,
+    project_id,
+    owner_id,
+    database_role,
+    backend_pid,
+    application_name,
+    context_version
+  )
+  VALUES (
+    txid_current(),
+    p_project_id,
+    p_owner_id,
+    session_user,
+    pg_backend_pid(),
+    coalesce(current_setting('application_name', true), ''),
+    'v1'
+  )
+  ON CONFLICT (transaction_id, project_id, owner_id) DO NOTHING;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'data', jsonb_build_object(
+      'project_id', p_project_id,
+      'owner_id', p_owner_id,
+      'mode', 'trusted_owner_mcp',
+      'scope', 'current_transaction',
+      'reused', false
+    )
+  );
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION private.begin_owner_mcp_context(uuid, uuid)
+  FROM PUBLIC, anon, authenticated;
+
+-- RAE system context cannot be reclassified as a human Owner-MCP decision.
+-- The reverse direction is already rejected by begin_rae_system_context.
+-- Extend only the existing project-bound Problem Inbox RPCs.
+CREATE OR REPLACE FUNCTION public.list_problem_reports(
+  p_status text DEFAULT NULL,
+  p_severity text DEFAULT NULL,
+  p_limit integer DEFAULT 100
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog','public','auth','private'
+AS $function$
+DECLARE
+  v_items jsonb;
+  v_owner_id uuid;
+  v_context_project_id uuid;
+BEGIN
+  IF auth.uid() IS NOT NULL THEN
+    v_owner_id := auth.uid();
+  ELSE
+    IF current_setting('rae.system_version',true) = 'v1' THEN
+      BEGIN
+        v_context_project_id :=
+          nullif(current_setting('rae.system_project_id',true),'')::uuid;
+      EXCEPTION WHEN invalid_text_representation THEN
+        RAISE EXCEPTION USING errcode='28000',message='UNAUTHENTICATED';
+      END;
+
+      IF v_context_project_id IS NULL
+         OR NOT private.rae_system_context_matches(v_context_project_id) THEN
+        RAISE EXCEPTION USING errcode='28000',message='UNAUTHENTICATED';
+      END IF;
+    ELSE
+      BEGIN
+        v_context_project_id :=
+          nullif(current_setting('rae.owner_mcp_project_id',true),'')::uuid;
+      EXCEPTION WHEN invalid_text_representation THEN
+        RAISE EXCEPTION USING errcode='28000',message='UNAUTHENTICATED';
+      END;
+
+      IF v_context_project_id IS NULL
+         OR NOT private.owner_mcp_context_matches(v_context_project_id) THEN
+        RAISE EXCEPTION USING errcode='28000',message='UNAUTHENTICATED';
+      END IF;
+    END IF;
+
+    SELECT p.owner_id INTO v_owner_id
+    FROM public.projects p
+    WHERE p.id=v_context_project_id
+      AND p.status='active';
+    IF NOT FOUND OR v_owner_id IS NULL THEN
+      RAISE EXCEPTION USING errcode='28000',message='UNAUTHENTICATED';
+    END IF;
+  END IF;
+
+  IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 200 THEN
+    RAISE EXCEPTION USING errcode='22023',message='PROBLEM_REPORT_LIMIT_OUT_OF_RANGE';
+  END IF;
+  IF p_status IS NOT NULL AND p_status NOT IN
+    ('unresolved','open','triaged','in_progress','owner_input_required','resolved','wont_fix') THEN
+    RAISE EXCEPTION USING errcode='22023',message='INVALID_PROBLEM_REPORT_STATUS';
+  END IF;
+  IF p_severity IS NOT NULL AND p_severity NOT IN ('info','low','medium','high','critical') THEN
+    RAISE EXCEPTION USING errcode='22023',message='INVALID_PROBLEM_REPORT_SEVERITY';
+  END IF;
+
+  SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY
+    CASE x.severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END,
+    x.created_at DESC),'[]'::jsonb)
+  INTO v_items
+  FROM (
+    SELECT r.*,p.name AS project_name,p.github_repo
+    FROM public.problem_reports r
+    JOIN public.projects p ON p.id=r.project_id
+    WHERE p.owner_id=v_owner_id
+      AND p.status='active'
+      AND (p_status IS NULL
+        OR (p_status='unresolved' AND r.status IN ('open','triaged','in_progress','owner_input_required'))
+        OR r.status=p_status)
+      AND (p_severity IS NULL OR r.severity=p_severity)
+    ORDER BY CASE r.severity
+      WHEN 'critical' THEN 0
+      WHEN 'high' THEN 1
+      WHEN 'medium' THEN 2
+      WHEN 'low' THEN 3
+      ELSE 4
+    END, r.created_at DESC
+    LIMIT p_limit
+  ) x;
+  RETURN jsonb_build_object('success',true,'data',v_items);
+END;
+$function$;
+
 DO $problem_inbox$
 DECLARE
   r record;
@@ -490,24 +709,14 @@ BEGIN
     JOIN pg_namespace n ON n.oid=p.pronamespace
     WHERE n.nspname='public'
       AND p.prokind='f'
-      AND p.proname IN (
-        'list_problem_reports','get_problem_report','update_problem_report'
-      )
+      AND p.proname IN ('get_problem_report','update_problem_report')
   LOOP
     v_definition:=pg_get_functiondef(r.oid);
-    IF r.proname='list_problem_reports' THEN
-      v_replacement:=replace(
-        v_definition,
-        'OR NOT private.owner_mcp_context_matches(v_context_project_id) THEN',
-        'OR NOT (private.owner_mcp_context_matches(v_context_project_id) OR private.rae_system_context_matches(v_context_project_id)) THEN'
-      );
-    ELSE
-      v_replacement:=replace(
-        v_definition,
-        'private.owner_mcp_context_matches(r.project_id)',
-        '(private.owner_mcp_context_matches(r.project_id) OR private.rae_system_context_matches(r.project_id))'
-      );
-    END IF;
+    v_replacement:=replace(
+      v_definition,
+      'private.owner_mcp_context_matches(r.project_id)',
+      '(private.owner_mcp_context_matches(r.project_id) OR private.rae_system_context_matches(r.project_id))'
+    );
 
     IF v_replacement=v_definition THEN
       RAISE EXCEPTION 'Expected Owner-MCP Problem Inbox check missing in public.%',r.proname;
@@ -520,7 +729,7 @@ $problem_inbox$;
 COMMENT ON FUNCTION private.assert_owner(uuid) IS
   'Project-scoped engineering authority: authenticated human Owner, legacy verified Owner-MCP context, or active RAE system principal context. Human decision RPCs must call assert_human_owner.';
 COMMENT ON FUNCTION private.assert_human_owner(uuid) IS
-  'Human product/decision authority only. Accepts a real Owner JWT or the legacy transaction-bound Owner-MCP context; deliberately rejects the RAE system principal.';
+  'Human product/decision authority only. Accepts a real Owner JWT or the legacy transaction-bound Owner-MCP context in a transaction not bound to RAE system context; rejects RAE and mixed contexts.';
 COMMENT ON FUNCTION private.assert_worker_actor(uuid,uuid) IS
   'Worker execution authorization accepts the project Owner, correctly bound Worker, legacy verified Owner-MCP context, or active project-bound RAE system principal. Existing Worker route, lease, task, dependency, and execution fences remain enforced.';
 
