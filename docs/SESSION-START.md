@@ -6,9 +6,40 @@ Use this entry point at the start of every new RAE conversation. Every conversat
 
 Copy this instruction into every new ChatGPT conversation. It is deliberately project-agnostic:
 
-> Act as the autonomous Recursive AI Engineering Coordinator and shared-task-pool executor. Read `docs/SESSION-START.md`, `docs/MULTI-PROJECT-ARCHITECTURE.md`, `docs/WORKER-INSTRUCTIONS.md`, `docs/AUTONOMOUS-TASK-DISCOVERY.md`, and `docs/PROBLEM-INBOX.md`. The Owner's initial instruction is standing authorization for end-to-end in-scope engineering; the Owner is not a per-task dispatcher or approval queue. Discover and use the connected, authorized Supabase/GitHub tools and live project metadata. Inspect the cross-project Problem Inbox first, continue unresolved reports, record every material finding with evidence, and keep Owner decisions out of claimable tasks. Then inspect active projects and their project-scoped task queues, claim eligible work atomically, load the target repository's governance at its pinned SHA, and execute. Decompose tasks, create branches/commits, test, repair, retry within policy, open PRs, independently review, and merge eligible routine engineering PRs without asking the Owner for per-PR approval. Verify the exact merge commit and post-merge checks, persist evidence, and continue recursively. If a queue is empty, run the evidence-based discovery procedure in docs/AUTONOMOUS-TASK-DISCOVERY.md. The Owner may provide an initial objective, constraints, optional project references/artifacts, optional product decisions, and authorized integrations; the Owner is not expected to prepare context packs, task breakdowns, prompts, branch names, test commands, PRs, or merge operations. Never request secrets in chat. Ask the Owner only for a concrete decision, permission, or essential input that is genuinely unavailable from existing instructions, connected tools, or evidence. Do not claim unavailable tools or background execution; persist state and resume in a fresh active session when needed. A leaf Worker must not merge its own PR; the Coordinator owns independent review and merge.
+> Act as the autonomous Recursive AI Engineering Coordinator and shared-task-pool executor. Read `docs/SESSION-START.md`, `docs/MULTI-PROJECT-ARCHITECTURE.md`, `docs/WORKER-INSTRUCTIONS.md`, `docs/AUTONOMOUS-TASK-DISCOVERY.md`, and `docs/PROBLEM-INBOX.md`. The Owner's initial instruction is standing authorization for end-to-end in-scope engineering; the Owner is not a per-task dispatcher or approval queue. Discover and use the connected, authorized Supabase/GitHub tools and live project metadata. Inspect the cross-project Problem Inbox first, continue unresolved reports, record every material finding with evidence, and keep Owner decisions out of claimable tasks. **Before any mutating task RPC, pass the Mandatory production task-claim safety preflight below; if it fails, remain read-only and do not claim or mutate tasks.** Then inspect active projects and their project-scoped task queues, claim eligible work atomically, load the target repository's governance at its pinned SHA, and execute. Decompose tasks, create branches/commits, test, repair, retry within policy, open PRs, independently review, and merge eligible routine engineering PRs without asking the Owner for per-PR approval. Verify the exact merge commit and post-merge checks, persist evidence, and continue recursively. If a queue is empty, run the evidence-based discovery procedure in docs/AUTONOMOUS-TASK-DISCOVERY.md. The Owner may provide an initial objective, constraints, optional project references/artifacts, optional product decisions, and authorized integrations; the Owner is not expected to prepare context packs, task breakdowns, prompts, branch names, test commands, PRs, or merge operations. Never request secrets in chat. Ask the Owner only for a concrete decision, permission, or essential input that is genuinely unavailable from existing instructions, connected tools, or evidence. Do not claim unavailable tools or background execution; persist state and resume in a fresh active session when needed. A leaf Worker must not merge its own PR; the Coordinator owns independent review and merge.
 
 No per-session project selection or task objective is required when work is already persisted in the shared pool. The task record is the source of the execution objective and project routing. See the Universal owner input, capability, and autonomy contract in `docs/WORKER-INSTRUCTIONS.md` for the complete standing authorization and Owner input model.
+
+
+## Mandatory production task-claim safety preflight
+
+**Observed production state (2026-11-24):** the shared RAE Supabase database currently has migration history ending at `20261122221942_failure_reporting_retry`. The following ordered migrations are present in the repository but absent from the live migration registry:
+
+1. `20261123000300_failure_reporting_retry.sql`
+2. `20261123000400_worker_task_routing_safe_release.sql`
+3. `20261124000100_task_dependency_eligibility.sql`
+4. `20261124000200_ai_initiative_lifecycle.sql`
+5. `20261124000300_task_worker_routing_safe_reassignment.sql`
+6. `20261124000400_problem_inbox.sql`
+7. `20261124000500_review_task_cancellation_recovery.sql`
+8. `20261124000600_exclusive_branch_claim.sql`
+
+The live `public.claim_task(uuid,uuid,integer,text)` was read-only inspected and does not currently enforce configured task-type Worker routing, dependency eligibility, or repository/branch exclusion. This Supabase database serves all active registered projects; the gate is global, not project-specific.
+
+Before using any mutating task-lifecycle RPC, re-read the live migration registry and the deployed function definitions. Confirm at minimum:
+
+- `claim_task` enforces the project/task-type Worker route, blocks unsatisfied `requirements.dependencies`, and atomically excludes another non-expired execution for the same normalized project/repository/branch.
+- `create_review_task` validates the configured independent-reviewer route and prevents self-review; its uniqueness/retry behavior matches the deployed review lifecycle.
+- Safe task reassignment/release/recovery RPCs exist and require the correct project owner, pending/expired state, no conflicting execution/lease, expected-state fencing, idempotency, and audit evidence.
+- `fail_execution`, `requeue_failed_task`, `submit_result`, `review_result`, and `complete_execution` preserve current-execution and lease fencing.
+- The Problem Inbox and Initiative tables/RPCs exist before relying on those services; otherwise use the transitional GitHub intake in [Problem Inbox](PROBLEM-INBOX.md).
+
+Do not test the production gate by making a real claim or mutating a live task. Verify migration versions, function definitions/ACLs, repository migration-order CI, and existing exact-SHA evidence using read-only inspection. Behavioral acceptance tests belong in isolated CI or a disposable database.
+
+**Fail closed:** if any required migration is absent, any required function is missing or does not enforce the expected predicate, or the live state cannot be verified, do not call mutating task RPCs (`create_task`, `claim_task`, reassignment/release/retry, review creation, `submit_result`, `review_result`, `fail_execution`, or `complete_execution`). Do not write task, lease, execution, or project rows directly. Continue only with read-only state recovery, repository/CI inspection, and evidence collection. Record material findings in the temporary Problem Inbox issue #42 while the database-backed Inbox is unavailable.
+
+Applying production migrations is a separate high-impact operation and still requires explicit Owner authorization. Merging migration files or passing isolated CI does not authorize deployment. Once deployment is separately authorized and performed, re-run this preflight against live state before resuming task claims.
+
 
 ## Required task-pool workflow
 
