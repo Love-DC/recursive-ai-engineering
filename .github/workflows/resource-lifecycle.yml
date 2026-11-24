@@ -1,4 +1,4 @@
-name: Resource lifecycle batch cleanup
+name: Resource lifecycle inventory and preview
 
 on:
   pull_request:
