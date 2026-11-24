@@ -32,6 +32,11 @@ REVOKE ALL ON FUNCTION private.assert_task_activation(uuid) FROM PUBLIC, anon, a
 -- project/repository/branch key. The live lease check persists exclusion after
 -- the claiming transaction commits without introducing a separate lock table.
 
+-- Prevent overlapping non-expired executions from owning the same repository branch.
+-- The advisory transaction lock serializes concurrent claims for one normalized
+-- project/repository/branch key. The live lease check persists exclusion after
+-- the claiming transaction commits without introducing a separate lock table.
+
 CREATE OR REPLACE FUNCTION public.claim_task(
   p_project_id uuid,
   p_worker_id uuid,
@@ -159,11 +164,11 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- Serialize project claims briefly so concurrent sessions cannot exceed the cap.
+  -- Serialize project claims so concurrent sessions cannot exceed the cap.
   PERFORM pg_advisory_xact_lock(hashtextextended('project-active-claims:'||p_project_id::text,0));
 
   SELECT CASE
-    WHEN (p.config #>> '{autonomy,max_active_executions}') ~ '^[1-9][0-9]?
+    WHEN (p.config #>> '{autonomy,max_active_executions}') ~ '^[1-9][0-9]? A PL/pgSQL cursor loop may
   -- prefetch and lock several rows before the loop body runs, starving another
   -- session that should be able to claim a different task for the same Worker.
   -- Remember branch-conflicted candidates and continue in queue order without
@@ -311,8 +316,11 @@ $function$;
 REVOKE ALL ON FUNCTION public.claim_task(uuid,uuid,integer,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.claim_task(uuid,uuid,integer,text) TO authenticated;
 
-      AND (p.config #>> '{autonomy,max_active_executions}')::integer BETWEEN 1 AND 2
-    THEN (p.config #>> '{autonomy,max_active_executions}')::integer
+    THEN CASE
+      WHEN (p.config #>> '{autonomy,max_active_executions}')::integer BETWEEN 1 AND 2
+      THEN (p.config #>> '{autonomy,max_active_executions}')::integer
+      ELSE 2
+    END
     ELSE 2
   END
   INTO v_max_active_executions
@@ -485,6 +493,7 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.claim_task(uuid,uuid,integer,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.claim_task(uuid,uuid,integer,text) TO authenticated;
+
 
 CREATE OR REPLACE FUNCTION public.create_task(p_project_id uuid, p_worker_id uuid, p_task_type text, p_title text, p_description text, p_requirements jsonb, p_priority integer, p_requires_review boolean, p_parent_task_id uuid, p_fixes_task_id uuid, p_idempotency_key text)
  RETURNS jsonb
