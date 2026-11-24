@@ -180,6 +180,31 @@ BEGIN
     RAISE EXCEPTION 'FAIL: rejected cycle changed initiative state';
   END IF;
 
+  -- A rejected proposal is not a resolved learning and cannot poison its fingerprint.
+  PERFORM public.decide_initiative(v_rejected_id,'reject','Reject this proposal without recording a resolved lesson.',
+    NULL,v_key||'-reject-cycle');
+  BEGIN
+    PERFORM public.record_initiative_learning(
+      v_rejected_id,'test:initiative:cycle','failure',
+      'A rejected proposal is not a resolved root-cause outcome.',
+      jsonb_build_array(jsonb_build_object('kind','test','ref','fixture','observation','rejected')),
+      v_key||'-rejected-learning'
+    );
+    RAISE EXCEPTION 'FAIL: rejected initiative unexpectedly created a suppressing learning';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM<>'INITIATIVE_NOT_TERMINAL_FOR_LEARNING' THEN RAISE; END IF;
+  END;
+  v_duplicate:=public.propose_initiative(v_project_id,v_worker_id,jsonb_build_object(
+    'origin','ai_initiative','title','Retry rejected proposal fingerprint','summary','A rejected proposal must not suppress a future proposal.',
+    'rationale','The earlier proposal was rejected, not resolved.','desired_outcome','Allow a fresh proposal for the same fingerprint.',
+    'scope',jsonb_build_array('test'),'evidence',jsonb_build_array(jsonb_build_object('kind','test','ref','fixture','observation','retry after rejection')),
+    'risk','low','resource_budget','{}'::jsonb,'support_needed','[]'::jsonb,
+    'deduplication_fingerprint','test:initiative:cycle'
+  ),v_key||'-repropose-after-rejection');
+  IF v_duplicate->'data'->>'created'<>'true' THEN
+    RAISE EXCEPTION 'FAIL: rejected proposal fingerprint remained suppressed: %',v_duplicate;
+  END IF;
+
   -- Only the initial independent wave becomes claimable.
   v_advance:=public.advance_initiative(v_initiative_id,v_worker_id,v_key||'-advance-1');
   IF (v_advance->'data'->>'materialized_count')::integer<>2 THEN
@@ -256,6 +281,32 @@ BEGIN
     RAISE EXCEPTION 'FAIL: initiative did not reach ready_to_close after all work items were accepted: %',v_advance;
   END IF;
 
+  -- Empty or structurally incomplete evidence must never create a suppressing learning.
+  BEGIN
+    PERFORM public.record_initiative_learning(
+      v_initiative_id,'test:initiative:lifecycle','success',
+      'This evidence is intentionally empty and must be rejected.', '[]'::jsonb,
+      v_key||'-learning-empty-evidence'
+    );
+    RAISE EXCEPTION 'FAIL: empty learning evidence unexpectedly accepted';
+  EXCEPTION WHEN SQLSTATE '22023' THEN
+    IF SQLERRM<>'INITIATIVE_LEARNING_EVIDENCE_REQUIRED' THEN RAISE; END IF;
+  END;
+  BEGIN
+    PERFORM public.record_initiative_learning(
+      v_initiative_id,'test:initiative:lifecycle','success',
+      'This evidence has no observation and must be rejected.',
+      jsonb_build_array(jsonb_build_object('kind','test','ref','fixture')),
+      v_key||'-learning-incomplete-evidence'
+    );
+    RAISE EXCEPTION 'FAIL: incomplete learning evidence unexpectedly accepted';
+  EXCEPTION WHEN SQLSTATE '22023' THEN
+    IF SQLERRM<>'INITIATIVE_LEARNING_EVIDENCE_REQUIRED' THEN RAISE; END IF;
+  END;
+  IF (SELECT status FROM public.initiatives WHERE id=v_initiative_id)<>'ready_to_close' THEN
+    RAISE EXCEPTION 'FAIL: invalid learning evidence changed initiative state';
+  END IF;
+
   v_learning:=public.record_initiative_learning(
     v_initiative_id,'test:initiative:lifecycle','success',
     'The ready-wave protocol prevents dependent work from entering the claimable queue before every prerequisite is accepted.',
@@ -296,6 +347,27 @@ BEGIN
   IF v_abandoned->'data'->>'status'<>'abandoned'
      OR (SELECT status FROM public.tasks WHERE id=v_abandoned_task)<>'cancelled' THEN
     RAISE EXCEPTION 'FAIL: abandon did not cancel pending work';
+  END IF;
+  BEGIN
+    PERFORM public.record_initiative_learning(
+      v_abandon_id,'test:initiative:abandon','failure',
+      'An abandoned initiative is not a resolved root-cause outcome.',
+      jsonb_build_array(jsonb_build_object('kind','test','ref','fixture','observation','abandoned')),
+      v_key||'-abandoned-learning'
+    );
+    RAISE EXCEPTION 'FAIL: abandoned initiative unexpectedly created a suppressing learning';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM<>'INITIATIVE_NOT_TERMINAL_FOR_LEARNING' THEN RAISE; END IF;
+  END;
+  v_duplicate:=public.propose_initiative(v_project_id,v_worker_id,jsonb_build_object(
+    'origin','maintenance','title','Retry abandoned initiative fingerprint','summary','An abandoned effort must not suppress a future proposal.',
+    'rationale','The earlier effort was abandoned without a resolved lesson.','desired_outcome','Allow a fresh bounded initiative.',
+    'scope',jsonb_build_array('test'),'evidence',jsonb_build_array(jsonb_build_object('kind','test','ref','fixture','observation','retry after abandonment')),
+    'risk','low','resource_budget','{}'::jsonb,'support_needed','[]'::jsonb,
+    'deduplication_fingerprint','test:initiative:abandon'
+  ),v_key||'-repropose-after-abandonment');
+  IF v_duplicate->'data'->>'created'<>'true' THEN
+    RAISE EXCEPTION 'FAIL: abandoned initiative fingerprint remained suppressed: %',v_duplicate;
   END IF;
 
   v_state:=public.get_initiative(v_initiative_id);
