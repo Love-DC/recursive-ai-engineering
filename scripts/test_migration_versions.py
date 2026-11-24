@@ -15,9 +15,11 @@ SNAPSHOT_FILE = "database-schema.sql"
 VERSIONED_SQL = re.compile(r"^(?P<version>\d{14})_(?P<name>[a-z0-9][a-z0-9_-]*)\.sql$")
 
 FEATURE_ORDER = (
+    "failure_reporting_retry",
     "worker_task_routing_safe_release",
     "task_dependency_eligibility",
     "ai_initiative_lifecycle",
+    "task_worker_routing_safe_reassignment",
 )
 
 
@@ -63,8 +65,9 @@ def validate_inventory(paths: list[Path], *, check_feature_order: bool = True) -
             ordered = [feature_versions[feature] for feature in FEATURE_ORDER]
             if ordered != sorted(ordered) or len(set(ordered)) != len(ordered):
                 errors.append(
-                    "migration dependency order must be Worker routing/safe release, "
-                    "then task dependency eligibility, then AI Initiative lifecycle"
+                    "migration dependency order must be failure reporting/retry, "
+                    "Worker routing/safe release, task dependency eligibility, "
+                    "AI Initiative lifecycle, then safe task reassignment"
                 )
 
     return errors
@@ -105,8 +108,22 @@ class MigrationVersionTests(unittest.TestCase):
     def test_rejects_incorrect_feature_order(self) -> None:
         errors = validate_inventory(
             [
-                Path("20261124000300_worker_task_routing_safe_release.sql"),
+                Path("20261123000500_failure_reporting_retry.sql"),
+                Path("20261123000400_worker_task_routing_safe_release.sql"),
                 Path("20261124000100_task_dependency_eligibility.sql"),
+                Path("20261124000200_ai_initiative_lifecycle.sql"),
+                Path("20261124000300_task_worker_routing_safe_reassignment.sql"),
+            ]
+        )
+        self.assertTrue(any("dependency order" in e for e in errors))
+
+    def test_rejects_task_reassignment_before_initiative_lifecycle(self) -> None:
+        errors = validate_inventory(
+            [
+                Path("20261123000300_failure_reporting_retry.sql"),
+                Path("20261123000400_worker_task_routing_safe_release.sql"),
+                Path("20261124000100_task_dependency_eligibility.sql"),
+                Path("20261124000150_task_worker_routing_safe_reassignment.sql"),
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
             ]
         )
