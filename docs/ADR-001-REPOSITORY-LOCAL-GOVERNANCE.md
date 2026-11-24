@@ -3,13 +3,13 @@
 - **Status:** Accepted for implementation under the Owner's repository-local governance directive.
 - **Date:** 2026-11-23
 - **Decision owners:** RAE platform Owner; each repository Owner retains its own product and engineering authority.
-- **Scope:** RAE multi-repository coordination, Colony Sim and its independent CI repository.
+- **Scope:** RAE multi-repository coordination, Colony Sim and the shared AI governance CI repository.
 
 ## Context
 
 RAE currently routes work through project-scoped Supabase rows, but projects.config.governance also stores repository-specific file paths and policy values. RAE session instructions additionally name Colony Sim files and its activation policy directly. This couples RAE core to one project's layout and CI arrangement, making a new repository require central changes.
 
-Colony Sim already owns substantial local governance in AGENTS.md and docs/ai/*. Its CI runner is a separate public repository, Love-DC/colony-sim-ci, which validates private source PRs by exact HEAD SHA. Treating that runner as a Colony Sim subdirectory or assuming a universal CI provider would be incorrect.
+Colony Sim already owns substantial local governance in AGENTS.md and docs/ai/*. Its CI runner is a separate public repository, Love-DC/ai-project-governance, which validates private source PRs by exact HEAD SHA. Treating that runner as a Colony Sim subdirectory or assuming a universal CI provider would be incorrect.
 
 ## Decision
 
@@ -19,7 +19,7 @@ Colony Sim already owns substantial local governance in AGENTS.md and docs/ai/*.
 4. **Conflicts fail closed.** Missing or malformed manifests, unsupported protocol versions, insufficient Coordinator versions, unsafe paths, conflicting rule declarations, unresolved semantic conflicts and stale SHAs block implementation. The Coordinator reports source paths and asks the Owner where resolution requires a decision.
 5. **Platform security is non-delegable.** Authentication, Owner authorization, RLS, project isolation, task execution fencing, branch protection and existing merge permissions remain enforced by RAE/platform configuration. Repository text cannot override them.
 6. **Workers do not self-review or self-merge.** Workers deliver PRs. The Coordinator performs independent review and validates the exact PR HEAD against the repository-declared CI route. Product decisions remain with the relevant product Owner.
-7. **CI is repository-specific.** The Colony Sim manifest points to Love-DC/colony-sim-ci and its owner-controlled issue-comment trigger. This is one adapter example, not a universal RAE CI assumption.
+7. **CI is repository-specific.** The Colony Sim manifest points to Love-DC/ai-project-governance and its owner-controlled issue-comment trigger. This is one adapter example, not a universal RAE CI assumption.
 
 ## Governance precedence
 
@@ -37,7 +37,7 @@ If two applicable repository rules conflict and no explicit compatible precedenc
 ### Phase 1 — Compatibility protocol and repository manifests
 
 - Add the versioned manifest contract and structural validator to RAE.
-- Publish manifests in RAE, Colony Sim and colony-sim-ci.
+- Publish manifests in RAE, Colony Sim and ai-project-governance.
 - Replace hardcoded Colony Sim paths and activation rules in RAE session instructions with manifest discovery.
 - Keep the old Supabase governance keys intact during this PR-only rollout.
 
@@ -45,7 +45,7 @@ If two applicable repository rules conflict and no explicit compatible precedenc
 
 - Validate RAE manifests and tests in RAE GitHub Actions.
 - Validate Colony Sim's manifest and required files in its repository CI.
-- Validate colony-sim-ci's own manifest and workflow in its CI configuration check.
+- Validate ai-project-governance's own manifest and workflow in its CI configuration check.
 - Use the existing public runner for Colony Sim's private source PRs; require the current full 40-character HEAD SHA and both exact-SHA status contexts where relevant.
 - Confirm the Coordinator fetches all governance files at the same pinned SHA. Web-only sessions must use GitHub file APIs with the pinned ref; a local checkout is optional.
 
