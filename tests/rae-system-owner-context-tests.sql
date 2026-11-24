@@ -93,6 +93,19 @@ BEGIN
   END IF;
 
   BEGIN
+    PERFORM private.begin_owner_mcp_context(
+      '00000000-0000-4000-8000-000000000008'::uuid,
+      (SELECT owner_id FROM public.projects
+       WHERE id='00000000-0000-4000-8000-000000000008'::uuid)
+    );
+    RAISE EXCEPTION 'FAIL: the RAE transaction switched to a human Owner-MCP context';
+  EXCEPTION WHEN SQLSTATE '42501' THEN
+    IF SQLERRM <> 'OWNER_MCP_CONTEXT_ALREADY_BOUND' THEN
+      RAISE;
+    END IF;
+  END;
+
+  BEGIN
     PERFORM private.set_project_execution_controls(
       '00000000-0000-4000-8000-000000000008'::uuid,
       false,
