@@ -364,11 +364,11 @@ def main() -> int:
 
     startup = (ROOT / "docs/SESSION-START.md").read_text(encoding="utf-8")
     check("startup does not load the RAE root index", "knowledge/rae-root/index.json" in startup)
-    check("startup lacks explicit bounded-read section", "Default startup must not:" in startup)
+    check("startup lacks bounded-read section", "Do not, by default:" in startup)
     check("startup preserves bounded history loading",
           "do not load every task description" in startup.lower() and "project-scoped task queue" in startup.lower())
-    check("startup permits eager descendant expansion", "recursively expand all descendants" in startup)
-    check("startup lacks no-fixed-role statement", "There is no mandatory role declaration at startup" in startup)
+    check("startup lacks lazy descendant expansion", "Expand descendants only when" in startup)
+    check("startup lacks temporary shared-role statement", "No conversation is a permanent Coordinator" in startup)
     check("startup incorrectly imposes a single-session runtime",
           "one GPT conversation at a time" not in startup.lower())
     check("startup excludes active project queue discovery",
@@ -377,7 +377,8 @@ def main() -> int:
     check(
         "startup lacks Worker claim-routing safety preflight",
         "Task-claim safety preflight" in startup
-        and "do not call `claim_task` with the reviewer Worker ID" in startup,
+        and "do not call `claim_task` through that unsafe route" in startup
+        and "exact review assignment" in startup,
     )
 
     for relative in (
