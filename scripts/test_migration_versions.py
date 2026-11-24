@@ -29,6 +29,7 @@ FEATURE_ORDER = (
     "repository_authoritative_activation_guard",
     "trusted_owner_mcp_execution_context",
     "owner_mcp_project_registration",
+    "owner_mcp_problem_inbox_context",
 )
 
 
@@ -131,6 +132,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -152,6 +154,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -173,6 +176,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -194,6 +198,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -215,6 +220,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in e for e in errors))
@@ -236,6 +242,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in error for error in errors))
@@ -258,6 +265,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in error for error in errors))
@@ -280,11 +288,12 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in error for error in errors))
 
-    def test_accepts_complete_order_with_owner_mcp_project_registration_last(self) -> None:
+    def test_accepts_complete_order_with_owner_mcp_problem_inbox_context_last(self) -> None:
         errors = validate_inventory(
             [
                 Path("20261123000300_failure_reporting_retry.sql"),
@@ -301,6 +310,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
             ]
         )
         self.assertEqual(errors, [])
@@ -343,6 +353,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
                 Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
                 Path("20261124172155_submitted_task_reconciliation.sql"),
             ]
         )
