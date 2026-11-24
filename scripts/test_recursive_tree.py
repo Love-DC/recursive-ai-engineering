@@ -364,10 +364,10 @@ def main() -> int:
 
     startup = (ROOT / "docs/SESSION-START.md").read_text(encoding="utf-8")
     check("startup does not load the RAE root index", "knowledge/rae-root/index.json" in startup)
-    check("startup lacks bounded-read section", "Do not, by default:" in startup)
+    check("startup lacks the required shared-pool startup section", "## Required startup and shared-pool workflow" in startup)
     check("startup preserves bounded history loading",
           "do not load every task description" in startup.lower() and "project-scoped task queue" in startup.lower())
-    check("startup lacks lazy descendant expansion", "Expand descendants only when" in startup)
+    check("startup lacks lazy descendant expansion", "expand descendants only when" in startup.lower())
     check("startup lacks temporary shared-role statement", "No conversation is a permanent Coordinator" in startup)
     check("startup incorrectly imposes a single-session runtime",
           "one GPT conversation at a time" not in startup.lower())
@@ -391,7 +391,7 @@ def main() -> int:
         check(f"{relative} exceeds 12 KB ({size} bytes)", size <= 12_000)
 
     print(f"Recursive tree schema and reference checks passed for {len(nodes)} indexed node(s).")
-    print("Default startup loads root + selected branch; descendants remain lazy.")
+    print("Default startup inspects compact shared queues, then loads only selected task context; tree descendants remain lazy.")
     return 0
 
 
