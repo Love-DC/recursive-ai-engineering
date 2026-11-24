@@ -35,10 +35,10 @@ BEGIN
 
   v_reason := regexp_replace(coalesce(p_reason,''),'[[:cntrl:]]','','g');
   v_reason := regexp_replace(v_reason,
-    '(?i)(bearer[[:space:]]+)[A-Za-z0-9._~+/=-]+','\\1[REDACTED]','g');
+    '(?i)(bearer[[:space:]]+)[A-Za-z0-9._~+/=-]+','\1[REDACTED]','g');
   v_reason := regexp_replace(v_reason,
     '(?i)((api[_-]?key|token|secret|password)[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+',
-    '\\1[REDACTED]','g');
+    '\1[REDACTED]','g');
   IF length(btrim(v_reason))=0 THEN
     RAISE EXCEPTION USING errcode='22023',message='RECONCILIATION_REASON_REQUIRED';
   END IF;
@@ -71,14 +71,14 @@ BEGIN
     'kind',regexp_replace(item.value->>'kind','[[:cntrl:]]','','g'),
     'ref',regexp_replace(
       regexp_replace(item.value->>'ref',
-        '(?i)(bearer[[:space:]]+)[A-Za-z0-9._~+/=-]+','\\1[REDACTED]','g'),
+        '(?i)(bearer[[:space:]]+)[A-Za-z0-9._~+/=-]+','\1[REDACTED]','g'),
       '(?i)((api[_-]?key|token|secret|password)[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+',
-      '\\1[REDACTED]','g'),
+      '\1[REDACTED]','g'),
     'observation',regexp_replace(
       regexp_replace(item.value->>'observation',
-        '(?i)(bearer[[:space:]]+)[A-Za-z0-9._~+/=-]+','\\1[REDACTED]','g'),
+        '(?i)(bearer[[:space:]]+)[A-Za-z0-9._~+/=-]+','\1[REDACTED]','g'),
       '(?i)((api[_-]?key|token|secret|password)[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+',
-      '\\1[REDACTED]','g')
+      '\1[REDACTED]','g')
   ) ORDER BY item.ordinality),'[]'::jsonb)
   INTO v_evidence
   FROM jsonb_array_elements(p_evidence) WITH ORDINALITY item(value,ordinality);
