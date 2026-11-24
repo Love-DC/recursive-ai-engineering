@@ -62,6 +62,7 @@ Proposal:
     {"kind": "ci_run", "ref": "https://github.com/.../actions/runs/123", "observation": "Exact failing assertion"}
   ],
   "risk": "low",
+  "priority": 10,
   "resource_budget": {"external_spend_allowed": false, "bounded_execution": true},
   "support_needed": [],
   "deduplication_fingerprint": "task-lifecycle:stale-transition:tasks"
