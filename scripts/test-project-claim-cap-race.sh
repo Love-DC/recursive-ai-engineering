@@ -164,6 +164,7 @@ WHERE id='$CAP_TEST_PROJECT_ID';
 SQL
 
 psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<SQL
+BEGIN;
 SELECT set_config('request.jwt.claim.sub','$SUPABASE_OWNER_ID',true);
 DO \$pause_test\$
 BEGIN
@@ -190,6 +191,7 @@ BEGIN
   END;
 END;
 \$pause_test\$;
+COMMIT;
 SQL
 
 echo "PASS: three-session claims respected the two-execution cap, a released slot was reclaimed, and pause blocked both task creation and claims."
