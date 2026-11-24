@@ -42,10 +42,11 @@ Before any task-pool write, follow the database-wide gate in `docs/SESSION-START
 
 This is a dated snapshot, not a permanent permission. Re-check the live migration registry, RPC definitions, project/Worker mapping, and selected project's activation policy at each session start. Use only the correct project UUID and that project's active Worker ID. Claim only real eligible work through the atomic `claim_task` RPC, only after the mandatory production claim-safety gate in `docs/SESSION-START.md` has been re-verified open; never use a dummy claim or failed probe to test health.
 
-Two independent migration boundaries remain CLOSED and must not be conflated with the eight-migration gate:
+The PR #59 active-session guard is deployed in the live registry as version `20261124181019` (`active_session_autonomy_guard`). Live function inspection confirms that task lifecycle entrypoints call `private.assert_task_activation`, which rejects projects configured as `paused`. `claim_task` serializes project claims and enforces the configured one-or-two active-execution cap only when the project's `task_activation` is explicitly `active_session_autonomy`.
 
-- PR #59's `20261124000700_active_session_autonomy_guard.sql` is not deployed. The project pause switch and two-execution cap are not live.
-- PR #60's `20261124172155_submitted_task_reconciliation.sql` is merged in GitHub but not deployed. Do not use or claim its reconciliation RPC; preserve historical task/execution records.
+Deployment does not activate the feature. The 2026-11-25 project-config snapshot shows RAE and Lambent have no `task_activation` or `autonomy.max_active_executions` values. Colony Sim remains `explicit_owner_authorization_only` and has no configured maximum. No project is currently opted into `active_session_autonomy`; the conditional concurrency cap is therefore not currently active. Do not change project configuration under this documentation task, and never treat the deployed guard as permission to activate Colony Sim.
+
+PR #60's `20261124172155_submitted_task_reconciliation.sql` is merged in GitHub but **not deployed**. Do not use or claim its reconciliation RPC; preserve historical task/execution records.
 
 The database gate permits only normal project-scoped lifecycle operations under the target repository's own activation policy. It does not authorize production DDL/deployment, destructive cleanup, or product decisions. Colony Sim remains `explicit_owner_authorization_only`; never turn its backlog into autonomous work or change gameplay/product behavior because the shared database gate is open.
 
