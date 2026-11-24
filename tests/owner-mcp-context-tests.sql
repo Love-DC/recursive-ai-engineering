@@ -48,6 +48,33 @@ VALUES
   )
 ON CONFLICT (id) DO NOTHING;
 
+-- A second project for the same Owner verifies the inbox's cross-project
+-- listing scope without permitting project-crossing get/update operations.
+INSERT INTO public.projects(
+  id, name, description, github_repo, config, owner_id, status
+)
+VALUES (
+  '00000000-0000-4000-8000-000000000011',
+  'trusted-owner-mcp-secondary-test',
+  'second project for Owner-MCP inbox scope tests',
+  'test/trusted-owner-mcp-secondary',
+  '{"autonomy":{"paused":true,"max_active_executions":2},"worker_routing":{"default_worker_key":"mcp-secondary"}}'::jsonb,
+  '00000000-0000-4000-8000-000000000001',
+  'active'
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.workers(id, project_id, worker_key, display_name, status, auth_user_id)
+VALUES (
+  '00000000-0000-4000-8000-000000000012',
+  '00000000-0000-4000-8000-000000000011',
+  'mcp-secondary',
+  'MCP Secondary Project Worker',
+  'active',
+  NULL
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- The Owner-MCP entry point is unavailable to ordinary API roles.
 DO $acl$
 BEGIN
@@ -108,6 +135,10 @@ BEGIN
       10,
       NULL
     );
+
+    -- The Problem Inbox must also reject an authenticated DB role without a JWT
+    -- or a verified postgres Owner-MCP context.
+    PERFORM public.list_problem_reports('unresolved',NULL,20);
   EXCEPTION WHEN SQLSTATE '28000' THEN
     IF SQLERRM <> 'UNAUTHENTICATED' THEN
       RAISE;
@@ -421,6 +452,171 @@ BEGIN
 END
 $register_project_workers$;
 COMMIT;
+
+-- Create a report in a second project owned by the same Owner. The
+-- transaction-scoped context is bound to that exact project for the write.
+BEGIN;
+DO $secondary_inbox_report$
+DECLARE
+  v_report jsonb;
+BEGIN
+  PERFORM private.begin_owner_mcp_context(
+    '00000000-0000-4000-8000-000000000011'::uuid,
+    '00000000-0000-4000-8000-000000000001'::uuid
+  );
+
+  v_report := public.report_problem(
+    '00000000-0000-4000-8000-000000000011'::uuid,
+    '00000000-0000-4000-8000-000000000012'::uuid,
+    jsonb_build_object(
+      'category','defect',
+      'severity','medium',
+      'status','open',
+      'title','Secondary project Owner-MCP inbox fixture',
+      'summary','A fixture report used to verify Owner-scoped cross-project inbox listing.',
+      'impact','The integration test must show that one verified Owner can list reports from all of their active projects.',
+      'recommended_action','No product action; this is an isolated integration fixture.',
+      'evidence',jsonb_build_array(jsonb_build_object(
+        'kind','test',
+        'ref','tests/owner-mcp-context-tests.sql',
+        'observation','The secondary project report is created through the normal report_problem RPC.'
+      )),
+      'source','automated',
+      'source_ref','tests/owner-mcp-context-tests.sql',
+      'fingerprint','test:owner-mcp-problem-inbox:secondary-project'
+    ),
+    'owner-mcp-problem-inbox-secondary-report'
+  );
+
+  IF coalesce((v_report->'success')::boolean,false) IS NOT TRUE THEN
+    RAISE EXCEPTION 'FAIL: secondary-project Owner-MCP report creation failed: %',v_report;
+  END IF;
+END
+$secondary_inbox_report$;
+COMMIT;
+
+-- The verified Owner-MCP context can list all active projects belonging to
+-- that Owner, but detail and update calls remain restricted to the bound
+-- project. Existing JWT-based authorization is unchanged.
+BEGIN;
+DO $owner_mcp_problem_inbox$
+DECLARE
+  v_primary_report jsonb;
+  v_secondary_report_id uuid;
+  v_list jsonb;
+  v_detail jsonb;
+  v_update jsonb;
+  v_status text;
+  v_cross_project_get_rejected boolean := false;
+  v_cross_project_update_rejected boolean := false;
+BEGIN
+  PERFORM private.begin_owner_mcp_context(
+    '00000000-0000-4000-8000-000000000008'::uuid,
+    '00000000-0000-4000-8000-000000000001'::uuid
+  );
+
+  v_primary_report := public.report_problem(
+    '00000000-0000-4000-8000-000000000008'::uuid,
+    '00000000-0000-4000-8000-000000000009'::uuid,
+    jsonb_build_object(
+      'category','blocker',
+      'severity','high',
+      'status','open',
+      'title','Primary project Owner-MCP inbox fixture',
+      'summary','A report used to verify list, detail, and update through the trusted Owner-MCP context.',
+      'impact','The Problem Inbox must remain usable without fabricating an Auth JWT.',
+      'recommended_action','Exercise the existing owner-scoped RPCs through the transaction-local context.',
+      'evidence',jsonb_build_array(jsonb_build_object(
+        'kind','test',
+        'ref','tests/owner-mcp-context-tests.sql',
+        'observation','The primary project report is created through the normal report_problem RPC.'
+      )),
+      'source','automated',
+      'source_ref','tests/owner-mcp-context-tests.sql',
+      'fingerprint','test:owner-mcp-problem-inbox:primary-project'
+    ),
+    'owner-mcp-problem-inbox-primary-report'
+  );
+
+  IF coalesce((v_primary_report->'success')::boolean,false) IS NOT TRUE THEN
+    RAISE EXCEPTION 'FAIL: primary-project Owner-MCP report creation failed: %',v_primary_report;
+  END IF;
+
+  SELECT id INTO v_secondary_report_id
+  FROM public.problem_reports
+  WHERE project_id='00000000-0000-4000-8000-000000000011'::uuid
+    AND fingerprint='test:owner-mcp-problem-inbox:secondary-project';
+  IF v_secondary_report_id IS NULL THEN
+    RAISE EXCEPTION 'FAIL: secondary-project report fixture is missing';
+  END IF;
+
+  v_list := public.list_problem_reports('unresolved',NULL,200);
+  IF NOT EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_list->'data') AS item
+    WHERE item->>'id'=v_primary_report->'data'->>'report_id'
+  ) THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP inbox list omitted the bound project's report: %',v_list;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_list->'data') AS item
+    WHERE item->>'id'=v_secondary_report_id::text
+  ) THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP inbox list omitted another active project owned by the same Owner: %',v_list;
+  END IF;
+
+  v_detail := public.get_problem_report((v_primary_report->'data'->>'report_id')::uuid);
+  IF v_detail->'data'->'report'->>'id' IS DISTINCT FROM v_primary_report->'data'->>'report_id' THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP get_problem_report returned the wrong report: %',v_detail;
+  END IF;
+
+  v_update := public.update_problem_report(
+    (v_primary_report->'data'->>'report_id')::uuid,
+    'in_progress',
+    'Verified Owner-MCP update through the bound project context.',
+    NULL,
+    NULL,
+    'owner-mcp-problem-inbox-primary-update'
+  );
+  IF v_update->'data'->>'status' IS DISTINCT FROM 'in_progress' THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP update_problem_report failed: %',v_update;
+  END IF;
+
+  SELECT status INTO v_status
+  FROM public.problem_reports
+  WHERE id=(v_primary_report->'data'->>'report_id')::uuid;
+  IF v_status IS DISTINCT FROM 'in_progress' THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP update was not persisted: %',v_status;
+  END IF;
+
+  BEGIN
+    PERFORM public.get_problem_report(v_secondary_report_id);
+  EXCEPTION WHEN SQLSTATE 'P0002' THEN
+    v_cross_project_get_rejected := true;
+  END;
+  IF NOT v_cross_project_get_rejected THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP get_problem_report crossed its bound project';
+  END IF;
+
+  BEGIN
+    PERFORM public.update_problem_report(
+      v_secondary_report_id,
+      'in_progress',
+      'This cross-project update must be rejected.',
+      NULL,
+      NULL,
+      'owner-mcp-problem-inbox-cross-project-update'
+    );
+  EXCEPTION WHEN SQLSTATE 'P0002' THEN
+    v_cross_project_update_rejected := true;
+  END;
+  IF NOT v_cross_project_update_rejected THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP update_problem_report crossed its bound project';
+  END IF;
+
+  RAISE NOTICE 'PASS: Owner-MCP Problem Inbox list/get/update, owner-wide listing, and project-bound detail/update isolation';
+END
+$owner_mcp_problem_inbox$;
+ROLLBACK;
 
 -- The normal PostgREST auth boundary remains unchanged. An authenticated role
 -- with no JWT does not inherit the trusted postgres Owner-MCP context.
