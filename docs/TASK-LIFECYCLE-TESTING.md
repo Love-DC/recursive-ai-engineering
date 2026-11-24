@@ -119,7 +119,7 @@ This is separate from the distinct-Worker claim race. Passing both tests demonst
 
 The migration `supabase/migrations/20261125140000_task_integrity_monitor_and_audit.sql` adds:
 
-- `private.task_integrity_findings(project_id)`: a read-only, project-scoped scan of task parent/fix/Worker references, execution/task and Worker references, current/latest delivery/review pointers, task-event relationships, and artifact task/execution relationships. It returns only missing or cross-project reference metadata. An empty result means no findings for the selected project's scanned relationships; it is not a proof against unrelated application-level invariants such as dependency cycles.
+- `private.task_integrity_findings(project_id)`: a read-only, project-scoped scan of task parent/fix/Worker references, task prerequisites declared as `requirements.dependencies` entries of type `task`, execution/task and Worker references, current/latest delivery/review pointers, task-event relationships, and artifact task/execution relationships. It returns only missing or cross-project reference metadata. An empty result means no findings for the selected project's scanned relationships; it is not a proof against unrelated application-level invariants such as dependency cycles.
 - `private.task_destructive_audit`: a private metadata-only, append-only record of committed row `DELETE` operations and statement `TRUNCATE` operations on `public.tasks` and `public.executions`. It has no foreign keys back to mutable project/task/execution rows, so records survive parent/project cascades. Transaction rollback also rolls back corresponding audit rows.
 
 ### Run a read-only integrity scan
