@@ -128,12 +128,15 @@ During execution:
 
 Read-only `public.problem_reports` snapshot from the live shared database:
 
-- **RAE — medium defect, in progress:** `adc5c02c-d9ce-4850-9181-0c137317f7ae`, “RAE startup and inbox governance snapshots contradict live deployment”. Linked task: `34e01a68-244a-4832-87c3-ce86536a3a49`. PR #66 corrected Session Start, Worker Instructions, Security Boundary Audit, and Autonomous Task Discovery; this Problem Inbox snapshot is refreshed by [PR #67](https://github.com/Love-DC/recursive-ai-engineering/pull/67).
 - **RAE — high risk, in progress:** `e70803f3-57d4-402c-9823-a38a8a7ef59f`, “Repository-local activation policy conflicts with deployed database task_activation guard”. Linked task: `a16f1098-80e3-4ad6-a4f8-029e2849be4f`; linked PR #66 is merged. The migration remains undeployed, so the live legacy guard and all-project pause remain in effect.
 - **Colony Sim — high blocker, in progress:** `84eeb1f9-4c09-4890-abb2-e5955f898577`, “Colony Sim activation remains gated by policy/runtime boundary reconciliation”. Linked PR #433 is merged (merge commit `5f3cc67d65da584db3640948ee37828104003fea`). Colony Sim remains paused; do not activate its task queue or change gameplay/player experience as part of this blocker.
 - **RAE — medium opportunity, triaged:** `5dc26ae9-b877-47ed-a2fc-1036ff6fbe8b`, “Initiative and Problem Inbox tables have unindexed foreign keys”. The live Performance Advisor reports 12 unindexed foreign-key findings and 5 unused-index findings as of 2026-11-24 19:09:54 UTC. This is an investigation opportunity, not authorization to add/drop production indexes.
 
-These are unresolved reports, not a task list. The live inbox also contains resolved historical reports; do not reopen them without new evidence. Re-query the owner-scoped inbox at each session start rather than treating this dated snapshot as current forever.
+### Resolved during this refresh
+
+- **RAE — medium defect:** `adc5c02c-d9ce-4850-9181-0c137317f7ae` was resolved through the merged documentation deliveries [PR #66](https://github.com/Love-DC/recursive-ai-engineering/pull/66) and [PR #67](https://github.com/Love-DC/recursive-ai-engineering/pull/67). Exact-head and post-merge checks passed. Its source task `34e01a68-244a-4832-87c3-ce86536a3a49` remains `failed`; that historical task row was not rewritten or represented as completed.
+
+The remaining reports above are unresolved reports, not a task list. The live inbox also contains resolved historical reports; do not reopen them without new evidence. Re-query the owner-scoped inbox at each session start rather than treating this dated snapshot as current forever.
 
 ## Exceptional fallback when the live inbox RPC is unavailable
 
