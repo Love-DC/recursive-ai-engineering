@@ -27,7 +27,7 @@ No per-session project selection or task objective is required when work is alre
 
 This gate is evaluated **per Supabase database**, before any task claim or task-lifecycle write. All RAE projects registered against the same database share the gate; a project-specific Worker route does not bypass it.
 
-**Verified live baseline on 2026-11-25: OPEN** for the shared production Supabase project `rgztxilqcfuclkekyojl` (the RAE database, ap-northeast-1). The live migration registry contains the complete eight-migration claim-safety/lifecycle set in dependency order:
+**Verified live baseline on 2026-11-25: OPEN** for the shared production Supabase project `rgztxilqcfuclkekyojl` (the RAE database, ap-northeast-1). The live migration registry contains the complete eight-migration foundational claim-safety/lifecycle set in dependency order, plus the separately deployed PR #59 session guard:
 
 1. `20261124112550` — `20261123000300_failure_reporting_retry.sql`
 2. `20261124112600` — `20261123000400_worker_task_routing_safe_release.sql`
@@ -37,6 +37,7 @@ This gate is evaluated **per Supabase database**, before any task claim or task-
 6. `20261124112617` — `20261124000400_problem_inbox.sql`
 7. `20261124112624` — `20261124000500_review_task_cancellation_recovery.sql`
 8. `20261124112627` — `20261124000600_exclusive_branch_claim.sql`
+9. `20261124181019` — `active_session_autonomy_guard` (PR #59; deployed after the foundational eight-migration set).
 
 The following live, read-only checks were completed for this snapshot:
 
