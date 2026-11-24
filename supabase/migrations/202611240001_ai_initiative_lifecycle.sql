@@ -20,7 +20,7 @@ CREATE TABLE public.initiatives (
   support_needed jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(support_needed)='array'),
   deduplication_fingerprint text NOT NULL CHECK (length(btrim(deduplication_fingerprint)) BETWEEN 3 AND 200),
   status text NOT NULL DEFAULT 'proposed'
-    CHECK (status IN ('proposed','approved','in_progress','completed','rejected','abandoned')),
+    CHECK (status IN ('proposed','approved','in_progress','ready_to_close','completed','rejected','abandoned')),
   decision_note text,
   decided_at timestamptz,
   outcome_summary text,
@@ -35,7 +35,7 @@ CREATE TABLE public.initiatives (
 
 CREATE UNIQUE INDEX initiatives_active_fingerprint_uq
   ON public.initiatives(project_id,deduplication_fingerprint)
-  WHERE status IN ('proposed','approved','in_progress');
+  WHERE status IN ('proposed','approved','in_progress','ready_to_close');
 CREATE INDEX initiatives_project_status_created_idx
   ON public.initiatives(project_id,status,created_at DESC);
 
@@ -241,7 +241,7 @@ BEGIN
   PERFORM pg_advisory_xact_lock(hashtextextended(p_project_id::text||':'||v_fingerprint,0));
   SELECT * INTO v_existing FROM public.initiatives
     WHERE project_id=p_project_id AND deduplication_fingerprint=v_fingerprint
-      AND status IN ('proposed','approved','in_progress')
+      AND status IN ('proposed','approved','in_progress','ready_to_close')
     LIMIT 1;
   IF FOUND THEN
     v_response:=jsonb_build_object('success',true,'data',jsonb_build_object(
@@ -440,7 +440,7 @@ BEGIN
   SELECT * INTO v_initiative FROM public.initiatives WHERE id=p_initiative_id;
   IF NOT FOUND THEN RAISE EXCEPTION USING errcode='P0002',message='INITIATIVE_NOT_FOUND'; END IF;
   PERFORM private.assert_owner(v_initiative.project_id);
-  IF v_initiative.status IN ('completed','rejected','abandoned') THEN
+  IF v_initiative.status IN ('ready_to_close','completed','rejected','abandoned') THEN
     RAISE EXCEPTION USING errcode='55000',message='INITIATIVE_TERMINAL';
   END IF;
   IF p_worker_id IS NOT NULL AND NOT EXISTS (
@@ -651,7 +651,7 @@ BEGIN
   SELECT count(*) INTO v_remaining FROM public.initiative_work_items
     WHERE initiative_id=p_initiative_id AND status<>'completed' AND status<>'cancelled';
   IF v_remaining=0 THEN
-    UPDATE public.initiatives SET status='completed',completed_at=clock_timestamp(),updated_at=clock_timestamp()
+    UPDATE public.initiatives SET status='ready_to_close',updated_at=clock_timestamp()
       WHERE id=p_initiative_id;
   END IF;
 
@@ -756,7 +756,7 @@ BEGIN
   SELECT * INTO v_initiative FROM public.initiatives WHERE id=p_initiative_id;
   IF NOT FOUND THEN RAISE EXCEPTION USING errcode='P0002',message='INITIATIVE_NOT_FOUND'; END IF;
   PERFORM private.assert_owner(v_initiative.project_id);
-  IF v_initiative.status NOT IN ('completed','rejected','abandoned') THEN
+  IF v_initiative.status NOT IN ('ready_to_close','completed','rejected','abandoned') THEN
     RAISE EXCEPTION USING errcode='55000',message='INITIATIVE_NOT_TERMINAL_FOR_LEARNING';
   END IF;
   IF length(btrim(coalesce(p_learning_fingerprint,''))) NOT BETWEEN 3 AND 200
@@ -764,6 +764,9 @@ BEGIN
      OR length(btrim(coalesce(p_lesson,''))) NOT BETWEEN 1 AND 4000
      OR jsonb_typeof(coalesce(p_evidence,'[]'::jsonb))<>'array' THEN
     RAISE EXCEPTION USING errcode='22023',message='INVALID_INITIATIVE_LEARNING';
+  END IF;
+  IF lower(btrim(p_learning_fingerprint))<>v_initiative.deduplication_fingerprint THEN
+    RAISE EXCEPTION USING errcode='22023',message='LEARNING_FINGERPRINT_MUST_MATCH_INITIATIVE';
   END IF;
   v_hash:=private.request_hash(jsonb_build_object(
     'initiative_id',p_initiative_id,'fingerprint',lower(btrim(p_learning_fingerprint)),
@@ -785,6 +788,10 @@ BEGIN
       WHERE project_id=v_initiative.project_id
         AND learning_fingerprint=lower(btrim(p_learning_fingerprint));
     v_id:=v_existing.id;
+  END IF;
+  IF v_initiative.status='ready_to_close' THEN
+    UPDATE public.initiatives SET status='completed',completed_at=clock_timestamp(),updated_at=clock_timestamp()
+      WHERE id=p_initiative_id;
   END IF;
   INSERT INTO public.initiative_events(initiative_id,project_id,event_type,payload)
   VALUES (p_initiative_id,v_initiative.project_id,'initiative_learning_recorded',
@@ -840,7 +847,7 @@ BEGIN
     RAISE EXCEPTION USING errcode='22023',message='INITIATIVE_LIMIT_OUT_OF_RANGE';
   END IF;
   IF p_status IS NOT NULL AND p_status NOT IN
-    ('proposed','approved','in_progress','completed','rejected','abandoned') THEN
+    ('proposed','approved','in_progress','ready_to_close','completed','rejected','abandoned') THEN
     RAISE EXCEPTION USING errcode='22023',message='INVALID_INITIATIVE_STATUS';
   END IF;
   SELECT coalesce(jsonb_agg(to_jsonb(i) ORDER BY i.priority ASC,i.created_at DESC),'[]'::jsonb)
