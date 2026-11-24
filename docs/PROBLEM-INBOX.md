@@ -124,8 +124,11 @@ During execution:
 
 ## Transitional fallback before deployment
 
+The transitional inbox fallback does not override the database-wide production claim-safety gate in `docs/SESSION-START.md`. That gate must be verified open before any task or execution lifecycle write in any project sharing the database. If the gate is closed or cannot be proven open, do not create, claim, reassign, requeue, cancel, review, heartbeat, submit, fail, complete, or otherwise mutate task/execution state. In that case, record material findings only as comments on the single temporary intake issue below and continue with read-only inspection/discovery and repository-only maintenance.
+
 Until the migration is deployed, the `problem_reports` table and RPCs do not exist in production. In that interval:
-- Record bounded, authorized implementation work in the existing project-scoped task queue with evidence and a stable fingerprint.
+
+- Only after the production claim-safety gate is verified open, record bounded, authorized implementation work in the existing project-scoped task queue with evidence and a stable fingerprint. The target repository's own task-activation policy still applies.
 - Record all material findings (including Owner decisions) as comments on the single temporary intake issue: https://github.com/Love-DC/recursive-ai-engineering/issues/42. Include the project/repository, category, severity, exact evidence links, stable fingerprint, recommended action, and whether Owner input is required. Do not create parallel intake issues.
 - Do not claim cross-session Supabase inbox availability until the migration and RPCs are deployed and verified.
 - After deployment, migrate any still-open transitional records into the Supabase inbox and close the temporary intake issue with a pointer to the live query.
