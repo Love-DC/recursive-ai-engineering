@@ -52,11 +52,11 @@ A production migration must be separately authorized by the Owner. Repository me
 
 1. Read the task queue and current task details from Supabase before acting. Never rely on another conversation's memory.
 2. If no eligible task exists, run the authorized discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md; do not stop before discovery and do not manufacture work.
-3. Create a task only when evidence, scope, deduplication, and project activation policy all permit it. Use that project's project UUID and its own active shared Worker UUID.
-4. Claim a task atomically with `claim_task`, using the shared Worker ID and a fresh idempotency key. A database-generated UUID is suitable for the key; it is not a session identity.
+3. **Only after the production task RPC gate above passes**, create a task when evidence, scope, deduplication, and project activation policy all permit it. Use that project's project UUID and its own active Worker UUID.
+4. **Only after the production task RPC gate above passes**, claim a task atomically with `claim_task`, using the shared Worker ID and a fresh idempotency key. A database-generated UUID is suitable for the key; it is not a session identity.
 5. Read the task requirements and relevant GitHub files.
 6. Do the work. Commit durable code/documentation changes to GitHub and record the resulting commit or file references in the task result/artifacts.
-7. If the task is too large, create child implementation tasks using `create_task` and the original task's ID as `parent_task_id`. Record the child task IDs in the parent result. Other sessions can claim those children without knowing anything about the decomposing session.
+7. If the task is too large and the production task RPC gate still passes, create child implementation tasks using `create_task` and the original task's ID as `parent_task_id`. Record the child task IDs in the parent result. Other sessions can claim those children without knowing anything about the decomposing session.
 8. For pilot tasks, set `requires_review=false` only when the task-level pilot contract permits it; this disables a separate Supabase task-level review task, **not** the Coordinator's independent PR-level review and merge gate. A leaf Worker must never approve or merge its own PR. The Coordinator must inspect the exact PR head, require the target repository's CI to pass on that exact revision, resolve blocking review findings, and merge only under `docs/COORDINATOR-PR-REVIEW-AND-MERGE.md`. Then finish the task with `complete_execution` and record the PR/commit and validation evidence.
 9. Update linked Problem Inbox records, resolve only with verified evidence, and submit a concise result containing what changed, GitHub references, verification performed, and remaining blockers.
 
