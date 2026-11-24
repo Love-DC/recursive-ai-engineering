@@ -47,7 +47,10 @@ BEGIN
 
   v_project:=public.register_project(
     'Problem inbox test','transactional fixture',NULL,
-    jsonb_build_object('worker_routing',jsonb_build_object('default_worker_key','problem-test-worker')),
+    jsonb_build_object(
+      'autonomy',jsonb_build_object('paused',false,'max_active_executions',2),
+      'worker_routing',jsonb_build_object('default_worker_key','problem-test-worker')
+    ),
     v_key||'-project'
   );
   v_project_id:=(v_project->'data'->>'id')::uuid;

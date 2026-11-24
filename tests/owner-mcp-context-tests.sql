@@ -48,6 +48,48 @@ VALUES
   )
 ON CONFLICT (id) DO NOTHING;
 
+-- Additional owned/foreign projects and reports exercise the cross-project inbox.
+INSERT INTO auth.users(id)
+VALUES ('00000000-0000-4000-8000-000000000099')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.projects(
+  id, name, description, github_repo, config, owner_id, status
+)
+VALUES
+  ('00000000-0000-4000-8000-000000000011','trusted-owner-mcp-second-project',
+   'second project owned by the same Owner','test/trusted-owner-mcp-second','{}'::jsonb,
+   '00000000-0000-4000-8000-000000000001','active'),
+  ('00000000-0000-4000-8000-000000000012','trusted-owner-mcp-foreign-project',
+   'project owned by a different Owner','test/trusted-owner-mcp-foreign','{}'::jsonb,
+   '00000000-0000-4000-8000-000000000099','active')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.problem_reports(
+  id, project_id, category, severity, status, title, summary, impact,
+  evidence, source, fingerprint
+)
+VALUES
+  ('00000000-0000-4000-8000-000000000013','00000000-0000-4000-8000-000000000011',
+   'risk','high','open','Same Owner second-project report',
+   'A second owned project has an unresolved report.',
+   'The Owner digest must include this project.',
+   '[{"kind":"test","ref":"fixture:owner-mcp-second","observation":"Owned by the same Owner."}]',
+   'automated','test:owner-mcp:second-project'),
+  ('00000000-0000-4000-8000-000000000014','00000000-0000-4000-8000-000000000008',
+   'risk','medium','open','Same Owner anchor-project report',
+   'The context anchor project has an unresolved report.',
+   'The Owner digest must include its anchor project.',
+   '[{"kind":"test","ref":"fixture:owner-mcp-anchor","observation":"Anchor report."}]',
+   'automated','test:owner-mcp:anchor-project'),
+  ('00000000-0000-4000-8000-000000000015','00000000-0000-4000-8000-000000000012',
+   'risk','critical','open','Foreign Owner report',
+   'This report belongs to another Owner.',
+   'It must never appear in the first Owner digest.',
+   '[{"kind":"test","ref":"fixture:owner-mcp-foreign","observation":"Must remain private."}]',
+   'automated','test:owner-mcp:foreign-owner')
+ON CONFLICT (id) DO NOTHING;
+
 -- The Owner-MCP entry point is unavailable to ordinary API roles.
 DO $acl$
 BEGIN
@@ -67,6 +109,10 @@ BEGIN
     'EXECUTE'
   ) THEN
     RAISE EXCEPTION 'FAIL: anon can execute begin_owner_mcp_context';
+  END IF;
+  IF has_function_privilege('authenticated','private.owner_mcp_context_owner_id()','EXECUTE')
+    OR has_function_privilege('anon','private.owner_mcp_context_owner_id()','EXECUTE') THEN
+    RAISE EXCEPTION 'FAIL: API roles can execute owner_mcp_context_owner_id';
   END IF;
 END
 $acl$;
@@ -422,10 +468,118 @@ END
 $register_project_workers$;
 COMMIT;
 
--- The normal PostgREST auth boundary remains unchanged. An authenticated role
--- with no JWT does not inherit the trusted postgres Owner-MCP context.
+
+-- The trusted Owner-MCP context powers the cross-project inbox without
+-- widening project-scoped task lifecycle authorization.
 BEGIN;
-SET LOCAL ROLE authenticated;
+DO $owner_mcp_problem_inbox$
+DECLARE
+  v_list jsonb;
+  v_detail jsonb;
+  v_update jsonb;
+  v_status text;
+  v_event_count integer;
+  v_rejected boolean;
+BEGIN
+  IF auth.uid() IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP Problem Inbox test must not synthesize auth.uid()';
+  END IF;
+
+  PERFORM private.begin_owner_mcp_context(
+    '00000000-0000-4000-8000-000000000008'::uuid,
+    '00000000-0000-4000-8000-000000000001'::uuid
+  );
+  IF private.owner_mcp_context_owner_id()
+    IS DISTINCT FROM '00000000-0000-4000-8000-000000000001'::uuid THEN
+    RAISE EXCEPTION 'FAIL: validated Owner-MCP context did not resolve its Owner';
+  END IF;
+
+  v_list := public.list_problem_reports('unresolved', NULL, 200);
+  IF NOT EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_list->'data') item
+    WHERE item->>'id'='00000000-0000-4000-8000-000000000013'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_list->'data') item
+    WHERE item->>'id'='00000000-0000-4000-8000-000000000014'
+  ) OR EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_list->'data') item
+    WHERE item->>'id'='00000000-0000-4000-8000-000000000015'
+  ) THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP digest omitted an owned report or leaked a foreign report: %',v_list;
+  END IF;
+
+  v_detail := public.get_problem_report('00000000-0000-4000-8000-000000000013'::uuid);
+  IF v_detail->'data'->'report'->>'id' IS DISTINCT FROM '00000000-0000-4000-8000-000000000013'
+    OR v_detail->'data'->'project'->>'github_repo' IS DISTINCT FROM 'test/trusted-owner-mcp-second' THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP could not read a same-Owner report outside its anchor project: %',v_detail;
+  END IF;
+
+  v_update := public.update_problem_report(
+    '00000000-0000-4000-8000-000000000013'::uuid,
+    'triaged',
+    'Owner-MCP verified the cross-project report and retained its evidence.',
+    NULL,
+    'https://github.com/example/repo/pull/owner-mcp-test',
+    'owner-mcp-problem-inbox-update-second-project'
+  );
+  IF v_update->'data'->>'status' IS DISTINCT FROM 'triaged' THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP could not update a same-Owner report outside its anchor project: %',v_update;
+  END IF;
+
+  SELECT status INTO v_status
+  FROM public.problem_reports
+  WHERE id='00000000-0000-4000-8000-000000000013'::uuid;
+  SELECT count(*) INTO v_event_count
+  FROM public.problem_report_events
+  WHERE report_id='00000000-0000-4000-8000-000000000013'::uuid
+    AND event_type='status_changed';
+  IF v_status IS DISTINCT FROM 'triaged' OR v_event_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP update did not persist status and append its event';
+  END IF;
+
+  v_rejected := false;
+  BEGIN
+    PERFORM public.get_problem_report('00000000-0000-4000-8000-000000000015'::uuid);
+  EXCEPTION WHEN SQLSTATE 'P0002' THEN
+    IF SQLERRM <> 'PROBLEM_REPORT_NOT_FOUND' THEN RAISE; END IF;
+    v_rejected := true;
+  END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP read a foreign-Owner report';
+  END IF;
+
+  v_rejected := false;
+  BEGIN
+    PERFORM public.update_problem_report(
+      '00000000-0000-4000-8000-000000000015'::uuid,
+      'triaged',
+      'Foreign-owner update must be rejected.',
+      NULL,
+      NULL,
+      'owner-mcp-problem-inbox-update-foreign-project'
+    );
+  EXCEPTION WHEN SQLSTATE 'P0002' THEN
+    IF SQLERRM <> 'PROBLEM_REPORT_NOT_FOUND' THEN RAISE; END IF;
+    v_rejected := true;
+  END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP updated a foreign-Owner report';
+  END IF;
+
+  RAISE NOTICE 'PASS: Owner-MCP cross-project digest, detail, update/audit, and foreign-Owner isolation';
+END
+$owner_mcp_problem_inbox$;
+COMMIT;
+
+-- The normal PostgREST auth boundary remains unchanged. A caller that
+-- authenticates as the API role cannot forge the privileged postgres session
+-- by supplying transaction-local Owner-MCP GUC names.
+BEGIN;
+SET LOCAL SESSION AUTHORIZATION authenticated;
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('rae.owner_mcp_project_id', '00000000-0000-4000-8000-000000000008', true);
+SELECT set_config('rae.owner_mcp_owner_id', '00000000-0000-4000-8000-000000000001', true);
+SELECT set_config('rae.owner_mcp_version', 'v1', true);
 DO $authenticated$
 DECLARE
   v_rejected boolean := false;
@@ -446,6 +600,33 @@ BEGIN
   END;
   IF NOT v_rejected THEN
     RAISE EXCEPTION 'FAIL: authenticated role bypassed the JWT guard';
+  END IF;
+  v_rejected := false;
+  BEGIN
+    PERFORM public.get_problem_report('00000000-0000-4000-8000-000000000013'::uuid);
+    RAISE EXCEPTION 'FAIL: authenticated role read a report by forging Owner-MCP GUCs';
+  EXCEPTION WHEN SQLSTATE 'P0002' THEN
+    IF SQLERRM <> 'PROBLEM_REPORT_NOT_FOUND' THEN RAISE; END IF;
+    v_rejected := true;
+  END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'FAIL: forged Owner-MCP context exposed report details';
+  END IF;
+  v_rejected := false;
+  BEGIN
+    PERFORM public.update_problem_report(
+      '00000000-0000-4000-8000-000000000013'::uuid,
+      'triaged',
+      'Authenticated forged-context update must be rejected.',
+      NULL,NULL,'authenticated-forged-owner-mcp-update'
+    );
+    RAISE EXCEPTION 'FAIL: authenticated role updated a report by forging Owner-MCP GUCs';
+  EXCEPTION WHEN SQLSTATE 'P0002' THEN
+    IF SQLERRM <> 'PROBLEM_REPORT_NOT_FOUND' THEN RAISE; END IF;
+    v_rejected := true;
+  END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'FAIL: forged Owner-MCP context mutated a Problem Inbox report';
   END IF;
 END
 $authenticated$;

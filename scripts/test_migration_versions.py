@@ -58,6 +58,7 @@ def validate_inventory(paths: list[Path], *, check_feature_order: bool = True) -
             continue
 
         versions[version].append(name)
+        feature_versions[match.group("name")] = version
         for feature in FEATURE_ORDER:
             if name.endswith(f"_{feature}.sql"):
                 feature_versions[feature] = version
@@ -65,6 +66,24 @@ def validate_inventory(paths: list[Path], *, check_feature_order: bool = True) -
     for version, names in sorted(versions.items()):
         if len(names) > 1:
             errors.append(f"duplicate migration version {version}: {', '.join(names)}")
+
+    inbox_owner_mcp = feature_versions.get("owner_mcp_problem_inbox_context")
+    if inbox_owner_mcp is not None:
+        prerequisites = (
+            "trusted_owner_mcp_execution_context",
+            "owner_mcp_project_registration",
+        )
+        missing_prerequisites = [name for name in prerequisites if name not in feature_versions]
+        if missing_prerequisites:
+            errors.append(
+                "Owner-MCP Problem Inbox compatibility requires prior migrations: "
+                + ", ".join(missing_prerequisites)
+            )
+        elif inbox_owner_mcp <= max(feature_versions[name] for name in prerequisites):
+            errors.append(
+                "Owner-MCP Problem Inbox compatibility must follow trusted Owner-MCP context "
+                "and Owner-MCP project registration"
+            )
 
     if check_feature_order:
         missing = [feature for feature in FEATURE_ORDER if feature not in feature_versions]
@@ -283,6 +302,25 @@ class MigrationVersionTests(unittest.TestCase):
             ]
         )
         self.assertTrue(any("dependency order" in error for error in errors))
+
+    def test_owner_mcp_problem_inbox_requires_context_and_project_registration(self) -> None:
+        paths = [
+            Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
+            Path("20261125110000_owner_mcp_project_registration.sql"),
+            Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
+        ]
+        self.assertEqual(validate_inventory(paths, check_feature_order=False), [])
+
+    def test_rejects_owner_mcp_problem_inbox_before_project_registration(self) -> None:
+        paths = [
+            Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
+            Path("20261125105000_owner_mcp_problem_inbox_context.sql"),
+            Path("20261125110000_owner_mcp_project_registration.sql"),
+        ]
+        self.assertTrue(any(
+            "must follow trusted Owner-MCP context" in error
+            for error in validate_inventory(paths, check_feature_order=False)
+        ))
 
     def test_accepts_complete_order_with_owner_mcp_project_registration_last(self) -> None:
         errors = validate_inventory(

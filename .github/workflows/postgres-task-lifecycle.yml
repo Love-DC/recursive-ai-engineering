@@ -185,6 +185,10 @@ jobs:
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124183843_repository_authoritative_activation_guard.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125100000_trusted_owner_mcp_execution_context.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125110000_owner_mcp_project_registration.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125120000_owner_mcp_problem_inbox_context.sql
 
-      - name: Run trusted Owner-MCP context and full task/review lifecycle tests
+      - name: Run authenticated Problem Inbox integration tests
+        run: psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f tests/problem-inbox.sql
+
+      - name: Run trusted Owner-MCP context, Problem Inbox, and full task/review lifecycle tests
         run: psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f tests/owner-mcp-context-tests.sql
