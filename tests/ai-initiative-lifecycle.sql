@@ -61,7 +61,11 @@ BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'FAIL: authenticated Owner context is required'; END IF;
 
   v_project:=public.register_project(
-    'AI initiative lifecycle test','transactional fixture',NULL,'{}'::jsonb,v_key||'-project'
+    'AI initiative lifecycle test','transactional fixture',NULL,
+    jsonb_build_object('worker_routing',jsonb_build_object(
+      'default_worker_key','initiative-test-executor',
+      'task_type_worker_keys',jsonb_build_object('review','initiative-test-reviewer')
+    )),v_key||'-project'
   );
   v_project_id:=(v_project->'data'->>'id')::uuid;
   v_owner_worker:=public.register_worker(v_project_id,'initiative-test-executor','Initiative Test Executor','test');
@@ -217,7 +221,7 @@ BEGIN
 
   -- A requires review; B can complete while A awaits independent review.
   v_claim:=public.claim_task(v_project_id,v_worker_id,300,v_key||'-claim-a');
-  IF (v_claim->'data'->>'task_id')::uuid<>v_task_a THEN
+  IF (v_claim->'data'->>'task_id')::uuid IS DISTINCT FROM v_task_a THEN
     RAISE EXCEPTION 'FAIL: priority order did not claim work item A: %',v_claim;
   END IF;
   v_exec_a:=(v_claim->'data'->>'execution_id')::uuid;
@@ -228,7 +232,7 @@ BEGIN
   v_review_id:=(v_review_task->'data'->>'id')::uuid;
 
   v_claim:=public.claim_task(v_project_id,v_worker_id,300,v_key||'-claim-b');
-  IF (v_claim->'data'->>'task_id')::uuid<>v_task_b THEN
+  IF (v_claim->'data'->>'task_id')::uuid IS DISTINCT FROM v_task_b THEN
     RAISE EXCEPTION 'FAIL: worker did not claim independent work item B: %',v_claim;
   END IF;
   v_exec_b:=(v_claim->'data'->>'execution_id')::uuid;
@@ -241,7 +245,7 @@ BEGIN
   END IF;
 
   v_review_claim:=public.claim_task(v_project_id,v_reviewer_id,300,v_key||'-claim-review-a');
-  IF (v_review_claim->'data'->>'task_id')::uuid<>v_review_id THEN
+  IF (v_review_claim->'data'->>'task_id')::uuid IS DISTINCT FROM v_review_id THEN
     RAISE EXCEPTION 'FAIL: independent reviewer did not receive A review task: %',v_review_claim;
   END IF;
   v_review_exec:=(v_review_claim->'data'->>'execution_id')::uuid;
@@ -258,7 +262,7 @@ BEGIN
   SELECT task_id INTO v_task_c FROM public.initiative_work_items
     WHERE initiative_id=v_initiative_id AND work_key='c';
   v_claim:=public.claim_task(v_project_id,v_worker_id,300,v_key||'-claim-c');
-  IF (v_claim->'data'->>'task_id')::uuid<>v_task_c THEN RAISE EXCEPTION 'FAIL: C claim'; END IF;
+  IF (v_claim->'data'->>'task_id')::uuid IS DISTINCT FROM v_task_c THEN RAISE EXCEPTION 'FAIL: C claim'; END IF;
   v_exec_c:=(v_claim->'data'->>'execution_id')::uuid;
   PERFORM public.complete_execution(v_task_c,v_exec_c,v_worker_id,
     jsonb_build_object('summary','C accepted'),v_key||'-complete-c');
@@ -270,7 +274,7 @@ BEGIN
   SELECT task_id INTO v_task_d FROM public.initiative_work_items
     WHERE initiative_id=v_initiative_id AND work_key='d';
   v_claim:=public.claim_task(v_project_id,v_worker_id,300,v_key||'-claim-d');
-  IF (v_claim->'data'->>'task_id')::uuid<>v_task_d THEN RAISE EXCEPTION 'FAIL: D claim'; END IF;
+  IF (v_claim->'data'->>'task_id')::uuid IS DISTINCT FROM v_task_d THEN RAISE EXCEPTION 'FAIL: D claim'; END IF;
   v_exec_d:=(v_claim->'data'->>'execution_id')::uuid;
   PERFORM public.complete_execution(v_task_d,v_exec_d,v_worker_id,
     jsonb_build_object('summary','D accepted'),v_key||'-complete-d');
