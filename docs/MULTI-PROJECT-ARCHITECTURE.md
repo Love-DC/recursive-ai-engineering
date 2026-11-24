@@ -87,7 +87,7 @@ Every target repository must publish a root `rae-governance.json`. Before planni
 
 Missing manifests/files, incompatible protocol versions, conflicting rule declarations, semantic policy conflicts, or stale SHAs block execution. The Coordinator must report the exact source and ask the Owner when a conflict cannot be resolved by an explicit repository-local precedence rule. See [Repository-local governance discovery protocol](REPOSITORY-GOVERNANCE-PROTOCOL.md).
 
-The Colony Sim manifest identifies `Love-DC/colony-sim-ci` as an independent validation repository. Its workflow is not a Colony Sim subdirectory and must be invoked only through its documented exact-HEAD trigger. Product-owner authority, explicit Worker dispatch, and independent Coordinator review remain enforced by Colony Sim's own repository documents.
+The Colony Sim manifest identifies `Love-DC/ai-project-governance` as an independent validation repository. Its workflow is not a Colony Sim subdirectory and must be invoked only through its documented exact-HEAD trigger. Product-owner authority, explicit Worker dispatch, and independent Coordinator review remain enforced by Colony Sim's own repository documents.
 
 ## Shared task-pool semantics
 
