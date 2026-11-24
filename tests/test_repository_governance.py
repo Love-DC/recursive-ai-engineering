@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -126,6 +127,42 @@ class RepositoryGovernanceTests(unittest.TestCase):
         with self.assertRaisesRegex(GovernanceError, "Incompatible governance protocol major"):
             self.load(root)
 
+    def test_governance_workflow_covers_every_declared_manifest_file(self):
+        root = Path(__file__).resolve().parent.parent
+        manifest = json.loads(
+            (root / "rae-governance.json").read_text(encoding="utf-8")
+        )
+        governance = manifest["governance"]
+        declared_paths = {
+            governance["agent_instructions"],
+            *governance["entrypoints"],
+            *governance["required"],
+            *(rule["path"] for rule in governance["rule_sets"]),
+        }
+        required_triggers = declared_paths | {
+            "rae-governance.json",
+            "README.md",
+            "scripts/repository_governance.py",
+            "tests/test_repository_governance.py",
+            ".github/workflows/repository-governance.yml",
+        }
+        workflow = (
+            root / ".github/workflows/repository-governance.yml"
+        ).read_text(encoding="utf-8")
+
+        for event in ("pull_request", "push"):
+            section_match = re.search(
+                rf"(?ms)^  {event}:\\n(.*?)(?=^  [A-Za-z_-]+:\\n|^permissions:)",
+                workflow,
+            )
+            self.assertIsNotNone(section_match, f"Missing {event} event")
+            triggers = set(
+                re.findall(r'^[ \\t]+- "([^"]+)"$', section_match.group(1), re.M)
+            )
+            self.assertTrue(
+                required_triggers <= triggers,
+                f"{event} path filters omit: {sorted(required_triggers - triggers)}",
+            )
 
     def test_production_claim_safety_gate_is_fail_closed_across_session_contracts(self):
         root = Path(__file__).resolve().parent.parent
