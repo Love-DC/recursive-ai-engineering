@@ -1,0 +1,133 @@
+name: Resource lifecycle inventory and preview
+
+on:
+  pull_request:
+    paths:
+      - scripts/resource_inventory.py
+      - scripts/test_resource_inventory.py
+      - scripts/cleanup_branches.py
+      - scripts/test_cleanup_branches.py
+      - docs/RESOURCE-LIFECYCLE.md
+      - reports/resource-inventory/**
+      - .github/workflows/resource-lifecycle.yml
+  workflow_dispatch:
+    inputs:
+      branch_manifest:
+        description: "Leave {} for automatic read-only preview; a supplied manifest is also preview-only."
+        required: true
+        default: "{}"
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: resource-lifecycle-cleanup
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    name: Read-only inventory and batch preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compile resource inventory and cleanup CLI
+        run: python -m py_compile scripts/resource_inventory.py scripts/cleanup_branches.py
+      - name: Run resource inventory and cleanup regression tests
+        run: python -m unittest scripts.test_resource_inventory scripts.test_cleanup_branches -v
+      - name: Generate consolidated inventory report
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python scripts/resource_inventory.py reports/resource-inventory/current-snapshot.json \
+            --repository "$GITHUB_REPOSITORY" \
+            --json-out "$RUNNER_TEMP/inventory.json" \
+            --markdown-out "$RUNNER_TEMP/inventory.md"
+          cat "$RUNNER_TEMP/inventory.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Validate manifest and preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BRANCH_MANIFEST: ${{ inputs.branch_manifest || '{}' }}
+        run: |
+          set -euo pipefail
+          python - "$RUNNER_TEMP/inventory.json" <<'PY'
+          import json, sys
+          from scripts.resource_inventory import validate_report_freshness
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              report = json.load(stream)
+          try:
+              result = validate_report_freshness(report)
+          except ValueError as error:
+              print(f"::error::Read-only inventory blocked: {error}")
+              print(json.dumps({"mode": "blocked", "reason": "stale_or_incomplete_inventory", "deleted": 0}))
+              raise SystemExit(1)
+          print(json.dumps({"mode": "fresh_read_only_inventory", **result}))
+          PY
+          if [ "$BRANCH_MANIFEST" = "{}" ]; then
+            python - "$RUNNER_TEMP/inventory.json" "$RUNNER_TEMP/branch-manifest.json" "$GITHUB_REPOSITORY" <<'PY'
+          import json, sys
+          report = json.load(open(sys.argv[1], encoding="utf-8"))
+          targets = [r for r in report["resources"]
+                     if r["kind"] == "branch" and r["risk_class"] == "eligible_batch"
+                     and r["repository"] == sys.argv[3]]
+          manifest = {
+              "generated_at": report["generated_at"],
+              "task_reference_scan_complete": report["task_reference_scan_complete"],
+              "task_references": report["task_references"],
+              "repository": report["current_repository"],
+              "branches": {r["identity"]: r["evidence"]["sha"] for r in targets},
+          }
+          json.dump(manifest, open(sys.argv[2], "w", encoding="utf-8"), indent=2)
+          print(json.dumps({"automatic_preview_targets": manifest["branches"]}, indent=2))
+          PY
+          else
+            printf '%s' "$BRANCH_MANIFEST" > "$RUNNER_TEMP/branch-manifest.json"
+          fi
+          python - "$RUNNER_TEMP/branch-manifest.json" <<'PY'
+          import json, sys
+          manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+          print("Preview targets:", len(manifest.get("branches", {})))
+          PY
+          if python - "$RUNNER_TEMP/branch-manifest.json" <<'PY'
+          import json, sys
+          manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+          raise SystemExit(0 if manifest.get("branches") else 1)
+          PY
+          then
+            if python scripts/cleanup_branches.py --manifest "$RUNNER_TEMP/branch-manifest.json" >"$RUNNER_TEMP/preview.json" 2>"$RUNNER_TEMP/preview.err"; then
+              cat "$RUNNER_TEMP/preview.json"
+            else
+              preview_status=$?
+              if grep -Fq "Stale inventory manifest" "$RUNNER_TEMP/preview.err"; then
+                printf '{"eligible_targets":0,"deleted":0,"mode":"blocked","reason":"stale_inventory_manifest"}\n' > "$RUNNER_TEMP/preview.json"
+                cat "$RUNNER_TEMP/preview.err" >&2
+                echo "Read-only preview blocked: stale manifest; refresh the snapshot before preview."
+              else
+                cat "$RUNNER_TEMP/preview.err" >&2
+                exit "$preview_status"
+              fi
+            fi
+          else
+            printf '{"eligible_targets":0,"deleted":0,"mode":"read-only-preview"}\n' | tee "$RUNNER_TEMP/preview.json"
+          fi
+          {
+            echo "## Resource lifecycle preview"
+            cat "$RUNNER_TEMP/preview.json"
+            echo "- This workflow is read-only. No resources are deleted."
+            echo "- Supabase projects, development branches and Edge Functions are inventory-only."
+            echo "- Task-reference data is snapshot evidence only and is not sufficient to authorize deletion."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: resource-lifecycle-report
+          path: |
+            ${{ runner.temp }}/inventory.json
+            ${{ runner.temp }}/inventory.md
+            ${{ runner.temp }}/preview.json
+            ${{ runner.temp }}/branch-manifest.json
+          if-no-files-found: ignore
