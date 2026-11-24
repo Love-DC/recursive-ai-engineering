@@ -53,6 +53,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           BRANCH_MANIFEST: ${{ inputs.branch_manifest || '{}' }}
         run: |
+          set -euo pipefail
           if [ "$BRANCH_MANIFEST" = "{}" ]; then
             python - "$RUNNER_TEMP/inventory.json" "$RUNNER_TEMP/branch-manifest.json" "$GITHUB_REPOSITORY" <<'PY'
           import json, sys
@@ -84,7 +85,19 @@ jobs:
           raise SystemExit(0 if manifest.get("branches") else 1)
           PY
           then
-            python scripts/cleanup_branches.py --manifest "$RUNNER_TEMP/branch-manifest.json" | tee "$RUNNER_TEMP/preview.json"
+            if python scripts/cleanup_branches.py --manifest "$RUNNER_TEMP/branch-manifest.json" >"$RUNNER_TEMP/preview.json" 2>"$RUNNER_TEMP/preview.err"; then
+              cat "$RUNNER_TEMP/preview.json"
+            else
+              preview_status=$?
+              if grep -Fq "Stale inventory manifest" "$RUNNER_TEMP/preview.err"; then
+                printf '{"eligible_targets":0,"deleted":0,"mode":"blocked","reason":"stale_inventory_manifest"}\n' > "$RUNNER_TEMP/preview.json"
+                cat "$RUNNER_TEMP/preview.err" >&2
+                echo "Read-only preview blocked: stale manifest; refresh the snapshot before preview."
+              else
+                cat "$RUNNER_TEMP/preview.err" >&2
+                exit "$preview_status"
+              fi
+            fi
           else
             printf '{"eligible_targets":0,"deleted":0,"mode":"read-only-preview"}\n' | tee "$RUNNER_TEMP/preview.json"
           fi
