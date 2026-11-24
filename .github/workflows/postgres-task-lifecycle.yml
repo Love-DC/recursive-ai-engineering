@@ -79,6 +79,8 @@ jobs:
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000100_task_dependency_eligibility.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000200_ai_initiative_lifecycle.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000300_task_worker_routing_safe_reassignment.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000400_problem_inbox.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000500_review_task_cancellation_recovery.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
           INSERT INTO public.projects(id,name,owner_id,status,config)
@@ -135,6 +137,11 @@ jobs:
         env:
           TASK_LIFECYCLE_TEST_ALLOW_MUTATIONS: "YES"
         run: bash scripts/test-task-lifecycle.sh
+
+      - name: Run review cancellation and failure recovery integration tests
+        env:
+          REVIEW_LIFECYCLE_TEST_ALLOW_MUTATIONS: "YES"
+        run: bash scripts/test-review-lifecycle.sh
 
       - name: Run two-session atomic claim race
         run: bash scripts/test-claim-concurrency.sh
