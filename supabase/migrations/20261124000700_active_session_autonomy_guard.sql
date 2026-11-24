@@ -9,10 +9,14 @@ AS $function$
 DECLARE
   v_activation text;
 BEGIN
+  -- Hold a shared project-row lock until the surrounding task transaction
+  -- commits. A concurrent pause/config update therefore cannot race past the
+  -- activation check and admit a new claim after the pause has committed.
   SELECT coalesce(p.config->>'task_activation','')
     INTO v_activation
   FROM public.projects p
-  WHERE p.id=p_project_id AND p.status='active';
+  WHERE p.id=p_project_id AND p.status='active'
+  FOR SHARE;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION USING errcode='P0002', message='PROJECT_NOT_FOUND_OR_INACTIVE';
