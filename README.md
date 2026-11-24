@@ -58,6 +58,7 @@ The existing v1.2 database includes identity-isolation and review/fix machinery.
 The pilot assumes every participating ChatGPT conversation has the user's authorized Supabase MCP access. That access is the trust boundary. Do not copy Service Role keys, secret keys, database passwords, or privileged connection strings into prompts, GitHub files, or external clients. Do not deploy production systems or perform high-impact external side effects without explicit authorization. Routine engineering PR review/merge is covered by the standing owner authorization and coordinator checklist.
 
 ## Verification
+- [Cross-project resource inventory and lifecycle center](docs/RESOURCE-LIFECYCLE.md): current read-only inventory, pagination evidence, and fail-closed 30-minute freshness gate. No deletion path is enabled.
 
 - Task lifecycle integration coverage: [docs/TASK-LIFECYCLE-TESTING.md](docs/TASK-LIFECYCLE-TESTING.md)
 - Credential-free shell static checks: [.github/workflows/shell-static-checks.yml](.github/workflows/shell-static-checks.yml)

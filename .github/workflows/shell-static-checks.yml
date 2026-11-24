@@ -23,6 +23,19 @@ jobs:
           bash -n scripts/test-same-worker-concurrency.sh
           bash -n scripts/test-initiative-support-advance-race.sh
 
+      - name: Validate lifecycle workflow YAML
+        run: ruby -e 'require "yaml"; YAML.load_file(".github/workflows/resource-lifecycle.yml")'
+
+      - name: Run resource inventory and cleanup unit tests
+        run: |
+          python -m py_compile scripts/resource_inventory.py scripts/cleanup_branches.py
+          python -m unittest scripts.test_resource_inventory scripts.test_cleanup_branches -v
+          python scripts/resource_inventory.py reports/resource-inventory/current-snapshot.json \
+            --repository Love-DC/recursive-ai-engineering \
+            --json-out "$RUNNER_TEMP/resource-inventory.json" \
+            --markdown-out "$RUNNER_TEMP/resource-inventory.md"
+          python -c 'import json,sys; d=json.load(open(sys.argv[1], encoding="utf-8")); assert d["deletion_performed"] is False' "$RUNNER_TEMP/resource-inventory.json"
+
       - name: Install ShellCheck
         run: |
           sudo apt-get update
