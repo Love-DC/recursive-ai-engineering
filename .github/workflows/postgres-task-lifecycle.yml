@@ -39,6 +39,8 @@ jobs:
       SHARED_WORKER_ID: 00000000-0000-4000-8000-000000000003
       SECOND_WORKER_ID: 00000000-0000-4000-8000-000000000004
       REVIEWER_WORKER_ID: 00000000-0000-4000-8000-000000000005
+      CAP_TEST_PROJECT_ID: 00000000-0000-4000-8000-000000000006
+      CAP_TEST_WORKER_ID: 00000000-0000-4000-8000-000000000007
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -82,6 +84,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000400_problem_inbox.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000500_review_task_cancellation_recovery.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000600_exclusive_branch_claim.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261124000700_active_session_autonomy_guard.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');
           INSERT INTO public.projects(id,name,owner_id,status,config)
@@ -97,6 +100,20 @@ jobs:
             ('00000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000002','test-worker-a','Test Worker A','active','00000000-0000-4000-8000-000000000001'),
             ('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000002','test-worker-b','Test Worker B','active',NULL),
             ('00000000-0000-4000-8000-000000000005','00000000-0000-4000-8000-000000000002','test-reviewer','Test Reviewer','active',NULL);
+          INSERT INTO public.projects(id,name,owner_id,status,config)
+          VALUES (
+            '00000000-0000-4000-8000-000000000006',
+            'active-session-autonomy-cap-test',
+            '00000000-0000-4000-8000-000000000001',
+            'active',
+            '{"task_activation":"active_session_autonomy","autonomy":{"max_active_executions":2},"worker_routing":{"default_worker_key":"test-cap-worker"}}'::jsonb
+          );
+          INSERT INTO public.workers(id,project_id,worker_key,display_name,status,auth_user_id)
+          VALUES (
+            '00000000-0000-4000-8000-000000000007',
+            '00000000-0000-4000-8000-000000000006',
+            'test-cap-worker','Cap Test Worker','active',NULL
+          );
           SQL
 
       - name: Run Worker route isolation and fenced release integration tests
@@ -149,6 +166,13 @@ jobs:
 
       - name: Run two-session same-Worker atomic claim race
         run: bash scripts/test-same-worker-concurrency.sh
+      - name: Run three-session project concurrency-cap race
+        env:
+          CAP_TEST_PROJECT_ID: 00000000-0000-4000-8000-000000000006
+          CAP_TEST_WORKER_ID: 00000000-0000-4000-8000-000000000007
+        run: |
+          bash -n scripts/test-project-claim-cap-race.sh
+          bash scripts/test-project-claim-cap-race.sh
 
       - name: Run same-branch claim exclusion regression
         run: |
