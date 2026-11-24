@@ -38,13 +38,13 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 
 ## Mandatory production claim-safety gate
 
-Before any task-pool write, follow the database-wide gate in `docs/SESSION-START.md`. **The live foundational claim-safety gate plus PR #59/#60/#64 migrations were verified present on 2026-11-25** for RAE's shared Supabase project `rgztxilqcfuclkekyojl`. The registry includes PR #59 session guard (`20261124181019`), PR #60 submitted-task reconciliation (`20261124182111`), and PR #64 owner-scoped activation control (`20261124183449`). The 14-table RLS/grant boundary and owner-scoped read RPCs were inspected; historical exact-head CI results are recorded in SESSION-START.
+Before any task-pool write, follow the database-wide gate in `docs/SESSION-START.md`. The live RAE database also contains the deployed PR #66 repository-authoritative guard (`20261124192533`), trusted Owner-MCP execution context (`20261124200149`), and Owner-MCP project registration (`20261124202438`). The database-wide migration gate is open, but this RAE project's own `autonomy.paused=true` switch blocks new RAE task creation and claims. See SESSION-START for the current live state and supported RPC boundaries.
 
 This is a dated snapshot, not a permanent permission. Re-check the live migration registry, RPC definitions, project/Worker mapping, and selected project's activation policy at each session start. Use only the correct project UUID and that project's active Worker ID. Claim only real eligible work through the atomic `claim_task` RPC, only after the mandatory production claim-safety gate in `docs/SESSION-START.md` has been re-verified open; never use a dummy claim or failed probe to test health.
 
 The PR #66 repository-authoritative guard is deployed as migration `20261124192533`. The legacy `projects.config.task_activation` key and owner setter have been removed. Every task creation/claim path now requires a valid `autonomy.paused=false` and `autonomy.max_active_executions` between one and two.
 
-The live 2026-11-25 project controls were rechecked: Colony Sim is unpaused with a two-execution cap; RAE and Lambent remain paused with the same cap. Colony Sim's repository-local `AUTONOMY_POLICY.md` authorizes bounded active-session engineering tasks and already-approved designs. Do not change gameplay, balance, design, map, UX, or player experience.
+The live 2026-11-25 project controls were rechecked: Colony Sim and Hexa Game Kernel are unpaused with a two-execution cap; RAE and Lambent remain paused with the same cap. Colony Sim's repository-local `AUTONOMY_POLICY.md` authorizes bounded active-session engineering tasks and already-approved designs. Do not change gameplay, balance, design, map, UX, or player experience.
 
 PR #60's `public.reconcile_submitted_task` is deployed and available, subject to its owner authorization, evidence, and state-fencing rules. It does not authorize direct edits to historical task or execution rows.
 
@@ -75,7 +75,7 @@ If any live check is closed, stale, contradictory, or unavailable, Do not call `
 
 The existing authorized Supabase MCP database-management connection is the trusted Owner-MCP channel for this single-owner pilot. Its SQL connection runs as `postgres` and does not carry a Supabase Auth JWT (`auth.uid()` is null). Do **not** manufacture a JWT by setting `request.jwt.claim.sub`; that is not authentication and is not the supported Owner-MCP path.
 
-The deployed RAE migration `20261125100000_trusted_owner_mcp_execution_context` provides the private, transaction-scoped entry point `private.begin_owner_mcp_context(project_id, owner_id)`. It accepts only the original `postgres` database session, verifies that the supplied Owner UUID exactly matches the selected project's live `public.projects.owner_id`, and records an audit row. The context binds to one project and automatically clears on COMMIT or ROLLBACK.
+The deployed RAE migration `20261124200149_trusted_owner_mcp_execution_context` provides the private, transaction-scoped entry point `private.begin_owner_mcp_context(project_id, owner_id)`. It accepts only the original `postgres` database session, verifies that the supplied Owner UUID exactly matches the selected project's live `public.projects.owner_id`, and records an audit row. The context binds to one project and automatically clears on COMMIT or ROLLBACK. Migration `20261124202438_owner_mcp_project_registration` is also present. The Owner-MCP context does not imply that every owner-protected RPC supports it: `public.list_problem_reports` still returns `UNAUTHENTICATED` because it requires `auth.uid()`.
 
 Use the same transaction for context initialization and the protected RPC calls:
 
