@@ -460,6 +460,15 @@ BEGIN
   v_replay:=private.idempotency_get(v_initiative.project_id,'request_initiative_support',p_idempotency_key,v_hash);
   IF v_replay IS NOT NULL THEN RETURN v_replay; END IF;
 
+  -- Serialize support creation with advance_initiative. The shared parent-row
+  -- lock makes either the pending request visible to advancement, or makes
+  -- the request wait until the current wave has committed.
+  SELECT * INTO v_initiative FROM public.initiatives
+    WHERE id=p_initiative_id FOR UPDATE;
+  IF v_initiative.status IN ('ready_to_close','completed','rejected','abandoned') THEN
+    RAISE EXCEPTION USING errcode='55000',message='INITIATIVE_TERMINAL';
+  END IF;
+
   PERFORM pg_advisory_xact_lock(hashtextextended(
     p_initiative_id::text||':'||(p_payload->>'request_kind')||':'||lower(btrim(p_payload->>'capability')),0
   ));
@@ -756,14 +765,26 @@ BEGIN
   SELECT * INTO v_initiative FROM public.initiatives WHERE id=p_initiative_id;
   IF NOT FOUND THEN RAISE EXCEPTION USING errcode='P0002',message='INITIATIVE_NOT_FOUND'; END IF;
   PERFORM private.assert_owner(v_initiative.project_id);
-  IF v_initiative.status NOT IN ('ready_to_close','completed','rejected','abandoned') THEN
+  -- Only a fully executed initiative may create a fingerprint-suppressing
+  -- learning. Rejection and abandonment are not resolved root-cause outcomes.
+  IF v_initiative.status NOT IN ('ready_to_close','completed') THEN
     RAISE EXCEPTION USING errcode='55000',message='INITIATIVE_NOT_TERMINAL_FOR_LEARNING';
   END IF;
   IF length(btrim(coalesce(p_learning_fingerprint,''))) NOT BETWEEN 3 AND 200
      OR p_category NOT IN ('success','failure','constraint','architecture','process','discovery','other')
      OR length(btrim(coalesce(p_lesson,''))) NOT BETWEEN 1 AND 4000
-     OR jsonb_typeof(coalesce(p_evidence,'[]'::jsonb))<>'array' THEN
+     OR p_evidence IS NULL
+     OR jsonb_typeof(p_evidence) IS DISTINCT FROM 'array' THEN
     RAISE EXCEPTION USING errcode='22023',message='INVALID_INITIATIVE_LEARNING';
+  END IF;
+  IF jsonb_array_length(p_evidence)=0 OR EXISTS (
+    SELECT 1 FROM jsonb_array_elements(p_evidence) evidence_item
+    WHERE jsonb_typeof(evidence_item) IS DISTINCT FROM 'object'
+       OR length(btrim(coalesce(evidence_item->>'kind','')))=0
+       OR length(btrim(coalesce(evidence_item->>'ref','')))=0
+       OR length(btrim(coalesce(evidence_item->>'observation','')))=0
+  ) THEN
+    RAISE EXCEPTION USING errcode='22023',message='INITIATIVE_LEARNING_EVIDENCE_REQUIRED';
   END IF;
   IF lower(btrim(p_learning_fingerprint))<>v_initiative.deduplication_fingerprint THEN
     RAISE EXCEPTION USING errcode='22023',message='LEARNING_FINGERPRINT_MUST_MATCH_INITIATIVE';
@@ -774,6 +795,14 @@ BEGIN
   ));
   v_replay:=private.idempotency_get(v_initiative.project_id,'record_initiative_learning',p_idempotency_key,v_hash);
   IF v_replay IS NOT NULL THEN RETURN v_replay; END IF;
+
+  IF v_initiative.status='completed' AND NOT EXISTS (
+    SELECT 1 FROM public.initiative_learnings
+    WHERE initiative_id=p_initiative_id
+      AND learning_fingerprint=lower(btrim(p_learning_fingerprint))
+  ) THEN
+    RAISE EXCEPTION USING errcode='55000',message='INITIATIVE_LEARNING_ALREADY_COMPLETED';
+  END IF;
 
   INSERT INTO public.initiative_learnings(
     initiative_id,project_id,learning_fingerprint,category,lesson,evidence
@@ -787,6 +816,9 @@ BEGIN
     SELECT * INTO v_existing FROM public.initiative_learnings
       WHERE project_id=v_initiative.project_id
         AND learning_fingerprint=lower(btrim(p_learning_fingerprint));
+    IF v_existing.initiative_id<>p_initiative_id THEN
+      RAISE EXCEPTION USING errcode='23505',message='LEARNING_FINGERPRINT_ALREADY_OWNED';
+    END IF;
     v_id:=v_existing.id;
   END IF;
   IF v_initiative.status='ready_to_close' THEN
