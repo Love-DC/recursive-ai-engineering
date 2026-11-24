@@ -11,6 +11,8 @@ The problem inbox is the durable cross-session register for defects, blockers, r
 
 The additive migration `20261124000400_problem_inbox.sql` is deployed in the shared RAE Supabase database. On 2026-11-25, the live `problem_reports` and `problem_report_events` tables and Problem Inbox RPCs were verified, and the owner-scoped `list_problem_reports('unresolved', null, 200)` read succeeded. Use this Supabase inbox as the normal cross-session source of truth; re-check availability at each session start.
 
+The repository-authoritative activation migration from [PR #66](https://github.com/Love-DC/recursive-ai-engineering/pull/66) is merged to `main`, but **not deployed** to this database. The live database still enforces the legacy `projects.config.task_activation` guard. The current live config has all three registered projects (RAE, Colony Sim, Lambent) set to `task_activation='paused'` with `autonomy.max_active_executions=2`: task creation and claims are blocked for all three. The Problem Inbox read RPC remains available; re-check the gate before any report mutation and never use task-activation pause as permission to bypass owner-scoped report RPCs.
+
 ## What to report
 
 Create a report when a session discovers a concrete, material item that needs tracking:
@@ -121,6 +123,17 @@ During execution:
 3. If it requires Owner input, preserve it as `owner_input_required`; do not put it in the claimable task queue.
 4. Update the report as work progresses and resolve only with verified evidence.
 5. If a session cannot finish, leave the report and task state truthful so another fresh session can continue.
+
+## Current unresolved reports — 2026-11-25
+
+Read-only `public.problem_reports` snapshot from the live shared database:
+
+- **RAE — medium defect, in progress:** `adc5c02c-d9ce-4850-9181-0c137317f7ae`, “RAE startup and inbox governance snapshots contradict live deployment”. Linked task: `34e01a68-244a-4832-87c3-ce86536a3a49`. PR #66 corrected Session Start, Worker Instructions, Security Boundary Audit, and Autonomous Task Discovery; this Problem Inbox snapshot is refreshed by [PR #67](https://github.com/Love-DC/recursive-ai-engineering/pull/67).
+- **RAE — high risk, in progress:** `e70803f3-57d4-402c-9823-a38a8a7ef59f`, “Repository-local activation policy conflicts with deployed database task_activation guard”. Linked task: `a16f1098-80e3-4ad6-a4f8-029e2849be4f`; linked PR #66 is merged. The migration remains undeployed, so the live legacy guard and all-project pause remain in effect.
+- **Colony Sim — high blocker, in progress:** `84eeb1f9-4c09-4890-abb2-e5955f898577`, “Colony Sim activation remains gated by policy/runtime boundary reconciliation”. Linked PR #433 is merged (merge commit `5f3cc67d65da584db3640948ee37828104003fea`). Colony Sim remains paused; do not activate its task queue or change gameplay/player experience as part of this blocker.
+- **RAE — medium opportunity, triaged:** `5dc26ae9-b877-47ed-a2fc-1036ff6fbe8b`, “Initiative and Problem Inbox tables have unindexed foreign keys”. The live Performance Advisor reports 12 unindexed foreign-key findings and 5 unused-index findings as of 2026-11-24 19:09:54 UTC. This is an investigation opportunity, not authorization to add/drop production indexes.
+
+These are unresolved reports, not a task list. The live inbox also contains resolved historical reports; do not reopen them without new evidence. Re-query the owner-scoped inbox at each session start rather than treating this dated snapshot as current forever.
 
 ## Exceptional fallback when the live inbox RPC is unavailable
 
