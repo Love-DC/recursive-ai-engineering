@@ -160,10 +160,18 @@ BEGIN
   IF FOUND THEN
     UPDATE public.problem_reports SET
       evidence=(
-        SELECT coalesce(jsonb_agg(x.item ORDER BY x.item::text),'[]'::jsonb)
+        SELECT coalesce(jsonb_agg(x.item ORDER BY x.first_ord),'[]'::jsonb)
         FROM (
-          SELECT DISTINCT item
-          FROM jsonb_array_elements(v_existing.evidence || p_payload->'evidence') AS evidence(item)
+          SELECT item,min(ord) AS first_ord
+          FROM (
+            SELECT old_item AS item,old_ord AS ord
+            FROM jsonb_array_elements(v_existing.evidence) WITH ORDINALITY AS old_evidence(old_item,old_ord)
+            UNION ALL
+            SELECT new_item AS item,new_ord+jsonb_array_length(v_existing.evidence) AS ord
+            FROM jsonb_array_elements(p_payload->'evidence') WITH ORDINALITY AS new_evidence(new_item,new_ord)
+          ) all_evidence
+          GROUP BY item
+          ORDER BY min(ord)
           LIMIT 50
         ) x
       ),
