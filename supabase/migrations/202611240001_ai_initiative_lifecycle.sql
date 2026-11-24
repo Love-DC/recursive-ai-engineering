@@ -778,7 +778,7 @@ BEGIN
     RAISE EXCEPTION USING errcode='22023',message='INVALID_INITIATIVE_LEARNING';
   END IF;
   IF jsonb_array_length(p_evidence)=0 OR EXISTS (
-    SELECT 1 FROM jsonb_array_elements(p_evidence) evidence_item
+    SELECT 1 FROM jsonb_array_elements(p_evidence) AS evidence_rows(evidence_item)
     WHERE jsonb_typeof(evidence_item) IS DISTINCT FROM 'object'
        OR length(btrim(coalesce(evidence_item->>'kind','')))=0
        OR length(btrim(coalesce(evidence_item->>'ref','')))=0
