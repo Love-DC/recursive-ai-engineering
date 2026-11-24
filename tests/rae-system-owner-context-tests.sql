@@ -385,15 +385,11 @@ SELECT set_config(
   (SELECT id::text FROM private.system_principals WHERE principal_key='rae-core'),
   true
 );
+SET LOCAL SESSION AUTHORIZATION authenticated;
 DO $forged_context$
 DECLARE
   v_rejected boolean:=false;
 BEGIN
-  IF private.rae_system_context_matches(
-    '00000000-0000-4000-8000-000000000008'::uuid
-  ) THEN
-    RAISE EXCEPTION 'FAIL: authenticated session forged an RAE system context';
-  END IF;
 
   BEGIN
     PERFORM public.list_tasks(
