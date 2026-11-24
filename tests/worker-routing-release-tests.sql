@@ -19,7 +19,9 @@ BEGIN
   -- Missing task route inherits the configured project route; explicit JSON null
   -- is malformed and must not inherit that same route.
   v_keys := private.resolve_task_worker_keys(v_project,'implementation','{}'::jsonb);
-  IF v_keys IS DISTINCT FROM ARRAY['test-worker-a']::text[] THEN
+  IF cardinality(v_keys) <> 2
+    OR NOT ('test-worker-a'=ANY(v_keys))
+    OR NOT ('test-worker-b'=ANY(v_keys)) THEN
     RAISE EXCEPTION 'FAIL: missing task route did not inherit project routing: %',v_keys;
   END IF;
 
