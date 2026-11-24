@@ -107,6 +107,7 @@ class MigrationVersionTests(unittest.TestCase):
     def test_rejects_incorrect_feature_order(self) -> None:
         errors = validate_inventory(
             [
+                Path("20261123000300_failure_reporting_retry.sql"),
                 Path("20261124000300_worker_task_routing_safe_release.sql"),
                 Path("20261124000100_task_dependency_eligibility.sql"),
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
@@ -117,8 +118,8 @@ class MigrationVersionTests(unittest.TestCase):
     def test_rejects_failure_reporting_after_worker_routing(self) -> None:
         errors = validate_inventory(
             [
-                Path("20261123000400_worker_task_routing_safe_release.sql"),
-                Path("20261123000300_failure_reporting_retry.sql"),
+                Path("20261123000300_worker_task_routing_safe_release.sql"),
+                Path("20261123000400_failure_reporting_retry.sql"),
                 Path("20261124000100_task_dependency_eligibility.sql"),
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
             ]
