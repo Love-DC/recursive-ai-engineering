@@ -10,14 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       branch_manifest:
-        description: "Leave {} for automatic preview of all eligible branches. To execute, supply the generated manifest and the exact confirmation phrase."
+        description: "Leave {} for automatic read-only preview; a supplied manifest is also preview-only."
         required: true
         default: "{}"
-        type: string
-      confirmation:
-        description: "Leave blank for dry-run. Exact phrase DELETE SELECTED RESOURCES enables the selected batch."
-        required: false
-        default: ""
         type: string
 
 permissions:
@@ -30,7 +25,7 @@ concurrency:
 
 jobs:
   preview:
-    name: Read-only batch preview
+    name: Read-only inventory and batch preview
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +69,7 @@ jobs:
           python - "$RUNNER_TEMP/branch-manifest.json" <<'PY'
           import json, sys
           manifest = json.load(open(sys.argv[1], encoding="utf-8"))
-          print("Batch targets:", len(manifest.get("branches", {})))
+          print("Preview targets:", len(manifest.get("branches", {})))
           PY
           if python - "$RUNNER_TEMP/branch-manifest.json" <<'PY'
           import json, sys
@@ -84,13 +79,14 @@ jobs:
           then
             python scripts/cleanup_branches.py --manifest "$RUNNER_TEMP/branch-manifest.json" | tee "$RUNNER_TEMP/preview.json"
           else
-            printf '{"eligible_targets":0,"deleted":0,"mode":"dry-run"}\n' | tee "$RUNNER_TEMP/preview.json"
+            printf '{"eligible_targets":0,"deleted":0,"mode":"read-only-preview"}\n' | tee "$RUNNER_TEMP/preview.json"
           fi
           {
             echo "## Resource lifecycle preview"
             cat "$RUNNER_TEMP/preview.json"
-            echo "- Preview is read-only. No resources deleted."
+            echo "- This workflow is read-only. No resources are deleted."
             echo "- Supabase projects, development branches and Edge Functions are inventory-only."
+            echo "- Task-reference data is snapshot evidence only and is not sufficient to authorize deletion."
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
@@ -102,31 +98,3 @@ jobs:
             ${{ runner.temp }}/preview.json
             ${{ runner.temp }}/branch-manifest.json
           if-no-files-found: ignore
-
-  execute:
-    name: Revalidate and execute one confirmed batch
-    if: github.event_name == 'workflow_dispatch' && inputs.confirmation == 'DELETE SELECTED RESOURCES' && inputs.branch_manifest != '{}'
-    needs: preview
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Revalidate and delete
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          BRANCH_MANIFEST: ${{ inputs.branch_manifest }}
-          CONFIRMATION: ${{ inputs.confirmation }}
-        run: |
-          printf '%s' "$BRANCH_MANIFEST" > "$RUNNER_TEMP/branch-manifest.json"
-          python scripts/cleanup_branches.py --manifest "$RUNNER_TEMP/branch-manifest.json" --execute --confirmation "$CONFIRMATION"
-          {
-            echo "## Resource lifecycle execution"
-            echo "- One batch confirmation accepted."
-            echo "- Exact preview SHA, protection, open PR, active task references and merged ancestry revalidated."
-            echo "- Only selected RAE-local GitHub branches are executable."
-          } >> "$GITHUB_STEP_SUMMARY"
