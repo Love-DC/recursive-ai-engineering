@@ -340,26 +340,36 @@ BEGIN
 END
 $append_only_assertion$;
 
-SET LOCAL ROLE authenticated;
 DO $client_privacy_assertions$
 BEGIN
-  IF has_table_privilege(current_user,'private.task_destructive_audit','SELECT')
-     OR has_table_privilege(current_user,'private.task_destructive_audit','INSERT')
-     OR has_table_privilege(current_user,'private.task_destructive_audit','UPDATE')
-     OR has_table_privilege(current_user,'private.task_destructive_audit','DELETE')
-     OR has_table_privilege(current_user,'private.task_destructive_audit','TRUNCATE') THEN
-    RAISE EXCEPTION 'FAIL: authenticated role can access the private audit table';
+  IF has_table_privilege('authenticated','private.task_destructive_audit','SELECT')
+     OR has_table_privilege('authenticated','private.task_destructive_audit','INSERT')
+     OR has_table_privilege('authenticated','private.task_destructive_audit','UPDATE')
+     OR has_table_privilege('authenticated','private.task_destructive_audit','DELETE')
+     OR has_table_privilege('authenticated','private.task_destructive_audit','TRUNCATE')
+     OR has_table_privilege('anon','private.task_destructive_audit','SELECT')
+     OR has_table_privilege('anon','private.task_destructive_audit','INSERT')
+     OR has_table_privilege('anon','private.task_destructive_audit','UPDATE')
+     OR has_table_privilege('anon','private.task_destructive_audit','DELETE')
+     OR has_table_privilege('anon','private.task_destructive_audit','TRUNCATE') THEN
+    RAISE EXCEPTION 'FAIL: anon/authenticated role can access the private audit table';
   END IF;
 
   IF has_function_privilege(
-    current_user,
-    'private.task_integrity_findings(uuid)',
-    'EXECUTE'
-  ) THEN
-    RAISE EXCEPTION 'FAIL: authenticated role can execute the private integrity monitor';
+       'authenticated','private.task_integrity_findings(uuid)','EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon','private.task_integrity_findings(uuid)','EXECUTE'
+     )
+     OR has_function_privilege(
+       'authenticated','private.task_integrity_findings_from_edges(jsonb)','EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon','private.task_integrity_findings_from_edges(jsonb)','EXECUTE'
+     ) THEN
+    RAISE EXCEPTION 'FAIL: anon/authenticated role can execute private integrity functions';
   END IF;
 END
 $client_privacy_assertions$;
-RESET ROLE;
 
 ROLLBACK;
