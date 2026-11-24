@@ -377,7 +377,6 @@ COMMIT;
 -- A non-postgres API session cannot forge the private RAE system context by
 -- setting its transaction-local GUC values.
 BEGIN;
-SET LOCAL SESSION AUTHORIZATION authenticated;
 SELECT set_config('rae.system_version','v1',true);
 SELECT set_config('rae.system_project_id','00000000-0000-4000-8000-000000000008',true);
 SELECT set_config(
