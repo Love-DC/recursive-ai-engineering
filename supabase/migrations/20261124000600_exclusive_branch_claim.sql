@@ -34,6 +34,7 @@ DECLARE
   v_repository text;
   v_branch text;
   v_branch_lock_key bigint;
+  v_skipped_task_ids uuid[] := '{}'::uuid[];
 BEGIN
   PERFORM private.assert_worker_actor(p_project_id,p_worker_id);
 
@@ -126,14 +127,18 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- Iterate in normal queue order. A branch-conflicted candidate is skipped so
-  -- unrelated eligible work is still claimable in this same RPC call.
-  FOR v_candidate IN
-    SELECT t.*
+  -- Select and lock one candidate per iteration. A PL/pgSQL cursor loop may
+  -- prefetch and lock several rows before the loop body runs, starving another
+  -- session that should be able to claim a different task for the same Worker.
+  -- Remember branch-conflicted candidates and continue in queue order without
+  -- retaining locks on unrelated candidates.
+  LOOP
+    SELECT t.* INTO v_candidate
     FROM public.tasks t
     WHERE t.project_id=p_project_id
       AND v_worker_key = ANY(private.resolve_task_worker_keys(t.project_id,t.task_type,t.requirements))
       AND private.task_dependency_blockers(t.project_id,t.requirements) = '[]'::jsonb
+      AND NOT (t.id = ANY(v_skipped_task_ids))
       AND (
         (
           t.status='pending'
@@ -156,7 +161,10 @@ BEGIN
       AND (t.task_type <> 'review' OR t.assigned_worker_id=p_worker_id)
     ORDER BY t.priority ASC,t.created_at ASC
     FOR UPDATE OF t SKIP LOCKED
-  LOOP
+    LIMIT 1;
+
+    EXIT WHEN NOT FOUND;
+
     v_branch := coalesce(
       nullif(btrim(v_candidate.requirements #>> '{target,branch}'),''),
       nullif(btrim(v_candidate.requirements #>> '{target,worker_branch}'),'')
@@ -178,6 +186,7 @@ BEGIN
         0
       );
       IF NOT pg_try_advisory_xact_lock(v_branch_lock_key) THEN
+        v_skipped_task_ids := array_append(v_skipped_task_ids,v_candidate.id);
         CONTINUE;
       END IF;
 
@@ -201,6 +210,7 @@ BEGIN
             nullif(btrim(active.requirements #>> '{target,worker_branch}'),'')
           ) = v_branch
       ) THEN
+        v_skipped_task_ids := array_append(v_skipped_task_ids,v_candidate.id);
         CONTINUE;
       END IF;
     END IF;
