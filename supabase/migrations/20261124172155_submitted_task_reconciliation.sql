@@ -127,6 +127,14 @@ BEGIN
     v_related_task_ids := array_append(v_related_task_ids,v_task.latest_delivery_task_id);
   END IF;
 
+  -- Serialize against concurrent claims, execution renewal and review creation
+  -- for the latest delivery as well as the selected submitted task.
+  PERFORM 1
+  FROM public.tasks related
+  WHERE related.id=ANY(v_related_task_ids)
+  ORDER BY related.id
+  FOR UPDATE;
+
   -- A task or its latest delivery with an unexpired lease or a still-running
   -- execution cannot be retired. Do not rewrite, fail, or expire executions.
   IF EXISTS (
