@@ -120,6 +120,32 @@ BEGIN
 END
 $no_context$;
 
+-- Project registration also remains unavailable without a real JWT or
+-- a validated Owner-MCP context.
+DO $register_without_context$
+DECLARE
+  v_rejected boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.register_project(
+      'unauthenticated-register-test',
+      'must be rejected without Owner context',
+      'test/unauthenticated-register',
+      '{}'::jsonb,
+      'unauthenticated-register-project'
+    );
+  EXCEPTION WHEN SQLSTATE '28000' THEN
+    IF SQLERRM <> 'UNAUTHENTICATED' THEN
+      RAISE;
+    END IF;
+    v_rejected := true;
+  END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'FAIL: register_project accepted an unauthenticated call';
+  END IF;
+END
+$register_without_context$;
+
 -- Exercise the complete existing task lifecycle through the transaction-local
 -- Owner-MCP context: create -> claim -> heartbeat -> submit -> independent
 -- reviewer claim -> review acceptance. The RPCs retain their normal routing,
@@ -270,6 +296,131 @@ BEGIN
   END IF;
 END
 $cleared$;
+
+-- Project bootstrap uses the real Owner from a context anchored to an
+-- existing project. Idempotent replay must return the same new project.
+BEGIN;
+DO $register_project$
+DECLARE
+  v_config jsonb := jsonb_build_object(
+    'project_key', 'owner-mcp-registered',
+    'default_branch', 'main',
+    'autonomy', jsonb_build_object(
+      'paused', true,
+      'max_active_executions', 2
+    ),
+    'worker_routing', jsonb_build_object(
+      'default_worker_key', 'mcp-executor',
+      'task_type_worker_keys', jsonb_build_object('review', 'mcp-reviewer')
+    )
+  );
+  v_registered jsonb;
+  v_replay jsonb;
+  v_project_id uuid;
+BEGIN
+  PERFORM private.begin_owner_mcp_context(
+    '00000000-0000-4000-8000-000000000008'::uuid,
+    '00000000-0000-4000-8000-000000000001'::uuid
+  );
+
+  v_registered := public.register_project(
+    'owner-mcp-registered-test',
+    'isolated Owner-MCP project-registration fixture',
+    'test/owner-mcp-registered',
+    v_config,
+    'owner-mcp-register-project'
+  );
+
+  IF coalesce((v_registered->>'success')::boolean, false) IS NOT TRUE THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP register_project failed: %', v_registered;
+  END IF;
+
+  v_project_id := (v_registered->'data'->>'id')::uuid;
+  IF (v_registered->'data'->>'owner_id')::uuid
+    IS DISTINCT FROM '00000000-0000-4000-8000-000000000001'::uuid THEN
+    RAISE EXCEPTION 'FAIL: registered project Owner does not match the bound Owner';
+  END IF;
+
+  v_replay := public.register_project(
+    'owner-mcp-registered-test',
+    'isolated Owner-MCP project-registration fixture',
+    'test/owner-mcp-registered',
+    v_config,
+    'owner-mcp-register-project'
+  );
+
+  IF (v_replay->'data'->>'id')::uuid IS DISTINCT FROM v_project_id THEN
+    RAISE EXCEPTION 'FAIL: idempotent registration did not return the same project';
+  END IF;
+
+  RAISE NOTICE 'PASS: trusted Owner-MCP project registration and idempotent replay';
+END
+$register_project$;
+COMMIT;
+
+-- Worker registration is separately bound to the newly registered project.
+-- The fail-closed operational pause is preserved in the project config.
+BEGIN;
+DO $register_project_workers$
+DECLARE
+  v_project_id uuid;
+  v_executor jsonb;
+  v_reviewer jsonb;
+  v_worker_count integer;
+  v_paused boolean;
+BEGIN
+  SELECT id INTO v_project_id
+  FROM public.projects
+  WHERE github_repo = 'test/owner-mcp-registered'
+    AND owner_id = '00000000-0000-4000-8000-000000000001'::uuid;
+
+  IF v_project_id IS NULL THEN
+    RAISE EXCEPTION 'FAIL: registered project was not persisted';
+  END IF;
+
+  PERFORM private.begin_owner_mcp_context(
+    v_project_id,
+    '00000000-0000-4000-8000-000000000001'::uuid
+  );
+
+  v_executor := public.register_worker(
+    v_project_id,
+    'mcp-executor',
+    'MCP Test Executor',
+    'Project-scoped implementation Worker'
+  );
+  v_reviewer := public.register_worker(
+    v_project_id,
+    'mcp-reviewer',
+    'MCP Test Reviewer',
+    'Project-scoped independent Reviewer Worker'
+  );
+
+  IF v_executor->'data'->>'worker_key' IS DISTINCT FROM 'mcp-executor'
+    OR v_reviewer->'data'->>'worker_key' IS DISTINCT FROM 'mcp-reviewer' THEN
+    RAISE EXCEPTION 'FAIL: Owner-MCP Worker registration returned invalid routes';
+  END IF;
+
+  SELECT count(*) INTO v_worker_count
+  FROM public.workers
+  WHERE project_id = v_project_id
+    AND worker_key IN ('mcp-executor', 'mcp-reviewer')
+    AND status = 'active';
+
+  SELECT (config #>> '{autonomy,paused}')::boolean INTO v_paused
+  FROM public.projects WHERE id = v_project_id;
+
+  IF v_worker_count <> 2 THEN
+    RAISE EXCEPTION 'FAIL: expected exactly two project-scoped Workers, found %', v_worker_count;
+  END IF;
+  IF v_paused IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'FAIL: project registration did not preserve fail-closed autonomy pause';
+  END IF;
+
+  RAISE NOTICE 'PASS: project-scoped executor/reviewer registration with operational pause retained';
+END
+$register_project_workers$;
+COMMIT;
 
 -- The normal PostgREST auth boundary remains unchanged. An authenticated role
 -- with no JWT does not inherit the trusted postgres Owner-MCP context.
