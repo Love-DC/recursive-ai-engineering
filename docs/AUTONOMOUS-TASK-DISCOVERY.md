@@ -10,7 +10,7 @@ Autonomy means initiative within a declared project boundary—not authority to 
 
 ## RAE repository-local activation policy
 
-**RAE policy mode: `active_session_autonomy`.** This policy is owned by this repository and this document is a manifest-required governance rule. The Coordinator may autonomously discover, create, claim, execute, verify, review, repair, and complete eligible engineering tasks when the shared database migration gate is open and the project's operational controls permit it. This does not create a background scheduler; active AI sessions must run the workflow.
+**RAE policy mode: `active_session_autonomy`.** This policy is owned by this repository and this document is a manifest-required governance rule. It is registered in `rae-governance.json` as `autonomous-task-activation-policy` and must be read before any RAE task-pool write. The Coordinator may autonomously discover, create, claim, execute, verify, review, repair, and complete eligible engineering tasks when the shared database migration gate is open and the project's operational controls permit it. This does not create a background scheduler; active AI sessions must run the workflow.
 
 Supabase is not the source of project activation policy. No `projects.config.task_activation` key may be used. Supabase stores only operational controls: `autonomy.paused` (fail-closed kill switch) and `autonomy.max_active_executions` (bounded concurrency cap). A project's own manifest-referenced policy file determines whether autonomous task creation/claiming is authorized. External projects must be evaluated against their own repository-local governance, never inferred from Supabase config.
 
