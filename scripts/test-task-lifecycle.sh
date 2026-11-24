@@ -30,6 +30,8 @@ SELECT set_config('test.project_id', :'project_id', true);
 SELECT set_config('test.worker_id', :'worker_id', true);
 SELECT set_config('test.reviewer_worker_id', :'reviewer_worker_id', true);
 \i supabase/migrations/20261124172155_submitted_task_reconciliation.sql
+\i supabase/migrations/20261124181237_owner_scoped_project_activation.sql
+\i tests/project-activation-config-tests.sql
 
 -- This test explicitly exercises the opt-in project-wide concurrency cap.
 -- Keep the config change inside the existing transaction so ROLLBACK restores
