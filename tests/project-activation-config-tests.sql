@@ -9,12 +9,64 @@ DECLARE
   v_other_project uuid := gen_random_uuid();
   v_before jsonb;
   v_after jsonb;
+  v_expected_config jsonb;
+  v_legacy_autonomy jsonb;
   v_result jsonb;
 BEGIN
   SELECT config INTO v_before FROM public.projects WHERE id=v_project;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'FAIL: activation fixture project is missing';
   END IF;
+
+  -- Malformed autonomy values must fail closed rather than being replaced with
+  -- an object and silently destroying pre-existing configuration.
+  FOR v_legacy_autonomy IN
+    SELECT value
+    FROM jsonb_array_elements('["legacy-scalar",["legacy-array"]]'::jsonb)
+      AS legacy_values(value)
+  LOOP
+    v_expected_config := jsonb_set(
+      v_before,'{autonomy}',v_legacy_autonomy,true
+    );
+    UPDATE public.projects SET config=v_expected_config WHERE id=v_project;
+
+    BEGIN
+      PERFORM private.set_project_task_activation(
+        v_project,'active_session_autonomy',2
+      );
+      RAISE EXCEPTION 'FAIL: malformed autonomy config was silently overwritten: %',
+        v_legacy_autonomy;
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+      IF SQLERRM <> 'PROJECT_AUTONOMY_CONFIG_INVALID' THEN RAISE; END IF;
+    END;
+
+    SELECT config INTO v_after FROM public.projects WHERE id=v_project;
+    IF v_after IS DISTINCT FROM v_expected_config THEN
+      RAISE EXCEPTION 'FAIL: rejected autonomy config was modified: expected %, actual %',
+        v_expected_config,v_after;
+    END IF;
+  END LOOP;
+
+  -- A non-object root config is also invalid for nested project settings and
+  -- must not be modified by a failed activation attempt.
+  UPDATE public.projects
+  SET config='"legacy-root-scalar"'::jsonb
+  WHERE id=v_project;
+  BEGIN
+    PERFORM private.set_project_task_activation(
+      v_project,'active_session_autonomy',2
+    );
+    RAISE EXCEPTION 'FAIL: non-object project config was accepted';
+  EXCEPTION WHEN SQLSTATE '22023' THEN
+    IF SQLERRM <> 'PROJECT_CONFIG_INVALID' THEN RAISE; END IF;
+  END;
+  SELECT config INTO v_after FROM public.projects WHERE id=v_project;
+  IF v_after IS DISTINCT FROM '"legacy-root-scalar"'::jsonb THEN
+    RAISE EXCEPTION 'FAIL: rejected root config was modified: %',v_after;
+  END IF;
+
+  -- Restore the original project configuration before the positive-path tests.
+  UPDATE public.projects SET config=v_before WHERE id=v_project;
 
   IF has_function_privilege(
        'anon','private.set_project_task_activation(uuid,text,integer)','EXECUTE'
@@ -111,6 +163,6 @@ BEGIN
     RAISE EXCEPTION 'FAIL: cross-project activation attempt changed other project config: %',v_after;
   END IF;
 
-  RAISE NOTICE 'PASS: owner-only activation mutation, project isolation, allowed modes, pause/resume, max 1..2, invalid-value rejection, and unrelated-config preservation';
+  RAISE NOTICE 'PASS: owner-only activation mutation, project isolation, allowed modes, pause/resume, max 1..2, invalid-value rejection, malformed-config preservation, and unrelated-config preservation';
 END;
 $activation_config_test$;
