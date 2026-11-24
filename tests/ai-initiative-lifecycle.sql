@@ -78,13 +78,16 @@ BEGIN
     'desired_outcome','A durable initiative can be approved, executed in dependency order, reviewed, and learned from.',
     'scope',jsonb_build_array('transactional test project'),
     'evidence',jsonb_build_array(jsonb_build_object('kind','test_fixture','ref','tests/ai-initiative-lifecycle.sql','observation','Acceptance fixture')),
-    'risk','low',
+    'risk','low','priority',5,
     'resource_budget',jsonb_build_object('external_spend_allowed',false,'bounded_execution',true),
     'support_needed',jsonb_build_array(),
     'deduplication_fingerprint','test:initiative:lifecycle'
   ),v_key||'-proposal');
   v_initiative_id:=(v_proposal->'data'->>'initiative_id')::uuid;
   IF v_proposal->'data'->>'created'<>'true' THEN RAISE EXCEPTION 'FAIL: initial proposal was not created'; END IF;
+  IF (SELECT priority FROM public.initiatives WHERE id=v_initiative_id)<>5 THEN
+    RAISE EXCEPTION 'FAIL: initiative priority was not persisted';
+  END IF;
 
   v_duplicate:=public.propose_initiative(v_project_id,v_worker_id,jsonb_build_object(
     'origin','ai_initiative',
@@ -94,7 +97,7 @@ BEGIN
     'desired_outcome','Reuse the existing initiative.',
     'scope',jsonb_build_array('transactional test project'),
     'evidence',jsonb_build_array(jsonb_build_object('kind','test_fixture','ref','tests/ai-initiative-lifecycle.sql','observation','Same root cause')),
-    'risk','low',
+    'risk','low','priority',50,
     'resource_budget',jsonb_build_object('external_spend_allowed',false),
     'support_needed',jsonb_build_array(),
     'deduplication_fingerprint','test:initiative:lifecycle'
