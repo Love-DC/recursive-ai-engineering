@@ -1,10 +1,76 @@
 -- Project-scoped task reference monitor and destructive audit integration tests.
--- Runs only in the disposable PostgreSQL 17 CI database. Every fixture/audit row
--- is removed by transaction rollback; no production database is involved.
+-- Runs only in the disposable PostgreSQL 17 CI database. Every row mutation and
+-- generated audit record is rolled back; no production database is involved.
 
 \set ON_ERROR_STOP on
-BEGIN;
 
+-- TRUNCATE is deliberately tested in a fresh transaction before any row-level
+-- DML, because PostgreSQL refuses TRUNCATE CASCADE while deferred FK trigger
+-- events are pending in the current transaction.
+BEGIN;
+CREATE TEMP TABLE task_integrity_truncate_snapshot ON COMMIT DROP AS
+SELECT
+  (SELECT count(*) FROM public.tasks) AS task_count,
+  (SELECT count(*) FROM public.executions) AS execution_count;
+
+SAVEPOINT truncate_audit_probe;
+TRUNCATE TABLE public.executions CASCADE;
+
+DO $truncate_audit_assertions$
+DECLARE
+  v_count integer;
+BEGIN
+  SELECT count(*) INTO v_count
+  FROM private.task_destructive_audit
+  WHERE operation='TRUNCATE'
+    AND relation_name='executions';
+
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: expected one executions TRUNCATE audit row, found %',v_count;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM private.task_destructive_audit
+    WHERE operation='TRUNCATE'
+      AND relation_name='tasks'
+  ) THEN
+    RAISE EXCEPTION 'FAIL: TRUNCATE CASCADE did not audit the cascaded tasks relation';
+  END IF;
+END
+$truncate_audit_assertions$;
+
+ROLLBACK TO SAVEPOINT truncate_audit_probe;
+
+DO $truncate_rollback_assertions$
+DECLARE
+  v_expected_tasks bigint := (SELECT task_count FROM task_integrity_truncate_snapshot);
+  v_expected_executions bigint := (SELECT execution_count FROM task_integrity_truncate_snapshot);
+  v_task_count bigint;
+  v_execution_count bigint;
+  v_audit_count integer;
+BEGIN
+  SELECT count(*) INTO v_task_count FROM public.tasks;
+  SELECT count(*) INTO v_execution_count FROM public.executions;
+
+  IF v_task_count <> v_expected_tasks OR v_execution_count <> v_expected_executions THEN
+    RAISE EXCEPTION 'FAIL: TRUNCATE rollback did not restore rows (tasks %, executions %)',
+      v_task_count,v_execution_count;
+  END IF;
+
+  SELECT count(*) INTO v_audit_count
+  FROM private.task_destructive_audit
+  WHERE operation='TRUNCATE';
+
+  IF v_audit_count <> 0 THEN
+    RAISE EXCEPTION 'FAIL: TRUNCATE audit rows survived rollback unexpectedly';
+  END IF;
+END
+$truncate_rollback_assertions$;
+COMMIT;
+
+-- The remainder exercises the read-only scanner, row DELETE/cascade auditing,
+-- privacy, append-only protection and rollback in its own transaction.
+BEGIN;
 SELECT set_config('request.jwt.claim.sub', :'owner_id', true);
 SELECT set_config('test.project_id', :'project_id', true);
 SELECT set_config('test.worker_id', :'worker_id', true);
@@ -218,58 +284,12 @@ BEGIN
 END
 $delete_rollback_assertions$;
 
-SAVEPOINT truncate_audit_probe;
-TRUNCATE TABLE public.executions CASCADE;
-
-DO $truncate_audit_assertions$
-DECLARE
-  v_count integer;
-BEGIN
-  SELECT count(*) INTO v_count
-  FROM private.task_destructive_audit
-  WHERE operation='TRUNCATE'
-    AND relation_name='executions';
-
-  IF v_count <> 1 THEN
-    RAISE EXCEPTION 'FAIL: expected one executions TRUNCATE audit row, found %',v_count;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM private.task_destructive_audit
-    WHERE operation='TRUNCATE'
-      AND relation_name='tasks'
-  ) THEN
-    RAISE EXCEPTION 'FAIL: TRUNCATE CASCADE did not audit the cascaded tasks relation';
-  END IF;
-END
-$truncate_audit_assertions$;
-
-ROLLBACK TO SAVEPOINT truncate_audit_probe;
-
-DO $truncate_rollback_assertions$
-DECLARE
-  v_task_id uuid := (SELECT task_id FROM task_integrity_audit_fixture);
-  v_count integer;
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.tasks WHERE id=v_task_id)
-     OR NOT EXISTS (SELECT 1 FROM public.executions WHERE task_id=v_task_id) THEN
-    RAISE EXCEPTION 'FAIL: rollback did not restore rows after TRUNCATE CASCADE';
-  END IF;
-
-  SELECT count(*) INTO v_count
-  FROM private.task_destructive_audit
-  WHERE operation='TRUNCATE';
-
-  IF v_count <> 0 THEN
-    RAISE EXCEPTION 'FAIL: TRUNCATE audit rows survived rollback unexpectedly';
-  END IF;
-END
-$truncate_rollback_assertions$;
-
 DO $append_only_assertion$
 DECLARE
   v_audit_id bigint;
-  v_rejected boolean := false;
+  v_rejected_update boolean := false;
+  v_rejected_delete boolean := false;
+  v_rejected_truncate boolean := false;
 BEGIN
   INSERT INTO private.task_destructive_audit(
     transaction_id,operation,relation_name,session_user_name,
@@ -290,11 +310,32 @@ BEGIN
     IF SQLERRM <> 'TASK_DESTRUCTIVE_AUDIT_APPEND_ONLY' THEN
       RAISE;
     END IF;
-    v_rejected := true;
+    v_rejected_update := true;
   END;
 
-  IF NOT v_rejected THEN
-    RAISE EXCEPTION 'FAIL: audit table accepted an UPDATE attempt';
+  BEGIN
+    DELETE FROM private.task_destructive_audit WHERE id=v_audit_id;
+    RAISE EXCEPTION 'FAIL: audit DELETE was not rejected';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'TASK_DESTRUCTIVE_AUDIT_APPEND_ONLY' THEN
+      RAISE;
+    END IF;
+    v_rejected_delete := true;
+  END;
+
+  BEGIN
+    EXECUTE 'TRUNCATE TABLE private.task_destructive_audit';
+    RAISE EXCEPTION 'FAIL: audit TRUNCATE was not rejected';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    IF SQLERRM <> 'TASK_DESTRUCTIVE_AUDIT_APPEND_ONLY' THEN
+      RAISE;
+    END IF;
+    v_rejected_truncate := true;
+  END;
+
+  IF NOT v_rejected_update OR NOT v_rejected_delete OR NOT v_rejected_truncate THEN
+    RAISE EXCEPTION 'FAIL: append-only guard missed update/delete/truncate (%/ %/ %)',
+      v_rejected_update,v_rejected_delete,v_rejected_truncate;
   END IF;
 END
 $append_only_assertion$;
@@ -305,7 +346,8 @@ BEGIN
   IF has_table_privilege(current_user,'private.task_destructive_audit','SELECT')
      OR has_table_privilege(current_user,'private.task_destructive_audit','INSERT')
      OR has_table_privilege(current_user,'private.task_destructive_audit','UPDATE')
-     OR has_table_privilege(current_user,'private.task_destructive_audit','DELETE') THEN
+     OR has_table_privilege(current_user,'private.task_destructive_audit','DELETE')
+     OR has_table_privilege(current_user,'private.task_destructive_audit','TRUNCATE') THEN
     RAISE EXCEPTION 'FAIL: authenticated role can access the private audit table';
   END IF;
 
