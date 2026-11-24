@@ -183,7 +183,7 @@ DECLARE
   v_replay jsonb;
   v_history_status text;
   v_event_count integer;
-  v_evidence jsonb := '[{"kind":"github_pr","ref":"https://github.com/Love-DC/recursive-ai-engineering/pull/28","observation":"PR is closed unmerged; no active execution, review, or dependent task remains."}]'::jsonb;
+  v_evidence jsonb := '[{"kind":"github_pr","ref":"https://github.com/Love-DC/recursive-ai-engineering/pull/28","observation":"PR is closed unmerged; no active execution, review, or dependent task remains. Accidental note token=fixture-secret-marker."}]'::jsonb;
 BEGIN
   -- One eligible submitted delivery is reconciled and replayed idempotently.
   INSERT INTO public.tasks(
@@ -248,6 +248,12 @@ BEGIN
       AND result->'reconciliation'->>'reason'='PR #28 is closed unmerged; no live work remains'
   ) THEN
     RAISE EXCEPTION 'FAIL: task result/history was not preserved with reconciliation metadata';
+  END IF;
+  IF (SELECT result->'reconciliation'->'evidence'->0->>'observation'
+      FROM public.tasks WHERE id=v_target) LIKE '%fixture-secret-marker%'
+    OR (SELECT result->'reconciliation'->'evidence'->0->>'observation'
+      FROM public.tasks WHERE id=v_target) NOT LIKE '%token=[REDACTED]%' THEN
+    RAISE EXCEPTION 'FAIL: evidence credential marker was not safely redacted';
   END IF;
   SELECT count(*) INTO v_event_count FROM public.task_events
   WHERE project_id=v_project AND task_id=v_target AND event_type='task_reconciled';
