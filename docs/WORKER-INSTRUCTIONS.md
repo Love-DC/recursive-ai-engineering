@@ -38,6 +38,8 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 
 ## How to work
 
+Read `docs/PROBLEM-INBOX.md` and inspect unresolved reports before creating overlapping tasks. Use Problem Inbox RPCs only after verifying the migration is deployed; otherwise record material findings on its single temporary issue. Preserve the Coordinator's independent PR review and merge checklist; task-level `requires_review=false` does not waive PR review.
+
 1. Read the task queue and current task details from Supabase before acting. Never rely on another conversation's memory.
 2. If no eligible task exists, run the authorized discovery loop in docs/AUTONOMOUS-TASK-DISCOVERY.md; do not stop before discovery and do not manufacture work.
 3. Create a task only when evidence, scope, deduplication, and project activation policy all permit it. Use that project's project UUID and its own active shared Worker UUID.
