@@ -15,6 +15,7 @@ SNAPSHOT_FILE = "database-schema.sql"
 VERSIONED_SQL = re.compile(r"^(?P<version>\d{14})_(?P<name>[a-z0-9][a-z0-9_-]*)\.sql$")
 
 FEATURE_ORDER = (
+    "failure_reporting_retry",
     "worker_task_routing_safe_release",
     "task_dependency_eligibility",
     "ai_initiative_lifecycle",
@@ -63,8 +64,9 @@ def validate_inventory(paths: list[Path], *, check_feature_order: bool = True) -
             ordered = [feature_versions[feature] for feature in FEATURE_ORDER]
             if ordered != sorted(ordered) or len(set(ordered)) != len(ordered):
                 errors.append(
-                    "migration dependency order must be Worker routing/safe release, "
-                    "then task dependency eligibility, then AI Initiative lifecycle"
+                    "migration dependency order must be failure reporting/retry, "
+                    "then Worker routing/safe release, then task dependency eligibility, "
+                    "then AI Initiative lifecycle"
                 )
 
     return errors
@@ -106,6 +108,17 @@ class MigrationVersionTests(unittest.TestCase):
         errors = validate_inventory(
             [
                 Path("20261124000300_worker_task_routing_safe_release.sql"),
+                Path("20261124000100_task_dependency_eligibility.sql"),
+                Path("20261124000200_ai_initiative_lifecycle.sql"),
+            ]
+        )
+        self.assertTrue(any("dependency order" in e for e in errors))
+
+    def test_rejects_failure_reporting_after_worker_routing(self) -> None:
+        errors = validate_inventory(
+            [
+                Path("20261123000400_worker_task_routing_safe_release.sql"),
+                Path("20261123000300_failure_reporting_retry.sql"),
                 Path("20261124000100_task_dependency_eligibility.sql"),
                 Path("20261124000200_ai_initiative_lifecycle.sql"),
             ]
