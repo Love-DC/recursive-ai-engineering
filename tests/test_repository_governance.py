@@ -181,22 +181,22 @@ class RepositoryGovernanceTests(unittest.TestCase):
         gate = session[gate_start:gate_end]
 
         required_migrations = [
-            "20261123000300_failure_reporting_retry.sql",
-            "20261123000400_worker_task_routing_safe_release.sql",
-            "20261124000100_task_dependency_eligibility.sql",
-            "20261124000200_ai_initiative_lifecycle.sql",
-            "20261124000300_task_worker_routing_safe_reassignment.sql",
-            "20261124000400_problem_inbox.sql",
-            "20261124000500_review_task_cancellation_recovery.sql",
-            "20261124000600_exclusive_branch_claim.sql",
+            "20261123000300_failure_reporting_retry",
+            "20261123000400_worker_task_routing_safe_release",
+            "20261124000100_task_dependency_eligibility",
+            "20261124000200_ai_initiative_lifecycle",
+            "20261124000300_task_worker_routing_safe_reassignment",
+            "20261124000400_problem_inbox",
+            "20261124000500_review_task_cancellation_recovery",
+            "20261124000600_exclusive_branch_claim",
         ]
         positions = [gate.find(name) for name in required_migrations]
         self.assertTrue(all(position >= 0 for position in positions))
         self.assertEqual(positions, sorted(positions))
-        self.assertIn("do not invoke any production task/initiative/problem-report write RPC", gate)
+        self.assertIn("If the database gate becomes closed or cannot be proven open, do not invoke `claim_task` or any task-lifecycle write RPC", gate)
         self.assertIn("Do not probe `claim_task`", gate)
         self.assertIn(
-            "Before any claim, evaluate the mandatory production claim-safety deployment gate",
+            "Before any claim, still verify the live migration registry and project-specific activation policy",
             session,
         )
 

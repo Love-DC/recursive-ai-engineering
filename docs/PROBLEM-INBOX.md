@@ -9,7 +9,7 @@ The problem inbox is the durable cross-session register for defects, blockers, r
 - GitHub remains authoritative for code, Issues, PRs, commits, and CI. Store links to those records in the report.
 - Do not leave a material finding only in a ChatGPT transcript, task description, or PR comment.
 
-The additive migration `20261124000400_problem_inbox.sql` is a candidate until merged, independently reviewed, and separately deployed. Do not claim the inbox is live until the migration is present in the deployed Supabase schema and the RPC smoke test passes.
+The additive migration `20261124000400_problem_inbox.sql` was applied to the shared production database on 2026-11-24 (live migration record `20261124112617`). Owner-scoped `list_problem_reports` read-only smoke testing passed. The inbox is live; use the RPC contract below.
 
 ## What to report
 
@@ -122,15 +122,16 @@ During execution:
 4. Update the report as work progresses and resolve only with verified evidence.
 5. If a session cannot finish, leave the report and task state truthful so another fresh session can continue.
 
-## Transitional fallback before deployment
+## Live intake and legacy fallback
 
-The transitional inbox fallback does not override the database-wide production claim-safety gate in `docs/SESSION-START.md`. That gate must be verified open before any task or execution lifecycle write in any project sharing the database. If the gate is closed or cannot be proven open, do not create, claim, reassign, requeue, cancel, review, heartbeat, submit, fail, complete, or otherwise mutate task/execution state. In that case, record material findings only as comments on the single temporary intake issue below and continue with read-only inspection/discovery and repository-only maintenance.
+As of 2026-11-24, `public.problem_reports` and its RPCs are deployed and verified in the shared production database. Use `report_problem`, `update_problem_report`, `list_problem_reports`, and `get_problem_report` as the durable cross-session intake and history.
 
-Until the migration is deployed, the `problem_reports` table and RPCs do not exist in production. In that interval:
+The temporary GitHub issue #42 is retained only as a historical migration record and must not receive new findings while the live inbox is available. Its production claim-safety blocker was migrated to report `7de343b9-999d-4024-9d84-f417211e6724` and resolved after the eight ordered migrations and read-only smoke checks passed.
 
-- Only after the production claim-safety gate is verified open, record bounded, authorized implementation work in the existing project-scoped task queue with evidence and a stable fingerprint. The target repository's own task-activation policy still applies.
-- Record all material findings (including Owner decisions) as comments on the single temporary intake issue: https://github.com/Love-DC/recursive-ai-engineering/issues/42. Include the project/repository, category, severity, exact evidence links, stable fingerprint, recommended action, and whether Owner input is required. Do not create parallel intake issues.
-- Do not claim cross-session Supabase inbox availability until the migration and RPCs are deployed and verified.
-- After deployment, migrate any still-open transitional records into the Supabase inbox and close the temporary intake issue with a pointer to the live query.
+Current unresolved records include:
+- Colony Sim active-session autonomy activation blocker: `0e5e40f3-f099-4810-a316-26f5f7e26e79`.
+- Initiative/Problem Inbox foreign-key index review opportunity: `5dc26ae9-b877-47ed-a2fc-1036ff6fbe8b`.
+
+Use Issue #42 only if the live Problem Inbox RPCs become unavailable or the database claim-safety gate is closed and cannot be verified. In that exceptional case, follow the no-write fallback rule: comments on the single temporary issue only; never bypass missing RPCs with direct table writes.
 
 This is session-driven coordination. No background daemon, external messaging integration, or automatic ChatGPT notification is implied.
