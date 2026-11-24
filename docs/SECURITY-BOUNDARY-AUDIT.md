@@ -1,6 +1,6 @@
 # Supabase Security Boundary Audit
 
-**Initial inspection date:** 2026-11-23 (historical baseline); **Live database/RPC/advisor refresh:** 2026-11-24 18:15 UTC (2026-11-25 JST)  
+**Initial inspection date:** 2026-11-23 (historical baseline); **Live database/RPC/advisor refresh:** 2026-11-24 18:17 UTC (2026-11-25 JST)  
 **Scope:** Read-only inspection of the live `recursive-ai-engineering` Supabase project and the default branch of this repository. No schema, grants, Auth settings, or deployment state were changed.
 
 ## Executive summary
@@ -9,7 +9,7 @@ The current shared-owner MCP pilot boundary is consistent with the documented op
 
 ## Verified database findings
 
-### Verified controls and live RPC/advisor refresh (2026-11-24 18:15 UTC)
+### Verified controls and live RPC/advisor refresh (2026-11-24 18:17 UTC)
 
 Read-only queries against the live Supabase project (`rgztxilqcfuclkekyojl`) verified the following:
 
@@ -22,14 +22,14 @@ Read-only queries against the live Supabase project (`rgztxilqcfuclkekyojl`) ver
 - The eight foundational claim-safety migrations are deployed, and PR #59's additional active-session guard is deployed as live migration version `20261124181019` (`active_session_autonomy_guard`). The deployed helper rejects paused projects; `claim_task` enforces the one-or-two execution cap only for projects explicitly configured as `active_session_autonomy`. Current 2026-11-25 configuration: RAE and Lambent have no activation mode or configured cap; Colony Sim remains `explicit_owner_authorization_only` with no configured cap. Thus deployment has not activated autonomous task claiming for any project. PR #60's submitted-task-reconciliation migration remains **not deployed**; see `docs/SESSION-START.md`.
 - GitHub source search on the default branch previously returned no matches for `SUPABASE_SERVICE_ROLE_KEY` or `service_role`. This remains a narrow source scan, not proof that no secret exists in history, Actions settings, external systems, or unindexed files.
 
-The Security Advisor at the same observation time reported **38** `authenticated_security_definer_function_executable` WARN findings, **8** `rls_enabled_no_policy` INFO findings (the five Initiative tables, two Problem Inbox tables, and `operation_requests`), and **1** `auth_leaked_password_protection` WARN finding. The 38 authenticated EXECUTE warnings are not an authorization test against independent Auth identities. Cross-project/cross-worker negative tests and Auth-provider review remain production-expansion gates.
+The Security Advisor observed at 2026-11-24 18:16:37 UTC reported **38** `authenticated_security_definer_function_executable` WARN findings, **8** `rls_enabled_no_policy` INFO findings (the five Initiative tables, two Problem Inbox tables, and `operation_requests`), and **1** `auth_leaked_password_protection` WARN finding. The 38 authenticated EXECUTE warnings are not an authorization test against independent Auth identities. Cross-project/cross-worker negative tests and Auth-provider review remain production-expansion gates.
 
 
 ### Findings and gates
 
 | Priority | Finding | Impact / required action |
 |---|---|---|
-| High before non-owner/public exposure | 38 current SECURITY DEFINER RPCs are executable by `authenticated`. | The 2026-11-24 18:15 UTC Supabase security advisor reports 38 warnings. Each function must be reviewed for authorization and data minimization under real non-owner JWTs; test cross-project and cross-worker IDOR cases. Do not solve this by blindly revoking all RPCs: the pilot intentionally relies on RPC access. |
+| High before non-owner/public exposure | 38 current SECURITY DEFINER RPCs are executable by `authenticated`. | The 2026-11-24 18:16 UTC Supabase security advisor reports 38 warnings. Each function must be reviewed for authorization and data minimization under real non-owner JWTs; test cross-project and cross-worker IDOR cases. Do not solve this by blindly revoking all RPCs: the pilot intentionally relies on RPC access. |
 | High before end-user Auth rollout | Leaked-password protection is disabled. | Enable and verify before accepting user-managed passwords. This does not block the current trusted owner-MCP pilot. |
 | Medium / defense in depth | `public.operation_requests` has RLS enabled but no policy. | This is currently fail-closed and client roles have no table privileges. Keep it private; add a narrowly scoped policy only if a documented client access path is introduced. |
 | Unverified | Auth provider, MFA, rate-limit, redirect URL, email/phone confirmation, and session settings were not available through the connected project/database inspection tools. | Review in the Supabase Auth dashboard before production exposure. No claim is made that these controls are enabled. |
@@ -54,7 +54,7 @@ Before any independent/non-owner client is admitted:
 ## Evidence and limitations
 
 - Live SQL inspected table RLS flags, policy expressions, client table privileges, public RPC ACLs, SECURITY DEFINER flags, and function search_path settings.
-- The 2026-11-23 and 2026-11-24 morning observations are historical baselines (20 and 22 authenticated SECURITY DEFINER warnings, respectively). The latest 2026-11-24 18:15 UTC refresh reported 8 `rls_enabled_no_policy` INFO findings, 38 `authenticated_security_definer_function_executable` WARN findings, and 1 `auth_leaked_password_protection` WARN finding.
+- The 2026-11-23 and 2026-11-24 morning observations are historical baselines (20 and 22 authenticated SECURITY DEFINER warnings, respectively). The latest 2026-11-24 18:16 UTC refresh reported 8 `rls_enabled_no_policy` INFO findings, 38 `authenticated_security_definer_function_executable` WARN findings, and 1 `auth_leaked_password_protection` WARN finding.
 - The advisor remediation references are the Supabase database linter rule 0008, rule 0029, and the Auth password security guide.
 - This was a read-only configuration/source audit. It did not attempt exploit tests, inspect provider-specific Auth settings, change grants, or deploy anything.
 
