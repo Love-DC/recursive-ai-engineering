@@ -21,9 +21,9 @@
     ],
     "rule_sets": [
       {
-        "id": "rae-execution-contract",
-        "path": "docs/WORKER-INSTRUCTIONS.md",
-        "priority": 90
+        "id": "rae-platform-security",
+        "path": "docs/SECURITY-BOUNDARY-AUDIT.md",
+        "priority": 100
       },
       {
         "id": "autonomous-task-activation-policy",
@@ -31,9 +31,9 @@
         "priority": 95
       },
       {
-        "id": "rae-platform-security",
-        "path": "docs/SECURITY-BOUNDARY-AUDIT.md",
-        "priority": 100
+        "id": "rae-execution-contract",
+        "path": "docs/WORKER-INSTRUCTIONS.md",
+        "priority": 90
       }
     ]
   },
