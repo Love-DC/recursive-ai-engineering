@@ -93,7 +93,7 @@ Do not, by default:
 - recursively expand all tree descendants;
 - replay conversation history or old session reports.
 
-The root attention list helps navigate durable knowledge and wake due context branches; it does not replace Supabase project/task discovery; Initiative lifecycle support remains gated on the separate review and deployment of PR #31 or determine the highest-priority executable task by itself. If the Owner supplies a specific objective, prioritize work relevant to it while still respecting the active project registry, task authorization, and project isolation. Otherwise, select suitable work from the shared project-scoped queues. If a queue has no eligible task, follow that project's authorized discovery policy.
+The root attention list helps navigate durable knowledge and wake due context branches; it does not replace Supabase project/task discovery or determine the highest-priority executable task by itself. Initiative lifecycle support remains gated on the separate review and deployment of PR #31. If the Owner supplies a specific objective, prioritize work relevant to it while still respecting the active project registry, task authorization, and project isolation. Otherwise, select suitable work from the shared project-scoped queues. If a queue has no eligible task, follow that project's authorized discovery policy.
 
 If the root index is missing, malformed, or stale, repair only that context index from authoritative repository evidence. Never reconstruct the active project registry or task queues from the tree; read them from Supabase.
 
