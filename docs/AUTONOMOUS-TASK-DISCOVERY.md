@@ -16,10 +16,17 @@ Run this loop at session start when no eligible task exists, and after completin
 2. **Inspect evidence.** Review configured project-state and architecture docs, recent relevant commits/PR/CI results, test coverage, TODO/FIXME markers with context, dependency/security reports where available, and read-only operational health. Inspect only sources allowed by project policy.
 3. **Form candidates.** Each candidate must name a concrete observed condition, exact evidence (file/line, commit, CI run, or query result), project impact, bounded proposed change, risk class, acceptance criteria, and validation plan. Do not create speculative tasks from vague preferences.
 4. **Classify authority.** Apply task activation and governance rules from the repository's manifest and referenced documents before creating anything. Never infer a permissive default. If the finding needs product, security, data, or production approval, record it as a proposal/report and stop at the decision gate.
-5. **Deduplicate.** Compare candidate fingerprint and affected scope against all non-terminal tasks and recent task events in that project. Reuse/update an existing task where supported; never create a second active task for the same root cause. A fingerprint should be stable across scans (project key + normalized issue signature + affected paths or failing check).
+5. **Deduplicate.** For direct executable tasks, compare the candidate fingerprint and affected scope against all non-terminal tasks and recent task events; reuse an existing task where found. Use a stable fingerprint across scans (project key + normalized issue signature + affected paths or failing check). Derive the idempotency key from the project and fingerprint only—not from scan, run, or session identity. This protects exact request retries, but task creation does not yet enforce atomic fingerprint uniqueness: two conversations can still race between the lookup and insert. Treat direct-task deduplication as best-effort and do not claim a cross-session no-duplicates guarantee. For durable proposals/goals, use `propose_initiative`, whose project-scoped fingerprint deduplication is atomic.
 6. **Control noise.** Create at most three new discovery tasks per project per scan, one per distinct root cause. Skip low-impact style-only churn, unsupported claims, already-fixed findings, and candidates without reproducible evidence. If no candidate passes, leave the queue empty and report what was inspected.
-7. **Publish.** For an eligible candidate, call the project's create_task using that project's UUID and its own active Worker UUID. Store discovery source, evidence references, fingerprint, risk/authority classification, impact, acceptance criteria, validation plan, and originating scan timestamp in requirements. Use an idempotency key derived from scan/candidate identity; never reuse a key for different arguments.
+7. **Publish.** For an eligible candidate, call the project's create_task using that project's UUID and its own active Worker UUID. Store discovery source, evidence references, fingerprint, risk/authority classification, impact, acceptance criteria, validation plan, and originating scan timestamp in requirements. Use an idempotency key derived from project + stable candidate fingerprint, not scan/session identity; never reuse a key for different arguments. Idempotency protects replay of the same request and is not a substitute for an atomic task-fingerprint uniqueness constraint.
 8. **Execute.** Newly created tasks are ordinary project-scoped tasks. Claim them only through claim_task; the atomic response is authoritative. Follow normal branch, test, PR, and evidence rules. Do not silently self-approve tasks that require review.
+
+## Cross-session deduplication guarantees and limits
+
+- **AI Initiative proposals:** `propose_initiative` uses a project-scoped fingerprint lock and uniqueness constraint. This is the atomic deduplication path for durable goals/proposals.
+- **Direct executable tasks:** discovery currently uses a read-before-create check plus the shared idempotency ledger. A stable project/fingerprint idempotency key makes identical request retries replay-safe, but there is no task-level unique fingerprint or atomic create-or-reuse RPC. Two conversations using different request keys can still race. Treat this path as best-effort only.
+- Do not represent a Worker row, a shared idempotency key, or a successful sequential test as proof of cross-session uniqueness.
+- A future task-level no-duplicate guarantee requires a project-scoped atomic create-or-reuse RPC/constraint and a deterministic two-connection race test before the guarantee can be enabled.
 
 ## Authority matrix
 
@@ -73,7 +80,8 @@ This contract makes discovery an explicit Worker responsibility during a live se
 
 - [ ] Empty queue causes a scoped discovery pass rather than immediate stop.
 - [ ] Candidate requires concrete evidence, impact, risk, acceptance criteria, and validation.
-- [ ] Duplicate active/recent root causes are suppressed using a stable project-scoped fingerprint.
+- [ ] Initiative proposal fingerprints are atomically deduplicated by `propose_initiative`.
+- [ ] Direct task fingerprint deduplication is explicitly best-effort until an atomic create-or-reuse RPC and two-session race test exist; no stronger guarantee is claimed.
 - [ ] Per-scan task creation is capped and low-value findings are skipped.
 - [ ] Project routing uses that project's own project UUID and Worker UUID.
 - [ ] The repository-local project activation policy gates task creation.
@@ -88,7 +96,8 @@ Run these cases against a disposable or transaction-rolled-back task fixture whe
 | Scenario | Input | Expected result |
 |---|---|---|
 | Evidence-backed RAE defect | A current failing RAE CI check with exact run URL, affected path, and reproducible failure | One bounded RAE task is created with evidence, acceptance criteria, validation, and a stable fingerprint |
-| Duplicate scan | Repeat the same finding with the same fingerprint while its task is non-terminal | No second active task is created; report the existing task ID |
+| Duplicate direct-task scan | Repeat the same finding with the same stable fingerprint/idempotency key while its task is non-terminal | Exact retries return the prior idempotent result; a separate concurrent create with a different key is not guaranteed to deduplicate until atomic create-or-reuse is implemented |
+| Duplicate initiative proposal | Publish the same initiative fingerprint concurrently | The atomic proposal RPC returns the existing initiative/learning record rather than creating another root |
 | Unsupported candidate | A vague TODO or speculative refactor with no demonstrated impact or validation | No task is created; finding is omitted or recorded as a proposal |
 | Approval-gated change | A candidate requires product, security, auth/RLS, data migration, or production approval | No executable task is created; report the specific owner decision required |
 | External backlog | An open Issue without the authorization required by that repository's governance | No task is created or claimed |
@@ -125,7 +134,7 @@ At the start of a session, for each active project:
 4. If blocked by a concrete missing capability/resource, first search connected integrations and repository evidence. Then call `request_initiative_support` with the exact capability, alternatives checked, rationale, what it unlocks, and requested resources. Do not create a claimable task for the blocked action.
 5. Wait for the Owner's persisted decision. `decide_initiative` must approve with a bounded acyclic work plan or reject. Approval creates the work-plan DAG, not claimable tasks. Call `advance_initiative` to materialize the initial ready wave.
 6. Execute materialized tasks through the existing task lifecycle. Do not bypass leases, review, or acceptance. A dependent work item is materialized only after all its predecessor tasks reach `accepted`.
-7. When `advance_initiative` returns `ready_to_close`, record a concise lesson and evidence with `record_initiative_learning`; that operation closes the initiative as `completed`. The learning fingerprint must match the proposal fingerprint and suppresses rediscovery of the same resolved root cause. Rejected or abandoned initiatives may also receive a terminal lesson. Use `abandon_initiative` when the Owner or valid project decision stops the initiative; it refuses to cancel work while tasks are running or submitted.
+7. When `advance_initiative` returns `ready_to_close`, record a concise lesson and evidence with `record_initiative_learning`; that operation closes the initiative as `completed`. The learning fingerprint must match the proposal fingerprint and suppresses rediscovery of the same resolved root cause. Rejected or abandoned initiatives cannot create fingerprint-suppressing learning in the current lifecycle; non-suppressing lessons for those outcomes require a separate model and are not yet implemented. Use `abandon_initiative` when the Owner or valid project decision stops the initiative; it refuses to cancel work while tasks are running or submitted.
 
 ### Candidate routing
 
