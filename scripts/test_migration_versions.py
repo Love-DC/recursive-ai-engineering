@@ -333,6 +333,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261125090000_owner_mcp_project_registration.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
+                Path("20261125120000_owner_mcp_problem_inbox_context.sql"),
             ]
         )
         self.assertTrue(any("dependency order" in error for error in errors))
