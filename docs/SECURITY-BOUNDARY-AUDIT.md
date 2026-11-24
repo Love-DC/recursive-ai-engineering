@@ -5,7 +5,7 @@
 
 ## Executive summary
 
-The shared-owner MCP pilot remains restricted to the already-authorized trusted `postgres` connection. Its transaction-scoped Owner context is deployed, and selected task/initiative RPC reads work in that context. The Problem Inbox listing RPC is a known exception: it still requires `auth.uid()` and rejects the non-JWT Owner-MCP context with `UNAUTHENTICATED`. This is **not** a production-readiness approval for independent users or public clients.
+The shared-owner MCP pilot remains restricted to the already-authorized trusted `postgres` connection. Its transaction-scoped Owner context is deployed, and selected task/initiative RPC reads work in that context. The Problem Inbox listing RPC is a known exception: it still requires `auth.uid()` and rejects the non-JWT Owner-MCP context with `UNAUTHENTICATED`; `get_problem_report` and `update_problem_report` also contain JWT-only row filters. Repository migration `20261125120000_owner_mcp_problem_inbox_context.sql` adds verified project-bound Owner-MCP authorization and isolated regression coverage, but it is not deployed. Until deployed and live-verified, these RPCs remain unavailable through the Owner-MCP connection. This is **not** a production-readiness approval for independent users or public clients.
 
 ## Verified database findings
 
