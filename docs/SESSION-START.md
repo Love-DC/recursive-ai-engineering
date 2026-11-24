@@ -60,6 +60,20 @@ See `docs/RECURSIVE-ENGINEERING-TREE.md` for node structure, lazy loading, compa
 - Do not change production schema/data, credentials, Auth/RLS/grants, or deploy production systems unless the work has the required explicit authorization.
 - Platform security, Owner authorization, project isolation, and repository-declared product/design approval gates are non-overridable.
 
+## Task-claim safety preflight
+
+Before calling `claim_task`, inspect the live function definition and verify that the exact route being used is enforced by the database:
+
+- Project isolation must bind the selected task/project to the same project-scoped Worker UUID.
+- Worker routing must reject a Worker whose key is not authorized for the task type or task-level `required_worker_key`.
+- A review task must be assigned to the selected `independent-reviewer` route; the reviewer route must not be able to claim implementation/fix work.
+- Explicit task dependencies must be checked for both new claims and expired-lease reclaim. A dependency-blocked task must remain pending rather than being failed/expired as a side effect.
+- Lease ownership and execution fencing must be enforced on completion and any release operation.
+
+If the live database does not enforce the needed route or dependency gate, do not call `claim_task` through that unsafe route. Leave affected work untouched, continue safe read-only investigation or unrelated work, and persist the concrete blocker. In particular, do not use the reviewer Worker UUID until exact review assignment and Worker-key routing are verified. Never update task/execution rows directly to simulate a claim or release.
+
+Before using an accidental-claim release, verify that the live database exposes and enforces the supported `release_execution` RPC. If it is absent, do not mutate task/execution rows directly; let the lease expire.
+
 ## Owner interaction boundary
 
 The Owner supplies initial goals, ideas, constraints, connected resources, and decisions reserved for the Owner. The AI participants organize routine work, task decomposition, implementation, testing, repair, review handoffs, and evidence. Ask only for a concrete decision, missing permission, or essential external resource that cannot be obtained from existing instructions or connected tools. Do not ask the Owner to manage routine coordination.
