@@ -16,6 +16,14 @@ BEGIN
     RAISE EXCEPTION 'FAIL: activation fixture project is missing';
   END IF;
 
+  IF has_function_privilege(
+       'anon','private.set_project_task_activation(uuid,text,integer)','EXECUTE'
+     ) OR has_function_privilege(
+       'authenticated','private.set_project_task_activation(uuid,text,integer)','EXECUTE'
+     ) THEN
+    RAISE EXCEPTION 'FAIL: private activation RPC is executable by anon/authenticated roles';
+  END IF;
+
   v_result := private.set_project_task_activation(
     v_project,'active_session_autonomy',2
   );
