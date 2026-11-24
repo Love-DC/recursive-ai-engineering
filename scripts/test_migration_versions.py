@@ -163,6 +163,20 @@ class MigrationVersionTests(unittest.TestCase):
         )
         self.assertTrue(any("dependency order" in e for e in errors))
 
+    def test_rejects_review_recovery_before_problem_inbox(self) -> None:
+        errors = validate_inventory(
+            [
+                Path("20261123000300_failure_reporting_retry.sql"),
+                Path("20261123000400_worker_task_routing_safe_release.sql"),
+                Path("20261124000100_task_dependency_eligibility.sql"),
+                Path("20261124000200_ai_initiative_lifecycle.sql"),
+                Path("20261124000300_task_worker_routing_safe_reassignment.sql"),
+                Path("20261124000400_review_task_cancellation_recovery.sql"),
+                Path("20261124000500_problem_inbox.sql"),
+            ]
+        )
+        self.assertTrue(any("dependency order" in e for e in errors))
+
     def test_allows_the_unversioned_schema_snapshot_only(self) -> None:
         errors = validate_inventory(
             [
