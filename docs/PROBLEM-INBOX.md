@@ -128,8 +128,6 @@ During execution:
 4. Update the report as work progresses and resolve only with verified evidence.
 5. If a session cannot finish, leave the report and task state truthful so another fresh session can continue.
 
-## Current unresolved reports — 2026-11-25
-
 ## Last recorded Problem Inbox digest — historical, not a live status view
 
 The following entries were recorded in the prior PR #67 snapshot on 2026-11-24/25. The Owner-MCP listing RPC has since been verified to fail with `UNAUTHENTICATED`; **none of these statuses or current report links have been re-read in this session**. Preserve these IDs as historical references only. Do not infer that a report is still open, in progress, resolved, or actionable from this list.
