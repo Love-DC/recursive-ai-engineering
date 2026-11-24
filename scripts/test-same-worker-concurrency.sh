@@ -231,9 +231,9 @@ if [[ "$single_claimable_count" != "1" || "$single_claimable_id" != "$single_tas
 fi
 
 rm -f "$tmp/ready-a" "$tmp/ready-b" "$tmp/go"
-claim_session a &
+claim_session a single-task &
 pid_a=$!
-claim_session b &
+claim_session b single-task &
 pid_b=$!
 while [[ ! -f "$tmp/ready-a" || ! -f "$tmp/ready-b" ]]; do sleep 0.02; done
 touch "$tmp/go"
