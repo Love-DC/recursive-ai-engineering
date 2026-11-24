@@ -55,6 +55,7 @@ BEGIN
   IF v_claim->'data'->>'task_id' IS DISTINCT FROM v_independent_id::text THEN
     RAISE EXCEPTION 'FAIL: dependency-blocked higher-priority task prevented independent claim: %',v_claim;
   END IF;
+  v_execution_id := (v_claim->'data'->>'execution_id')::uuid;
   IF NOT EXISTS (
     SELECT 1 FROM jsonb_array_elements(v_claim->'data'->'dependency_blockers') b
     WHERE b->>'task_id'=v_task_id::text
@@ -89,7 +90,7 @@ BEGIN
   END IF;
 
   PERFORM public.complete_execution(
-    v_independent_id,(v_claim->'data'->>'execution_id')::uuid,v_worker,
+    v_independent_id,v_execution_id,v_worker,
     '{"summary":"independent work completed while another task remained dependency-blocked"}'::jsonb,
     'dependency-independent-complete-'||gen_random_uuid()::text
   );
