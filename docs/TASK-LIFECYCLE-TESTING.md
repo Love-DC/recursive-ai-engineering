@@ -113,3 +113,44 @@ The PostgreSQL workflow also runs `scripts/test-same-worker-concurrency.sh`. It 
 - Both winning executions can be completed using the shared Worker route.
 
 This is separate from the distinct-Worker claim race. Passing both tests demonstrates task-level concurrency without introducing per-session Worker identities; it does not prove that ChatGPT conversations can be launched automatically.
+
+
+## Project-scoped task integrity monitoring and destructive-operation audit
+
+The migration `supabase/migrations/20261125140000_task_integrity_monitor_and_audit.sql` adds:
+
+- `private.task_integrity_findings(project_id)`: a read-only, project-scoped scan of task parent/fix/Worker references, task prerequisites declared as `requirements.dependencies` entries of type `task`, execution/task and Worker references, current/latest delivery/review pointers, task-event relationships, and artifact task/execution relationships. It returns only missing or cross-project reference metadata. An empty result means no findings for the selected project's scanned relationships; it is not a proof against unrelated application-level invariants such as dependency cycles.
+- `private.task_destructive_audit`: a private metadata-only, append-only record of committed row `DELETE` operations and statement `TRUNCATE` operations on `public.tasks` and `public.executions`. It has no foreign keys back to mutable project/task/execution rows, so records survive parent/project cascades. Transaction rollback also rolls back corresponding audit rows.
+
+### Run a read-only integrity scan
+
+Use the trusted PostgreSQL MCP session. The RAE context binds the session to exactly one active project and writes its normal system-actor context audit record; the script rolls that context record back after the read-only scan:
+
+```sh
+psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 \
+  -v project_id="$SUPABASE_PROJECT_ID" \
+  -f scripts/check-task-integrity.sql
+```
+
+Or run the equivalent transaction manually:
+
+```sql
+BEGIN;
+SELECT private.begin_rae_system_context('<PROJECT_UUID>'::uuid);
+SELECT *
+FROM private.task_integrity_findings('<PROJECT_UUID>'::uuid)
+ORDER BY source_relation, row_id, reference_name;
+ROLLBACK;
+```
+
+The function requires an authorized project Owner/System Owner context and cannot be executed by `anon` or `authenticated`. Findings contain the relation, row ID, reference name, referenced UUID, and source/target project IDs. Do not reconstruct or delete rows automatically from scan results; first verify authoritative GitHub/Supabase evidence and create a separately authorized repair task.
+
+### Destructive-operation audit semantics and limits
+
+- Row `DELETE` triggers record the minimal task/execution identifiers and status/attempt metadata. Cascaded execution deletes are logged separately.
+- Statement `TRUNCATE` triggers record the affected relation and transaction/session actor context; a TRUNCATE does not expose individual deleted row IDs to a statement-level trigger.
+- Audit records contain no task descriptions, task/execution result JSON, error text, JWT, credential, or raw SQL. The table is RLS-enabled/forced, has no client-role grants, and rejects normal UPDATE/DELETE/TRUNCATE mutation.
+- Audit insertion occurs in the same transaction as the destructive operation. A rolled-back DELETE/TRUNCATE leaves no committed audit entry.
+- This trigger-based audit is not tamper-proof against a PostgreSQL superuser: a superuser can alter/disable triggers or change the database schema. Platform-level statement auditing (for example, an appropriately configured `pgaudit`/PostgreSQL log sink) is required to cover trigger bypasses and failed destructive statements. The migration does not install extensions, change platform logging, expand DELETE grants, or alter production configuration.
+
+The PostgreSQL 17 integration workflow applies the migration only to its disposable service database, then runs `tests/task-integrity-audit-tests.sql` to validate clean scans, synthetic missing/cross-project edge detection, cascaded DELETE auditing, TRUNCATE auditing, audit privacy/append-only controls, and transaction rollback. This CI test is not a production deployment.
