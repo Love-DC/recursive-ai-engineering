@@ -127,5 +127,48 @@ class RepositoryGovernanceTests(unittest.TestCase):
             self.load(root)
 
 
+    def test_production_claim_safety_gate_is_fail_closed_across_session_contracts(self):
+        root = Path(__file__).resolve().parent.parent
+        session = (root / "docs/SESSION-START.md").read_text(encoding="utf-8")
+        worker = (root / "docs/WORKER-INSTRUCTIONS.md").read_text(encoding="utf-8")
+        discovery = (root / "docs/AUTONOMOUS-TASK-DISCOVERY.md").read_text(encoding="utf-8")
+
+        gate_start = session.find("## Mandatory production claim-safety deployment gate")
+        self.assertGreaterEqual(gate_start, 0)
+        gate_end = session.find("## Autonomous discovery", gate_start)
+        self.assertGreater(gate_end, gate_start)
+        gate = session[gate_start:gate_end]
+
+        required_migrations = [
+            "20261123000300_failure_reporting_retry.sql",
+            "20261123000400_worker_task_routing_safe_release.sql",
+            "20261124000100_task_dependency_eligibility.sql",
+            "20261124000200_ai_initiative_lifecycle.sql",
+            "20261124000300_task_worker_routing_safe_reassignment.sql",
+            "20261124000400_problem_inbox.sql",
+            "20261124000500_review_task_cancellation_recovery.sql",
+            "20261124000600_exclusive_branch_claim.sql",
+        ]
+        positions = [gate.find(name) for name in required_migrations]
+        self.assertTrue(all(position >= 0 for position in positions))
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("do not invoke any production task/initiative/problem-report write RPC", gate)
+        self.assertIn("Do not probe `claim_task`", gate)
+        self.assertIn(
+            "Before any claim, evaluate the mandatory production claim-safety deployment gate",
+            session,
+        )
+
+        self.assertIn("Mandatory production claim-safety gate", worker)
+        self.assertIn("Do not call `claim_task`", worker)
+        self.assertIn(
+            "only after the mandatory production claim-safety gate in `docs/SESSION-START.md`",
+            worker,
+        )
+        self.assertIn("## Production task-pool write gate", discovery)
+        self.assertIn("Do not call `create_task`, `claim_task`", discovery)
+        self.assertIn("keep all Supabase task state unchanged", discovery)
+
+
 if __name__ == "__main__":
     unittest.main()
