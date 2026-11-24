@@ -25,34 +25,39 @@ No per-session project selection or task objective is required when work is alre
 
 ## Mandatory production claim-safety deployment gate
 
-This gate is evaluated **per Supabase database**, before any task claim or task-lifecycle write. All RAE projects registered against the same database share the gate; a project-specific Worker route does not bypass it.
+This gate is evaluated **per Supabase database**, before any task claim or task-lifecycle write. All RAE projects registered against the same database share the gate; project-specific activation policy still applies after the database gate passes.
 
-**Verified live baseline on 2026-11-24: CLOSED.** The shared production database's migration history ends at `20261122221942`. None of the eight merged RAE safety/lifecycle migrations below is applied. The deployed `public.claim_task(uuid,uuid,integer,text)` lacks task-type route enforcement, dependency eligibility checks, and repository/branch exclusion. The Problem Inbox and Initiative tables/RPCs are also absent. Treat this state as closed until a fresh read-only check proves otherwise; do not rely on this dated snapshot as current evidence.
+**Live production gate: OPEN — verified 2026-11-24 11:26 UTC** for Supabase project `rgztxilqcfuclkekyojl`.
 
-Required ordered migration set:
+The eight required migrations were applied in dependency order. Supabase generated the live migration versions below while preserving the repository migration filename as each record's name:
 
-1. `20261123000300_failure_reporting_retry.sql`
-2. `20261123000400_worker_task_routing_safe_release.sql`
-3. `20261124000100_task_dependency_eligibility.sql`
-4. `20261124000200_ai_initiative_lifecycle.sql`
-5. `20261124000300_task_worker_routing_safe_reassignment.sql`
-6. `20261124000400_problem_inbox.sql`
-7. `20261124000500_review_task_cancellation_recovery.sql`
-8. `20261124000600_exclusive_branch_claim.sql`
+- `20261124112550 -> 20261123000300_failure_reporting_retry`
+- `20261124112600 -> 20261123000400_worker_task_routing_safe_release`
+- `20261124112606 -> 20261124000100_task_dependency_eligibility`
+- `20261124112609 -> 20261124000200_ai_initiative_lifecycle`
+- `20261124112613 -> 20261124000300_task_worker_routing_safe_reassignment`
+- `20261124112617 -> 20261124000400_problem_inbox`
+- `20261124112624 -> 20261124000500_review_task_cancellation_recovery`
+- `20261124112627 -> 20261124000600_exclusive_branch_claim`
 
-Until the gate is open, **do not invoke any production task/initiative/problem-report write RPC** in any project sharing the affected database. This includes `claim_task`, task create/reassign/requeue/cancel/review RPCs, execution heartbeat/submit/fail/complete RPCs, and Initiative or Problem Inbox mutation RPCs. Continue read-only project/Worker/queue/task/execution inspection, repository governance discovery, GitHub review, and repository-only maintenance. Record material findings on the single temporary Problem Inbox intake issue (`docs/PROBLEM-INBOX.md`, Issue #42). Do not create or claim work merely to test the gate.
+Live verification completed:
 
-Do not probe `claim_task` with a dummy task, invalid Worker, or replay key: the currently deployed function can expire or fail stale executions before it selects a task, so even an unsuccessful probe can mutate production state.
+- `public.claim_task(uuid,uuid,integer,text)` is deployed with project/Worker actor validation, task-type Worker routing, dependency eligibility checks, bounded lease/retry handling, and atomic project/repository/branch exclusion.
+- The reassignment and review recovery RPCs, Initiative RPCs/tables, and Problem Inbox RPCs/tables are present.
+- All 14 public application tables have RLS enabled. `anon` has no table privileges. The six core owner-readable tables retain authenticated SELECT only; the eight RLS/no-policy tables (`operation_requests`, five Initiative tables, and two Problem Inbox tables) have no direct `anon` or `authenticated` table privileges. Access is through owner-scoped RPCs.
+- Owner-scoped read-only smoke checks passed for `list_tasks`, `list_initiatives`, and `list_problem_reports`.
+- All 38 public functions are SECURITY DEFINER with the fixed `search_path=pg_catalog, public, auth, private`; `anon` has zero EXECUTE grants and `authenticated` has 38. This is the trusted owner-MCP RPC model, not approval for independent/non-owner clients.
+- No synthetic claim, dummy Worker, or task/execution lifecycle mutation was used to test the production gate.
 
-The gate may open only after all of the following have been verified and durably recorded:
+The historical gate-closed finding is recorded and resolved in the live Problem Inbox (report `7de343b9-999d-4024-9d84-f417211e6724`). New unresolved findings are recorded there; Issue #42 is no longer the active intake path.
 
-- The separately authorized rollout applied **all eight versions above in order** to the exact shared database; verify the live migration registry rather than GitHub files or CI alone.
-- Read-only inspection of the deployed function definitions confirms project and active-Worker isolation; task-type/default-Worker routing with malformed explicit routes failing closed; internal/external dependency eligibility; execution/lease fencing and bounded retry; safe pending-only reassignment and correct review routing/recovery; and atomic project/repository/normalized-branch exclusion.
-- The exact merged migration chain passes its repository PostgreSQL integration workflows on the tested commit, including the routing, dependency, reassignment, review-recovery, execution-fencing and two-connection branch-collision cases.
-- Read-only live checks confirm the expected tables/RPCs are present, project/Worker mappings remain project-scoped, and safe owner-scoped read RPCs work. Do not run synthetic task claims or destructive lifecycle tests against production to prove behavior; exercise mutation/race behavior in the isolated PostgreSQL fixture.
-- Record the applied versions, live function-definition evidence, exact CI commit/run IDs and read-only smoke-test results in the temporary Problem Inbox issue. Keep the gate closed if any check is missing, stale, contradictory or failed.
+**Important: the database gate does not override a project's own task activation policy.** Colony Sim remains `explicit_owner_authorization_only` until its bounded active-session policy, database concurrency cap, pause kill switch, exact-head CI, and project configuration are all verified. The active-session guard migration `20261124000700_active_session_autonomy_guard.sql` is being developed separately and is not deployed.
 
-The production migration rollout is a separate high-impact operation and is **not authorized by repository code merge, CI success, or this startup contract**. Do not deploy it without the required separate authorization.
+Before any claim, still verify the live migration registry and project-specific activation policy. If the database gate becomes closed or cannot be proven open, do not invoke `claim_task` or any task-lifecycle write RPC in any project sharing the database. Continue read-only inspection, repository governance discovery, GitHub review, and repository-only maintenance.
+
+Do not probe `claim_task` with a dummy task, invalid Worker, or replay key. Claims are real state transitions and must only be made for an eligible task in an authorized project.
+
+Future production schema changes remain separate high-impact operations and require their own explicit authorization. The authorization for the eight-migration rollout above is not standing authorization for later production DDL.
 
 ## Autonomous discovery
 
