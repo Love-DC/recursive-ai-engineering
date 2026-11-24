@@ -38,7 +38,7 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 
 ## Mandatory production claim-safety gate
 
-Before any task-pool write, follow the database-wide gate in `docs/SESSION-START.md`. The live RAE database also contains the deployed PR #66 repository-authoritative guard (`20261124192533`), trusted Owner-MCP execution context (`20261124200149`), and Owner-MCP project registration (`20261124202438`). The database-wide migration gate is open, but this RAE project's own `autonomy.paused=true` switch blocks new RAE task creation and claims. See SESSION-START for the current live state and supported RPC boundaries.
+Before any task-pool write, follow the database-wide gate in `docs/SESSION-START.md`. The live RAE database also contains the deployed PR #66 repository-authoritative guard (`20261124192533`), trusted Owner-MCP execution context (`20261124200149`), and Owner-MCP project registration (`20261124202438`). The database-wide migration gate is open, and this RAE project's live `autonomy.paused=false` switch permits RAE task creation/claims when repository policy, worker routing and all other gates pass. See SESSION-START for the current live state and supported RPC boundaries.
 
 This is a dated snapshot, not a permanent permission. Re-check the live migration registry, RPC definitions, project/Worker mapping, and selected project's activation policy at each session start. Use only the correct project UUID and that project's active Worker ID. Claim only real eligible work through the atomic `claim_task` RPC, only after the mandatory production claim-safety gate in `docs/SESSION-START.md` has been re-verified open; never use a dummy claim or failed probe to test health.
 
@@ -73,11 +73,11 @@ If any live check is closed, stale, contradictory, or unavailable, Do not call `
 
 ## Supabase MCP execution context
 
-The existing authorized Supabase MCP database-management connection is the trusted Owner-MCP channel for this single-owner pilot. Its SQL connection runs as `postgres` and does not carry a Supabase Auth JWT (`auth.uid()` is null). Do **not** manufacture a JWT by setting `request.jwt.claim.sub`; that is not authentication and is not the supported Owner-MCP path.
+The existing authorized Supabase MCP database-management connection is the trusted PostgreSQL `postgres` transport for this single-owner pilot. It does not carry a Supabase Auth JWT (`auth.uid()` is null). Routine RAE engineering binds the private `rae-core` system principal through `private.begin_rae_system_context(project_id)`; the separate human Owner-MCP context is used only for explicit human decisions/controls. Do **not** manufacture a JWT by setting `request.jwt.claim.sub`; that is not authentication and is not a supported context.
 
 The deployed trusted Owner-MCP execution-context migration is `20261124200149`; project registration is `20261124202438`. The Problem Inbox compatibility migration is deployed as `20261124220548`, and the RAE System Owner migration as `20261124220606`. The active private `rae-core` principal uses `private.begin_rae_system_context(project_id)` for ordinary engineering and Problem Inbox operations. Live list/get/update RPC checks succeeded in that context while `auth.uid()` remained NULL; no synthetic JWT is used. The legacy `private.begin_owner_mcp_context(project_id, owner_id)` is reserved for explicit human Owner decisions and operational controls.
 
-Use the same transaction for context initialization and protected RAE engineering RPC calls:Use the same transaction for context initialization and the protected RPC calls:
+Use the same transaction for context initialization and protected RAE engineering RPC calls:
 
 ```sql
 BEGIN;
