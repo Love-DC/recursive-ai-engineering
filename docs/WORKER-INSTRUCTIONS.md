@@ -44,7 +44,7 @@ This is a dated snapshot, not a permanent permission. Re-check the live migratio
 
 The PR #66 repository-authoritative guard is deployed as migration `20261124192533`. The legacy `projects.config.task_activation` key and owner setter have been removed. Every task creation/claim path now requires a valid `autonomy.paused=false` and `autonomy.max_active_executions` between one and two.
 
-The live 2026-11-25 project controls were rechecked: Colony Sim and Hexa Game Kernel are unpaused with a two-execution cap; RAE and Lambent remain paused with the same cap. Colony Sim's repository-local `AUTONOMY_POLICY.md` authorizes bounded active-session engineering tasks and already-approved designs. Do not change gameplay, balance, design, map, UX, or player experience.
+The live 2026-11-25 project controls were rechecked: RAE, Colony Sim and Hexa Game Kernel are unpaused with a two-execution cap; Lambent remains paused with the same cap. All four registered projects have no legacy `config.task_activation` key. RAE's repository-local `active_session_autonomy` policy authorizes bounded active-session engineering tasks. Colony Sim's repository-local `AUTONOMY_POLICY.md` authorizes its own bounded engineering scope. Do not change gameplay, balance, design, map, UX, or player experience.
 
 PR #60's `public.reconcile_submitted_task` is deployed and available, subject to its owner authorization, evidence, and state-fencing rules. It does not authorize direct edits to historical task or execution rows.
 
@@ -75,9 +75,9 @@ If any live check is closed, stale, contradictory, or unavailable, Do not call `
 
 The existing authorized Supabase MCP database-management connection is the trusted Owner-MCP channel for this single-owner pilot. Its SQL connection runs as `postgres` and does not carry a Supabase Auth JWT (`auth.uid()` is null). Do **not** manufacture a JWT by setting `request.jwt.claim.sub`; that is not authentication and is not the supported Owner-MCP path.
 
-The deployed RAE migration `20261124200149_trusted_owner_mcp_execution_context` provides the private, transaction-scoped entry point `private.begin_owner_mcp_context(project_id, owner_id)`. It accepts only the original `postgres` database session, verifies that the supplied Owner UUID exactly matches the selected project's live `public.projects.owner_id`, and records an audit row. The context binds to one project and automatically clears on COMMIT or ROLLBACK. Migration `20261124202438_owner_mcp_project_registration` is also present. The Owner-MCP context does not imply that every owner-protected RPC supports it: `public.list_problem_reports` still returns `UNAUTHENTICATED`, and `get_problem_report`/`update_problem_report` contain JWT-only row filters. The repository migration `20261125120000_owner_mcp_problem_inbox_context.sql` adds a project-bound Owner-MCP path with isolated regression coverage, but it is not deployed to production.
+The deployed trusted Owner-MCP execution-context migration is `20261124200149`; project registration is `20261124202438`. The Problem Inbox compatibility migration is deployed as `20261124220548`, and the RAE System Owner migration as `20261124220606`. The active private `rae-core` principal uses `private.begin_rae_system_context(project_id)` for ordinary engineering and Problem Inbox operations. Live list/get/update RPC checks succeeded in that context while `auth.uid()` remained NULL; no synthetic JWT is used. The legacy `private.begin_owner_mcp_context(project_id, owner_id)` is reserved for explicit human Owner decisions and operational controls.
 
-Use the same transaction for context initialization and the protected RPC calls:
+Use the same transaction for context initialization and protected RAE engineering RPC calls:Use the same transaction for context initialization and the protected RPC calls:
 
 ```sql
 BEGIN;
@@ -106,12 +106,11 @@ For a task claim, call `claim_task(project_id, that_project_worker_id, lease_sec
 
 The helper does not create a Worker session identity, set `auth.uid()`, change public PostgREST/JWT authentication, grant private-schema access to `anon` or `authenticated`, or bypass project routing, activation pause, dependencies, branch exclusion, execution leases, retry limits, or the two-execution cap. Ordinary JWT-authenticated callers continue to use the existing `auth.uid()` owner/Worker checks. Never expose the database admin connection or this private helper to external clients.
 
-### RAE system Owner transition
+### RAE system Owner — deployed and live-verified 2026-11-25
 
-The repository contains migration `20261125130000_rae_system_owner_authority.sql` and isolated CI coverage for the RAE system principal. **It is not deployed to the shared production Supabase database.** Until the live migration registry and system-context RPCs are rechecked after a separately authorized deployment, continue to use `private.begin_owner_mcp_context(project_id, owner_id)` as shown above.
+The private `rae-core` principal is active. Routine RAE engineering sessions must bind `private.begin_rae_system_context(project_id)` in the same transaction as their project-scoped RPCs. The Problem Inbox list/get/update RPCs work under this context and preserve project isolation and the JWT Owner path. Both migrations and live behavior are recorded in [RAE System Owner](RAE-SYSTEM-OWNER.md).
 
-After verified deployment, RAE's routine engineering operations should use `private.begin_rae_system_context(project_id)` in a project-bound transaction; no Auth user, JWT, second human account, or per-session Worker is created. `projects.owner_id` remains the human product-owner reference. Initiative decisions, resource approvals, project pause/kill-switch changes, and Worker-to-Auth identity binding remain human-authorized. See [RAE System Owner](RAE-SYSTEM-OWNER.md).
-
+`projects.owner_id` remains the human product-owner reference. Initiative decisions, resource approvals, project pause/kill-switch changes, and Worker-to-Auth identity binding remain human-authorized. A live negative test confirmed that `rae-core` cannot call `private.set_project_execution_controls`; the database returns `HUMAN_OWNER_DECISION_REQUIRED`. RAE was enabled with `autonomy.paused=false`, cap 2, only through the human Owner-MCP path after explicit Owner instruction. The System Owner cannot alter this setting.
 ## Boundaries
 
 - Do not add Worker identity systems, session tracking, heartbeat monitoring, multi-account provisioning, or complex orchestration.
