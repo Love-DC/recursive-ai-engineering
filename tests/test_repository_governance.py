@@ -1,5 +1,4 @@
 import json
-import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,7 +16,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
         for name in ("AGENTS.md", "docs/AI_START.md", "docs/WORKFLOW.md"):
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("repository rule\\n", encoding="utf-8")
+            path.write_text("repository rule\n", encoding="utf-8")
         value = manifest or {
             "protocol": "rae.repository-governance",
             "protocol_version": "1.0.0",
@@ -151,14 +150,19 @@ class RepositoryGovernanceTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         for event in ("pull_request", "push"):
-            section_match = re.search(
-                rf"(?ms)^  {event}:\\n(.*?)(?=^  [A-Za-z_-]+:\\n|^permissions:)",
-                workflow,
-            )
-            self.assertIsNotNone(section_match, f"Missing {event} event")
-            triggers = set(
-                re.findall(r'^[ \\t]+- "([^"]+)"$', section_match.group(1), re.M)
-            )
+            event_start = workflow.index(f"  {event}:") + len(f"  {event}:")
+            if event == "pull_request":
+                event_end = workflow.index("  push:", event_start)
+            else:
+                event_end = workflow.index("permissions:", event_start)
+            event_body = workflow[event_start:event_end]
+            self.assertIn("    paths:", event_body)
+            paths_body = event_body.split("    paths:", 1)[1]
+            triggers = {
+                line.strip()[3:-1]
+                for line in paths_body.splitlines()
+                if line.strip().startswith('- "') and line.strip().endswith('"')
+            }
             self.assertTrue(
                 required_triggers <= triggers,
                 f"{event} path filters omit: {sorted(required_triggers - triggers)}",
