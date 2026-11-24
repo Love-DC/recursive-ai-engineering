@@ -135,7 +135,7 @@ BEGIN
   PERFORM set_config('request.jwt.claim.sub',v_owner::text,true);
   BEGIN
     PERFORM private.set_project_execution_controls(v_other_project,false,2);
-    RAISE EXCEPTION 'FAIL: owner changed another owner's project';
+    RAISE EXCEPTION 'FAIL: owner changed another owner''s project';
   EXCEPTION WHEN SQLSTATE '42501' THEN
     IF SQLERRM <> 'PROJECT_FORBIDDEN' THEN RAISE; END IF;
   END;
