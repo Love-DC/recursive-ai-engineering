@@ -106,6 +106,12 @@ For a task claim, call `claim_task(project_id, that_project_worker_id, lease_sec
 
 The helper does not create a Worker session identity, set `auth.uid()`, change public PostgREST/JWT authentication, grant private-schema access to `anon` or `authenticated`, or bypass project routing, activation pause, dependencies, branch exclusion, execution leases, retry limits, or the two-execution cap. Ordinary JWT-authenticated callers continue to use the existing `auth.uid()` owner/Worker checks. Never expose the database admin connection or this private helper to external clients.
 
+### RAE system Owner transition
+
+The repository contains migration `20261125130000_rae_system_owner_authority.sql` and isolated CI coverage for the RAE system principal. **It is not deployed to the shared production Supabase database.** Until the live migration registry and system-context RPCs are rechecked after a separately authorized deployment, continue to use `private.begin_owner_mcp_context(project_id, owner_id)` as shown above.
+
+After verified deployment, RAE's routine engineering operations should use `private.begin_rae_system_context(project_id)` in a project-bound transaction; no Auth user, JWT, second human account, or per-session Worker is created. `projects.owner_id` remains the human product-owner reference. Initiative decisions, resource approvals, project pause/kill-switch changes, and Worker-to-Auth identity binding remain human-authorized. See [RAE System Owner](RAE-SYSTEM-OWNER.md).
+
 ## Boundaries
 
 - Do not add Worker identity systems, session tracking, heartbeat monitoring, multi-account provisioning, or complex orchestration.

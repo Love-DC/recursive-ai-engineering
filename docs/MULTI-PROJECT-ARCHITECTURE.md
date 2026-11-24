@@ -17,6 +17,10 @@ Turn Recursive AI Engineering (RAE) into a multi-project task execution platform
 
 RAE does not absorb or replace a project's repository, issue tracker, governance, tests, or approval process. It coordinates execution across repositories.
 
+### Engineering-system Owner versus human product Owner
+
+RAE is the engineering-system Owner of registered projects. The existing `public.projects.owner_id` remains the human product-owner / decision-authority reference and continues to support existing Auth/RLS reads; it is not the RAE system identity. The private `rae-core` principal and its project-bound transaction context authorize routine engineering RPCs without creating an Auth user or per-session Worker. Product/gameplay decisions, Initiative approvals, resource/support approvals, and pause/kill-switch changes remain human-authorized. See [RAE System Owner](RAE-SYSTEM-OWNER.md) for implementation and deployment status.
+
 ## Existing database model
 
 The current schema already scopes `projects`, `workers`, `tasks`, `executions`, `artifacts`, `task_events`, and `operation_requests` by `project_id`. The task lifecycle RPCs accept a project ID and worker ID. Multi-project onboarding therefore uses the existing project boundary rather than introducing a second task system or duplicating task tables.
