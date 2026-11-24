@@ -603,6 +603,17 @@ BEGIN
   END IF;
   v_rejected := false;
   BEGIN
+    PERFORM public.list_problem_reports('unresolved', NULL, 200);
+    RAISE EXCEPTION 'FAIL: authenticated role listed reports by forging Owner-MCP GUCs';
+  EXCEPTION WHEN SQLSTATE '28000' THEN
+    IF SQLERRM <> 'UNAUTHENTICATED' THEN RAISE; END IF;
+    v_rejected := true;
+  END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'FAIL: forged Owner-MCP context exposed the report digest';
+  END IF;
+  v_rejected := false;
+  BEGIN
     PERFORM public.get_problem_report('00000000-0000-4000-8000-000000000013'::uuid);
     RAISE EXCEPTION 'FAIL: authenticated role read a report by forging Owner-MCP GUCs';
   EXCEPTION WHEN SQLSTATE 'P0002' THEN
