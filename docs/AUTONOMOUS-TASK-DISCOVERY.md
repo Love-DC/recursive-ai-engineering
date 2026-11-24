@@ -8,6 +8,12 @@ A Worker must not treat an empty queue as the end of useful work. It should insp
 
 Autonomy means initiative within a declared project boundary—not authority to make product decisions, bypass risk gates, deploy production systems, or turn arbitrary backlog into permission. The AI coordinator is authorized to independently review and merge eligible engineering PRs under the project's review checklist; leaf Workers hand off PRs and do not merge their own work.
 
+## RAE repository-local activation policy
+
+**RAE policy mode: `active_session_autonomy`.** This policy is owned by this repository and this document is a manifest-required governance rule. The Coordinator may autonomously discover, create, claim, execute, verify, review, repair, and complete eligible engineering tasks when the shared database migration gate is open and the project's operational controls permit it. This does not create a background scheduler; active AI sessions must run the workflow.
+
+Supabase is not the source of project activation policy. No `projects.config.task_activation` key may be used. Supabase stores only operational controls: `autonomy.paused` (fail-closed kill switch) and `autonomy.max_active_executions` (bounded concurrency cap). A project's own manifest-referenced policy file determines whether autonomous task creation/claiming is authorized. External projects must be evaluated against their own repository-local governance, never inferred from Supabase config.
+
 ## Production task-pool write gate
 
 Autonomous discovery and repository inspection remain subject to the database-wide production claim-safety gate in `docs/SESSION-START.md`. **Live state rechecked on 2026-11-25: OPEN** for the shared Supabase project `rgztxilqcfuclkekyojl`.

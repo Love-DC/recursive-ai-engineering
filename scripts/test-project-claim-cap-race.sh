@@ -31,6 +31,18 @@ if [[ "$claimable_count" != "0" ]]; then
   exit 2
 fi
 
+# Configure only the disposable fixture's operational controls. Repository policy is not stored in Supabase.
+psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
+BEGIN;
+SELECT set_config('request.jwt.claim.sub','$SUPABASE_OWNER_ID',true);
+UPDATE public.projects
+SET config=(coalesce(config,'{}'::jsonb)-'task_activation')
+  || jsonb_build_object('autonomy',coalesce(config->'autonomy','{}'::jsonb)
+    || jsonb_build_object('paused',false,'max_active_executions',2))
+WHERE id='$CAP_TEST_PROJECT_ID';
+COMMIT;
+SQL
+
 create_task() {
   local label="$1"
   psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
@@ -159,7 +171,7 @@ complete_task "$after_id" "$after_exec"
 # The database pause switch blocks both new autonomous task creation and claims.
 psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
 UPDATE public.projects
-SET config=jsonb_set(config,'{task_activation}','"paused"'::jsonb,true)
+SET config=jsonb_set(config,'{autonomy,paused}','true'::jsonb,true)
 WHERE id='$CAP_TEST_PROJECT_ID';
 SQL
 
