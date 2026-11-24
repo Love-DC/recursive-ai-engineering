@@ -297,7 +297,8 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124000500_review_task_cancellation_recovery.sql"),
                 Path("20261124000600_exclusive_branch_claim.sql"),
                 Path("20261124000700_active_session_autonomy_guard.sql"),
-                Path("20261124170000_owner_scoped_project_activation.sql"),
+                Path("20261124181237_owner_scoped_project_activation.sql"),
+                Path("20261124183843_repository_authoritative_activation_guard.sql"),
                 Path("20261124172155_submitted_task_reconciliation.sql"),
             ]
         )
