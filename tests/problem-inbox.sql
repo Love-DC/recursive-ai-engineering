@@ -25,6 +25,8 @@ DECLARE
   v_report_id uuid;
   v_owner_report jsonb;
   v_owner_report_id uuid;
+  v_closed_report jsonb;
+  v_closed_report_id uuid;
   v_task jsonb;
   v_task_id uuid;
   v_update jsonb;
@@ -147,6 +149,22 @@ BEGIN
     IF SQLERRM<>'PROBLEM_REPORT_EVENTS_APPEND_ONLY' THEN RAISE; END IF;
   END;
 
+  -- Resolved reports are excluded from the default unresolved digest.
+  v_closed_report:=public.report_problem(v_project_id,v_worker_id,jsonb_build_object(
+    'category','risk','severity','low','status','open',
+    'title','Resolved report is excluded from the open digest',
+    'summary','This fixture is resolved before the digest is queried.',
+    'impact','It must not appear in the unresolved inbox.',
+    'evidence',jsonb_build_array(jsonb_build_object(
+      'kind','test','ref','fixture:resolved-report','observation','The fixture is intentionally closed.'
+    )),
+    'source','automated','fingerprint','test:problem-inbox:resolved-item'
+  ),v_key||'-closed-report');
+  v_closed_report_id:=(v_closed_report->'data'->>'report_id')::uuid;
+  PERFORM public.update_problem_report(
+    v_closed_report_id,'resolved','Fixture resolved before inbox query.',
+    NULL,NULL,v_key||'-close-report');
+
   -- A second project owned by another user must not leak into the Owner's digest.
   INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000099')
   ON CONFLICT (id) DO NOTHING;
@@ -170,13 +188,16 @@ BEGIN
   PERFORM set_config('request.jwt.claim.sub',v_owner::text,true);
   PERFORM set_config('request.jwt.claims',
     jsonb_build_object('sub',v_owner::text,'role','authenticated')::text,true);
-  v_list:=public.list_problem_reports(NULL,NULL,200);
+  v_list:=public.list_problem_reports('unresolved',NULL,200);
   IF NOT EXISTS (
     SELECT 1 FROM jsonb_array_elements(v_list->'data') item
     WHERE item->>'id'=v_report_id::text
+  ) OR NOT EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_list->'data') item
+    WHERE item->>'id'=v_owner_report_id::text
   ) OR EXISTS (
     SELECT 1 FROM jsonb_array_elements(v_list->'data') item
-    WHERE item->>'id'=v_other_report_id::text
+    WHERE item->>'id' IN (v_other_report_id::text,v_closed_report_id::text)
   ) THEN
     RAISE EXCEPTION 'FAIL: cross-project Owner digest has missing or leaked reports: %',v_list;
   END IF;
