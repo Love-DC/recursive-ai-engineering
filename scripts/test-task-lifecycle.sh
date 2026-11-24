@@ -478,4 +478,19 @@ $reconciliation_test$;
 ROLLBACK;
 SQL
 
-echo "PASS: lifecycle integration assertions completed; transaction rolled back."
+# The migration intentionally defaults every registered project to paused.
+# The disposable CI project must be re-enabled after the rollback-scoped
+# default-state assertions so later independent concurrency/review suites run.
+enabled_fixture="$(psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL
+UPDATE public.projects
+SET config=jsonb_set(config,'{autonomy,paused}','false'::jsonb,true)
+WHERE id='$SUPABASE_PROJECT_ID'
+RETURNING id;
+SQL
+)"
+[[ "$enabled_fixture" == "$SUPABASE_PROJECT_ID" ]] || {
+  echo "FAIL: could not enable exactly the disposable lifecycle fixture for subsequent CI suites." >&2
+  exit 1
+}
+
+echo "PASS: lifecycle integration assertions completed; transaction rolled back and disposable fixture prepared for later suites."
