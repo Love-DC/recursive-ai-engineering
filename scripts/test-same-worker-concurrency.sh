@@ -203,6 +203,7 @@ fi
 # Case 2: two sessions, one eligible task, exactly one winner.
 single_task="$(create_task single)"
 [[ "$single_task" =~ $uuid_re ]] || { echo "Could not create single-task fixture" >&2; exit 1; }
+echo "Single-task concurrency fixture: $single_task" >&2
 
 # Prove isolation before releasing either claimant: the only claimable task
 # must be the single fixture created for this case.
