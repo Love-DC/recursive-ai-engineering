@@ -63,7 +63,7 @@ BEGIN
         ARRAY['reported_by_worker_id','project_id']::text[])
     ) AS expected(schema_name,table_name,index_name,key_columns)
   LOOP
-    SELECT count(*)::integer,
+    SELECT count(DISTINCT i.indexrelid)::integer,
            (array_agg(a.attname::text ORDER BY k.ord))[1:cardinality(v_expected.key_columns)]
       INTO v_named_index_count,v_actual_columns
     FROM pg_index i
