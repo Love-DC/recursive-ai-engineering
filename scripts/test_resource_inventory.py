@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timezone, timedelta
-from scripts.resource_inventory import ELIGIBLE, DECISION, PRESERVE, build_report, preview_batch, authorize_batch, render_markdown
+from scripts.resource_inventory import ELIGIBLE, DECISION, PRESERVE, build_report, preview_batch, render_markdown
 
 SHA = "a" * 40
 NOW = datetime(2026, 11, 23, 1, 30, tzinfo=timezone.utc)
@@ -54,9 +54,13 @@ class InventoryTests(unittest.TestCase):
         report = build_report(data, "Love-DC/recursive-ai-engineering")
         row = next(r for r in report["resources"] if r["kind"] == "branch" and r["identity"] == "safe")
         plan = preview_batch(report, [row["id"]], now=NOW)
-        self.assertTrue(plan["task_reference_scan_complete"])
-        self.assertEqual(plan["task_references"], ["other-task-branch"])
-        self.assertEqual(plan["branches"], {"safe": SHA})
+        self.assertTrue(plan["dry_run"])
+        self.assertTrue(plan["preview_only"])
+        self.assertFalse(plan["authorization_granted"])
+        self.assertFalse(plan["deletion_performed"])
+        self.assertEqual(plan["selected_count"], 1)
+        self.assertNotIn("targets", plan)
+        self.assertNotIn("branches", plan)
 
     def test_unknown_protection_or_ancestry_is_preserved(self):
         self.assertEqual(self.row("branch", "unknown")["risk_class"], PRESERVE)
@@ -75,21 +79,20 @@ class InventoryTests(unittest.TestCase):
         row = next(r for r in report["resources"] if r["kind"] == "branch" and r["identity"] == "safe")
         self.assertEqual(row["risk_class"], DECISION)
 
-    def test_dry_run_and_one_batch_confirmation(self):
+    def test_batch_preview_is_non_authorizing_and_returns_no_target_data(self):
         row = self.row("branch", "safe")
         plan = preview_batch(self.report, [row["id"]], now=NOW)
-        self.assertTrue(plan["dry_run"])
-        with self.assertRaisesRegex(ValueError, "confirmation"):
-            authorize_batch(plan, "", {"safe": SHA})
-        self.assertEqual(len(authorize_batch(plan, "DELETE SELECTED RESOURCES", {"safe": SHA})), 1)
+        self.assertEqual(plan["selected_count"], 1)
+        self.assertTrue(plan["preview_only"])
+        self.assertFalse(plan["authorization_granted"])
+        self.assertFalse(plan["deletion_performed"])
+        for key in ("targets", "branches", "expected_shas", "authorized_targets"):
+            self.assertNotIn(key, plan)
 
-    def test_stale_snapshot_and_stale_sha_are_rejected(self):
+    def test_stale_snapshot_is_rejected(self):
         row = self.row("branch", "safe")
         with self.assertRaisesRegex(ValueError, "stale"):
             preview_batch(self.report, [row["id"]], now=NOW + timedelta(minutes=31))
-        plan = preview_batch(self.report, [row["id"]], now=NOW)
-        with self.assertRaisesRegex(ValueError, "Stale inventory"):
-            authorize_batch(plan, "DELETE SELECTED RESOURCES", {"safe": "b" * 40})
 
     def test_report_is_grouped_and_preserves_collection_evidence(self):
         data = sample()

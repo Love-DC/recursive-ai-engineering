@@ -1,4 +1,4 @@
-"""Read-only, deterministic resource inventory and fail-closed batch planner."""
+"""Read-only resource inventory and non-authorizing batch preview."""
 from datetime import datetime, timezone
 from typing import Any
 
@@ -107,6 +107,7 @@ def build_report(snapshot: dict[str, Any], current_repository: str) -> dict[str,
 
 
 def preview_batch(report: dict[str, Any], ids: list[str], now: datetime | None = None, max_age_minutes: int = 30):
+    """Validate a preview request without returning authorized or executable targets."""
     if not ids or len(ids) != len(set(ids)):
         raise ValueError("Batch must contain unique resource IDs.")
     if report.get("task_reference_scan_complete") is not True:
@@ -116,7 +117,6 @@ def preview_batch(report: dict[str, Any], ids: list[str], now: datetime | None =
     if age < 0 or age > max_age_minutes:
         raise ValueError("Inventory snapshot is stale; refresh before preview or execution.")
     lookup = {r["id"]: r for r in report["resources"]}
-    targets = []
     for identity in ids:
         row = lookup.get(identity)
         if row is None:
@@ -125,23 +125,15 @@ def preview_batch(report: dict[str, Any], ids: list[str], now: datetime | None =
             raise ValueError(f"Resource is not batch-eligible: {identity}")
         if row["repository"] != report["current_repository"]:
             raise ValueError("Cross-repository mutation is disabled.")
-        targets.append({"id": identity, "repository": row["repository"], "branch": row["identity"],
-                        "expected_sha": row["evidence"].get("sha")})
-    return {"generated_at": report["generated_at"], "dry_run": True, "confirmation_required": True,
-            "task_reference_scan_complete": True, "task_references": report.get("task_references", []),
-            "repository": report["current_repository"],
-            "branches": {target["branch"]: target["expected_sha"] for target in targets},
-            "targets": targets}
-
-
-def authorize_batch(preview: dict[str, Any], confirmation: str, expected_shas: dict[str, str]):
-    if confirmation != "DELETE SELECTED RESOURCES":
-        raise ValueError("Explicit batch confirmation is required.")
-    for target in preview["targets"]:
-        if expected_shas.get(target["branch"]) != target["expected_sha"]:
-            raise ValueError(f"Stale inventory for {target['branch']}; refresh and preview again.")
-    return preview["targets"]
-
+    return {
+        "generated_at": report["generated_at"],
+        "dry_run": True,
+        "preview_only": True,
+        "authorization_granted": False,
+        "deletion_performed": False,
+        "repository": report["current_repository"],
+        "selected_count": len(ids),
+    }
 
 def render_markdown(report: dict[str, Any]) -> str:
     c = report["counts"]

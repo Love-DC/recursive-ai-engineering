@@ -40,6 +40,8 @@ be stale or fabricated and cannot prove that a branch is not referenced by an
 active/submitted task. Therefore neither the workflow nor the script may delete
 branches based on that evidence. The deprecated `--execute` flag fails closed.
 
+The library `preview_batch()` validates selected rows from a report snapshot but returns only a count-based summary marked `preview_only` with `authorization_granted: false`. It never returns branch names, SHAs, or an executable target list. No helper accepts a confirmation string or caller-provided SHA map as authorization.
+
 Re-enabling deletion requires an authorized, live task-reference lookup at
 execution time, complete open-PR pagination, exact target revalidation, and a
 separately reviewed authorization design. Do not add a PAT, GitHub App, Supabase
