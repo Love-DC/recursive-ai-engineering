@@ -72,3 +72,6 @@ jobs:
 
       - name: Run initiative lifecycle acceptance tests
         run: bash scripts/test-ai-initiative-lifecycle.sh
+
+      - name: Run concurrent support/advance race regression
+        run: bash scripts/test-initiative-support-advance-race.sh
