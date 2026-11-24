@@ -87,7 +87,10 @@ BEGIN
             v_blockers := v_blockers || jsonb_build_array(jsonb_build_object('kind','external','key',v_key,'reason','dependency_not_resolved_with_evidence'));
           END IF;
         ELSIF v_dependency->>'type'='task' THEN
-          IF coalesce(v_dependency->>'required_status','accepted') <> 'accepted' THEN
+          IF (v_dependency ? 'required_status' AND (
+            jsonb_typeof(v_dependency->'required_status') IS DISTINCT FROM 'string'
+            OR v_dependency->>'required_status' <> 'accepted'
+          )) THEN
             v_blockers := v_blockers || jsonb_build_array(jsonb_build_object('kind','task','task_id',v_dependency->>'task_id','reason','only_accepted_task_prerequisites_are_supported'));
             CONTINUE;
           END IF;
@@ -344,6 +347,9 @@ BEGIN
 
   IF nullif(btrim(coalesce(p_dependency_key,'')), '') IS NULL THEN
     RAISE EXCEPTION USING errcode='22023',message='DEPENDENCY_KEY_REQUIRED';
+  END IF;
+  IF length(p_dependency_key)>300 THEN
+    RAISE EXCEPTION USING errcode='22023',message='DEPENDENCY_KEY_TOO_LONG';
   END IF;
   IF p_state IS NULL OR p_state NOT IN ('satisfied','unresolved') THEN
     RAISE EXCEPTION USING errcode='22023',message='INVALID_DEPENDENCY_STATE';
