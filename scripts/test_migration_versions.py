@@ -321,7 +321,7 @@ class MigrationVersionTests(unittest.TestCase):
                 Path("20261124172155_submitted_task_reconciliation.sql"),
                 Path("20261124181237_owner_scoped_project_activation.sql"),
                 Path("20261124183843_repository_authoritative_activation_guard.sql"),
-                Path("20261125110000_owner_mcp_project_registration.sql"),
+                Path("20261125090000_owner_mcp_project_registration.sql"),
                 Path("20261125100000_trusted_owner_mcp_execution_context.sql"),
             ]
         )
