@@ -9,9 +9,9 @@ The problem inbox is the durable cross-session register for defects, blockers, r
 - GitHub remains authoritative for code, Issues, PRs, commits, and CI. Store links to those records in the report.
 - Do not leave a material finding only in a ChatGPT transcript, task description, or PR comment.
 
-The additive migration `20261124000400_problem_inbox.sql` is deployed in the shared RAE Supabase database. On 2026-11-25, the live `problem_reports` and `problem_report_events` tables and Problem Inbox RPCs were verified, and the owner-scoped `list_problem_reports('unresolved', null, 200)` read succeeded. Use this Supabase inbox as the normal cross-session source of truth; re-check availability at each session start.
+The additive migration `20261124000400_problem_inbox.sql` is deployed in the shared RAE Supabase database. The tables and original RPCs exist, but the live trusted Owner-MCP read test on 2026-11-25 showed that `list_problem_reports('unresolved', null, 200)` returns `UNAUTHENTICATED`: the original function still requires `auth.uid()`, which the verified MCP `postgres` session intentionally does not synthesize. Source inspection found the same JWT-only row lookup in `get_problem_report` and `update_problem_report`. The repository now contains a narrowly scoped repair migration, `20261125120000_owner_mcp_problem_inbox_context.sql`, and isolated PostgreSQL regression tests for list/get/update, Owner-wide listing, project-bound detail/update, and the unchanged no-JWT rejection boundary. **The repair migration is not deployed to production.** Until production deployment and a successful live RPC read/write verification, the Problem Inbox must be treated as unavailable through Owner-MCP.
 
-PR #66's repository-authoritative activation migration is deployed as live migration `20261124192533`; the legacy `projects.config.task_activation` guard is removed. The live controls were rechecked on 2026-11-25: Colony Sim `autonomy.paused=false`/max 2, RAE `autonomy.paused=true`/max 2, Lambent `autonomy.paused=true`/max 2. Colony Sim's repository-owned bounded active-session engineering policy and activation gates are approved. A separate trusted Owner-MCP execution-context migration is being prepared so owner-protected task and Problem Inbox RPCs can be called from the already-authorized database MCP connection without fabricating `auth.uid()`. Until that migration is deployed and verified, treat writes through the current SQL MCP session as blocked; do not write task or Problem Inbox tables directly. The Problem Inbox read RPC remains available through a genuine authenticated owner context.
+PR #66's repository-authoritative activation migration is deployed as live migration `20261124192533`; the legacy `projects.config.task_activation` guard is removed. The live controls were rechecked on 2026-11-25: Colony Sim and Hexa Game Kernel are `autonomy.paused=false`/max 2; RAE and Lambent are `autonomy.paused=true`/max 2. Colony Sim's repository-owned bounded active-session engineering policy and activation gates are approved. The trusted Owner-MCP execution-context migration `20261124200149` and project registration migration `20261124202438` are deployed and bind the verified Owner/project in the `postgres` session without fabricating `auth.uid()`. However, the Problem Inbox RPCs were not updated for that context: the live `list_problem_reports` call fails with `UNAUTHENTICATED`, and `get_problem_report`/`update_problem_report` still contain JWT-only owner filters. The new repair migration `20261125120000_owner_mcp_problem_inbox_context.sql` is repository code only and is not deployed. Do not write task or Problem Inbox tables directly; do not claim inbox reads or updates work until the migration is deployed and all three RPCs are tested live.
 
 ## What to report
 
@@ -124,26 +124,16 @@ During execution:
 4. Update the report as work progresses and resolve only with verified evidence.
 5. If a session cannot finish, leave the report and task state truthful so another fresh session can continue.
 
-## Current unresolved reports — 2026-11-25
+## Current live state — 2026-11-25
 
-Read-only `public.problem_reports` snapshot from the live shared database:
+The owner-scoped Problem Inbox list RPC currently fails in the trusted Owner-MCP context. Do not treat the historical report IDs/statuses in older conversation notes or repository snapshots as a live inbox digest. Do not query or mutate the protected tables directly to work around the RPC. After the repair migration is deployed, re-run the owner-scoped list/get/update RPC tests and only then refresh the unresolved report digest from the live result.
 
-- **RAE — medium defect, in progress:** `adc5c02c-d9ce-4850-9181-0c137317f7ae`, “RAE startup and inbox governance snapshots contradict live deployment”. Linked task: `34e01a68-244a-4832-87c3-ce86536a3a49`. PR #66 corrected Session Start, Worker Instructions, Security Boundary Audit, and Autonomous Task Discovery; this Problem Inbox snapshot is refreshed by [PR #67](https://github.com/Love-DC/recursive-ai-engineering/pull/67).
-- **RAE — high risk, in progress (historical report; refresh after Owner-MCP migration):** `e70803f3-57d4-402c-9823-a38a8a7ef59f`, “Repository-local activation policy conflicts with deployed database task_activation guard”. Linked task: `a16f1098-80e3-4ad6-a4f8-029e2849be4f`; PR #66 and its activation migration are now deployed. The remaining live blocker is the separate Owner-MCP task-lifecycle call path; do not resolve this report until the real RPC workflow is verified.
-- **Colony Sim — high blocker, in progress:** `84eeb1f9-4c09-4890-abb2-e5955f898577`, “Colony Sim activation remains gated by policy/runtime boundary reconciliation”. Linked PR #433 is merged (merge commit `5f3cc67d65da584db3640948ee37828104003fea`), PR #66's activation migration is deployed, and the live Colony project is unpaused with a two-execution cap. The remaining blocker is authenticated task-lifecycle execution through the trusted Owner-MCP SQL context; keep this report open until a real task can be claimed and handed off. No gameplay changes are authorized by this infrastructure work.
-- **RAE — medium opportunity, triaged:** `5dc26ae9-b877-47ed-a2fc-1036ff6fbe8b`, “Initiative and Problem Inbox tables have unindexed foreign keys”. The live Performance Advisor reports 12 unindexed foreign-key findings and 5 unused-index findings as of 2026-11-24 19:09:54 UTC. This is an investigation opportunity, not authorization to add/drop production indexes.
+## Unavailable inbox behavior
 
-These are unresolved reports, not a task list. The live inbox also contains resolved historical reports; do not reopen them without new evidence. Re-query the owner-scoped inbox at each session start rather than treating this dated snapshot as current forever.
+The temporary [Issue #42](https://github.com/Love-DC/recursive-ai-engineering/issues/42) intake record is closed and is not a writable fallback. Do not reopen it, add comments, or create a replacement intake issue merely because the live RPC is unavailable.
 
-## Exceptional fallback when the live inbox RPC is unavailable
+- When the live Problem Inbox RPCs are verified, record findings through the owner-scoped RPCs.
+- Until the Owner-MCP repair migration is deployed and list/get/update are verified live, remain read-only for Problem Inbox records. Do not write directly to `problem_reports` or `problem_report_events`.
+- Do not infer current report IDs, statuses, or event history from dated snapshots.
+- A closed or uncertain database gate independently prohibits task/execution/Initiative/Problem Inbox mutation RPCs. Continue only read-only inspection and repository-only maintenance.
 
-The Problem Inbox is deployed and was verified live on 2026-11-25. This fallback is exceptional; it is not the normal intake workflow. The database-wide claim-safety gate in `docs/SESSION-START.md` remains a separate prerequisite for every task/execution lifecycle write.
-
-- If the live Problem Inbox RPCs are available, record material findings there. Do not route routine findings to GitHub Issue #42.
-- Issue #42 is the closed historical transitional-intake record. Use it only as the documented no-write fallback when the live inbox cannot be verified or the production gate is closed/uncertain; add a comment only if the issue remains writable. Include project/repository, category, severity, exact evidence links, stable fingerprint, recommended action, and whether Owner input is required. Do not create a replacement intake issue.
-- Never write directly to `problem_reports` or `problem_report_events`, bypass owner-scoped RPCs, or claim cross-session inbox availability without a successful live read.
-- If Issue #42 is locked or otherwise unavailable, remain read-only and surface the exact blocker; do not invent another intake location.
-- A closed/uncertain database gate prohibits task, execution, Initiative, and Problem Inbox mutation RPCs. Continue only read-only discovery and repository-only maintenance.
-
-
-This is session-driven coordination. No background daemon, external messaging integration, or automatic ChatGPT notification is implied.
