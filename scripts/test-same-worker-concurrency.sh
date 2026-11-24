@@ -76,6 +76,7 @@ SQL
 
 claim_session() {
   local label="$1"
+  local scenario="$2"
   : > "$tmp/ready-$label"
   while [[ ! -f "$tmp/go" ]]; do sleep 0.02; done
   psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL > "$tmp/$label.json"
@@ -86,16 +87,17 @@ select public.claim_task(
   '$SUPABASE_PROJECT_ID',
   '$SHARED_WORKER_ID',
   600,
-  'same-worker-claim-$run_key-$label'
+  'same-worker-claim-$run_key-$scenario-$label'
 )
 from auth;
 SQL
 }
 
 complete_claim() {
-  local label="$1"
-  local task_id="$2"
-  local execution_id="$3"
+  local scenario="$1"
+  local label="$2"
+  local task_id="$3"
+  local execution_id="$4"
   local response_file="$tmp/complete-$label.json"
 
   psql "$SUPABASE_DB_URL" -XAtq -v ON_ERROR_STOP=1 <<SQL > "$response_file"
@@ -111,7 +113,7 @@ select public.complete_execution(
     'session_label', '$label',
     'test_run', '$run_key'
   ),
-  'same-worker-complete-$run_key-$label'
+  'same-worker-complete-$run_key-$scenario-$label'
 )
 from auth;
 SQL
@@ -146,9 +148,9 @@ task_b="$(create_task b)"
   exit 1
 }
 
-claim_session a &
+claim_session a two-task &
 pid_a=$!
-claim_session b &
+claim_session b two-task &
 pid_b=$!
 while [[ ! -f "$tmp/ready-a" || ! -f "$tmp/ready-b" ]]; do sleep 0.02; done
 touch "$tmp/go"
@@ -174,8 +176,8 @@ fi
   exit 1
 }
 
-complete_claim a "$id_a" "$exec_a"
-complete_claim b "$id_b" "$exec_b"
+complete_claim two-task a "$id_a" "$exec_a"
+complete_claim two-task b "$id_b" "$exec_b"
 
 # The first race must leave no claimable fixtures behind. A completion RPC can
 # return a JSON failure without making psql exit nonzero, so verify persisted
@@ -244,9 +246,9 @@ exec_a="$(jq -r '.data.execution_id // empty' "$tmp/a.json")"
 exec_b="$(jq -r '.data.execution_id // empty' "$tmp/b.json")"
 
 if [[ "$id_a" == "$single_task" && -z "$id_b" ]]; then
-  complete_claim a "$single_task" "$exec_a"
+  complete_claim single-task a "$single_task" "$exec_a"
 elif [[ "$id_b" == "$single_task" && -z "$id_a" ]]; then
-  complete_claim b "$single_task" "$exec_b"
+  complete_claim single-task b "$single_task" "$exec_b"
 else
   echo "FAIL: exactly one same-Worker session must claim the single task; a=$id_a b=$id_b" >&2
   echo "Responses: $(cat "$tmp/a.json") / $(cat "$tmp/b.json")" >&2
