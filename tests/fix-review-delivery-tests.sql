@@ -41,6 +41,8 @@ DECLARE
   v_execution_status text;
   v_execution_result jsonb;
   v_execution_finished_at timestamptz;
+  v_execution_finished_before timestamptz;
+  v_fix_event_count integer;
   v_event_count integer;
   v_final_idempotency_key text;
 BEGIN
@@ -184,6 +186,14 @@ BEGIN
       RAISE EXCEPTION 'FAIL: fix child delivery was not submitted: %', v_submit;
     END IF;
 
+    SELECT finished_at
+    INTO v_execution_finished_before
+    FROM public.executions
+    WHERE id = v_fix_execution_id AND task_id = v_fix_id;
+    IF v_execution_finished_before IS NULL THEN
+      RAISE EXCEPTION 'FAIL: submitted fix execution has no finish timestamp: %', v_fix_execution_id;
+    END IF;
+
     v_resubmit := public.resubmit_after_fix(
       v_root_id, v_fix_id, v_fix_execution_id, v_worker,
       'fix-delivery-root-resubmit-' || v_decision || '-' || gen_random_uuid()::text
@@ -248,7 +258,7 @@ BEGIN
 
     IF v_execution_status IS DISTINCT FROM 'submitted'
       OR v_execution_result IS DISTINCT FROM v_delivery_result
-      OR v_execution_finished_at IS NULL THEN
+      OR v_execution_finished_at IS DISTINCT FROM v_execution_finished_before THEN
       RAISE EXCEPTION 'FAIL: submitted fix execution history was changed: execution=%', v_fix_execution_id;
     END IF;
 
@@ -280,6 +290,18 @@ BEGIN
       AND event_type = CASE WHEN v_decision = 'accepted' THEN 'review_accepted' ELSE 'review_rejected' END;
     IF v_event_count <> 1 THEN
       RAISE EXCEPTION 'FAIL: review idempotent replay duplicated review events: %', v_event_count;
+    END IF;
+
+    SELECT count(*) INTO v_fix_event_count
+    FROM public.task_events
+    WHERE task_id = v_fix_id
+      AND event_type = CASE WHEN v_decision = 'accepted'
+        THEN 'fix_delivery_review_accepted'
+        ELSE 'fix_delivery_review_rejected'
+      END;
+    IF v_fix_event_count <> 1 THEN
+      RAISE EXCEPTION 'FAIL: fix-delivery review audit event count is %, expected exactly one',
+        v_fix_event_count;
     END IF;
   END LOOP;
 
