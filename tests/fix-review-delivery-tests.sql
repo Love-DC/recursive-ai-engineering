@@ -44,6 +44,7 @@ DECLARE
   v_execution_result jsonb;
   v_execution_finished_at timestamptz;
   v_event_count integer;
+  v_final_idempotency_key text;
 BEGIN
   FOREACH v_decision IN ARRAY ARRAY['accepted', 'rejected'] LOOP
     -- First reject a direct implementation delivery. This exercises the
@@ -187,10 +188,10 @@ BEGIN
       'checks', jsonb_build_array('fix result inspected', 'submitted execution preserved'),
       'fixture', true
     );
+    v_final_idempotency_key := 'fix-delivery-child-review-result-' || v_decision || '-' || gen_random_uuid()::text;
     v_review_result := public.review_result(
       v_review_id, v_review_execution_id, v_reviewer, v_decision,
-      v_review_evidence,
-      'fix-delivery-child-review-result-' || v_decision || '-' || gen_random_uuid()::text
+      v_review_evidence, v_final_idempotency_key
     );
     IF v_review_result->'data'->>'decision' IS DISTINCT FROM v_decision THEN
       RAISE EXCEPTION 'FAIL: fix child review returned an unexpected decision: %', v_review_result;
@@ -240,22 +241,7 @@ BEGIN
 
     v_replay := public.review_result(
       v_review_id, v_review_execution_id, v_reviewer, v_decision,
-      v_review_evidence,
-      'fix-delivery-child-review-result-' || v_decision || '-' || (
-        SELECT idempotency_key
-        FROM public.operation_requests
-        WHERE project_id = v_project
-          AND operation = 'review_result'
-          AND request_hash = private.request_hash(jsonb_build_object(
-            'review_task_id', v_review_id,
-            'execution_id', v_review_execution_id,
-            'reviewer_worker_id', v_reviewer,
-            'decision', v_decision,
-            'review', v_review_evidence
-          ))
-        ORDER BY created_at DESC
-        LIMIT 1
-      )
+      v_review_evidence, v_final_idempotency_key
     );
 
     IF v_replay IS DISTINCT FROM v_review_result THEN
