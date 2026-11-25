@@ -213,7 +213,4 @@ jobs:
         run: >-
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1
           -v owner_id="$SUPABASE_OWNER_ID"
-          -v project_id="$SUPABASE_PROJECT_ID"
-          -v worker_id="$SHARED_WORKER_ID"
-          -v reviewer_worker_id="$REVIEWER_WORKER_ID"
           -f tests/fix-review-delivery-tests.sql
