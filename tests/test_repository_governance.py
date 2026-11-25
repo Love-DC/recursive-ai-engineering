@@ -95,7 +95,6 @@ class RepositoryGovernanceTests(unittest.TestCase):
         manifest["governance"]["rule_sets"].append(
             {"id": "engineering", "path": "docs/WORKFLOW.md", "priority": 100}
         )
-        manifest_path.write_text(json.dumps(manifest))
         with self.assertRaisesRegex(GovernanceError, "Conflicting declarations"):
             self.load(root)
 
@@ -127,7 +126,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
             self.load(root)
 
     def test_governance_workflow_covers_every_declared_manifest_file(self):
-        root = Path(__file__).resolve().parent.parent
+        root = Path(__file__).resolve().parents[1]
         manifest = json.loads(
             (root / "rae-governance.json").read_text(encoding="utf-8")
         )
@@ -165,11 +164,11 @@ class RepositoryGovernanceTests(unittest.TestCase):
             }
             self.assertTrue(
                 required_triggers <= triggers,
-                f"{event} path filters omit: {sorted(required_triggers - triggers)}",
+                f"_{event} path filters omit: {sorted(required_triggers - triggers)}",
             )
 
     def test_production_claim_safety_gate_is_fail_closed_across_session_contracts(self):
-        root = Path(__file__).resolve().parent.parent
+        root = Path(__file__).resolve().parents[1]
         session = (root / "docs/SESSION-START.md").read_text(encoding="utf-8")
         worker = (root / "docs/WORKER-INSTRUCTIONS.md").read_text(encoding="utf-8")
         discovery = (root / "docs/AUTONOMOUS-TASK-DISCOVERY.md").read_text(encoding="utf-8")
@@ -193,39 +192,66 @@ class RepositoryGovernanceTests(unittest.TestCase):
         positions = [gate.find(name) for name in required_migrations]
         self.assertTrue(all(position >= 0 for position in positions))
         self.assertEqual(positions, sorted(positions))
-        self.assertIn("If the database gate becomes closed or cannot be proven open, do not invoke `claim_task` or any task-lifecycle write RPC", gate)
-        self.assertIn("Do not probe `claim_task`", gate)
         self.assertIn(
-            "Before any claim, still verify the live migration registry and project-specific activation policy",
+            "If the gate is closed or cannot be proven open, do not invoke create_task, claim_task",
+            gate,
+        )
+        self.assertIn("Do not probe claim_task", gate)
+        self.assertIn(
+            "Before any task claim or task-lifecycle write, revalidate the database-wide safety gate",
             session,
         )
 
         self.assertIn("Mandatory production claim-safety gate", worker)
-        self.assertIn("Do not call `claim_task`", worker)
+        self.assertIn("Do not call claim_task", worker)
         self.assertIn(
-            "only after the mandatory production claim-safety gate in `docs/SESSION-START.md`",
+            "only after the mandatory production claim-safety gate in docs/SESSION-START.md",
             worker,
         )
         self.assertIn("## Production task-pool write gate", discovery)
-        self.assertIn("Do not call `create_task`, `claim_task`", discovery)
+        self.assertIn("Do not call create_task, claim_task", discovery)
         self.assertIn("keep all Supabase task state unchanged", discovery)
 
-
-
-    def test_rae_task_activation_policy_is_repository_owned(self) -> None:
+    def test_rae_session_manifest_is_minimal_and_activation_is_summarized(self):
         root = Path(__file__).resolve().parents[1]
         manifest = json.loads((root / "rae-governance.json").read_text(encoding="utf-8"))
-        rule_sets = manifest["governance"]["rule_sets"]
-        activation_rules = [
-            item for item in rule_sets
-            if item.get("path") == "docs/AUTONOMOUS-TASK-DISCOVERY.md"
-        ]
-        self.assertEqual(len(activation_rules), 1)
-        policy = (root / "docs/AUTONOMOUS-TASK-DISCOVERY.md").read_text(encoding="utf-8")
-        self.assertIn("active_session_autonomy", policy)
-        self.assertIn("Supabase is not the authority for repository policy decisions", policy)
-        self.assertIn("autonomy.paused", policy)
-        self.assertIn("autonomy.max_active_executions", policy)
+        governance = manifest["governance"]
+
+        self.assertEqual(governance["agent_instructions"], "docs/SESSION-START.md")
+        self.assertEqual(governance["entrypoints"], [])
+        self.assertEqual(governance["required"], [])
+        self.assertEqual(governance["rule_sets"], [])
+
+        session = (root / "docs/SESSION-START.md").read_text(encoding="utf-8")
+        self.assertIn("active_session_autonomy", session)
+        self.assertIn("docs/AUTONOMOUS-TASK-DISCOVERY.md", session)
+        self.assertIn("docs/COORDINATOR-PR-REVIEW-AND-MERGE.md", session)
+        self.assertIn("Conditional governance loading", session)
+
+    def test_startup_reference_documents_are_not_unconditionally_loaded(self):
+        root = Path(__file__).resolve().parents[1]
+        manifest = json.loads((root / "rae-governance.json").read_text(encoding="utf-8"))
+        declared = {
+            manifest["governance"]["agent_instructions"],
+            *manifest["governance"]["entrypoints"],
+            *manifest["governance"]["required"],
+            *(item["path"] for item in manifest["governance"]["rule_sets"]),
+        }
+        self.assertEqual(declared, {"docs/SESSION-START.md"})
+
+        session = (root / "docs/SESSION-START.md").read_text(encoding="utf-8")
+        for path in (
+            "docs/WORKER-INSTRUCTIONS.md",
+            "docs/RAE-SYSTEM-OWNER.md",
+            "docs/PROBLEM-INBOX.md",
+            "docs/SECURITY-BOUNDARY-AUDIT.md",
+            "docs/MULTI-PROJECT-ARCHITECTURE.md",
+            "docs/COORDINATOR-PR-REVIEW-AND-MERGE.md",
+        ):
+            self.assertIn(path, session)
+        self.assertIn("Load the relevant document only when", session)
+        self.assertNotIn("Read docs/MULTI-PROJECT-ARCHITECTURE.md", session)
+
 
 if __name__ == "__main__":
     unittest.main()
