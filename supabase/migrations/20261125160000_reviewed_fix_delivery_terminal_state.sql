@@ -4,8 +4,8 @@
 BEGIN;
 
 -- A reviewed fix child must be able to retain its own review decision and provenance.
--- Implementations keep the existing invariant: only review tasks carry review metadata
--- in the existing root-delivery lifecycle.
+-- Implementations keep the existing invariant: decision/evidence metadata belongs to
+-- review tasks; a distinct fix task receives that provenance when its review is finalized.
 ALTER TABLE public.tasks
   DROP CONSTRAINT tasks_check1;
 
