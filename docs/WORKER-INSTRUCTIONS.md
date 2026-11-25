@@ -1,3 +1,5 @@
+> Loading rule: this file is a detailed task-lifecycle API and lease reference, not an unconditional session-start document. Read docs/SESSION-START.md for the canonical startup contract. Consult only the relevant sections when creating, claiming, submitting, completing, retrying or recovering a task, or when exact RPC signatures and SQL examples are needed. Do not load the entire file for a routine read-only queue scan.
+
 # Multi-project routing — authoritative addendum
 
 This addendum supersedes any assumption below that every task belongs to the original RAE project. Before creating, claiming, or completing work, resolve the target project and its project-scoped worker from live Supabase data.
