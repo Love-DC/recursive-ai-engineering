@@ -136,12 +136,18 @@ BEGIN
       FROM public.tasks
       WHERE id = v_root_id
         AND status = 'rejected'
-        AND review_decision = 'rejected'
-        AND review_evidence = v_review_evidence
         AND latest_delivery_task_id = v_root_id
         AND latest_delivery_execution_id = v_root_execution_id
         AND latest_review_task_id = v_direct_review_id
         AND completed_at IS NOT NULL
+    ) OR NOT EXISTS (
+      SELECT 1
+      FROM public.tasks
+      WHERE id = v_direct_review_id
+        AND task_type = 'review'
+        AND status = 'accepted'
+        AND review_decision = 'rejected'
+        AND review_evidence = v_review_evidence
     ) THEN
       RAISE EXCEPTION 'FAIL: direct-delivery review behavior changed for root %', v_root_id;
     END IF;
