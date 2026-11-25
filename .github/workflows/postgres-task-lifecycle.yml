@@ -189,6 +189,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125130000_rae_system_owner_authority.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125140000_task_integrity_monitor_and_audit.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125150000_missing_foreign_key_indexes.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125160000_reviewed_fix_delivery_terminal_state.sql
 
       - name: Run trusted Owner-MCP context and full task/review lifecycle tests
         run: psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f tests/owner-mcp-context-tests.sql
@@ -206,3 +207,13 @@ jobs:
 
       - name: Run foreign-key index coverage and boundary regression tests
         run: psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f tests/foreign-key-index-tests.sql
+
+
+      - name: Run reviewed fix-delivery terminal-state regression tests
+        run: >-
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1
+          -v owner_id="$SUPABASE_OWNER_ID"
+          -v project_id="$SUPABASE_PROJECT_ID"
+          -v worker_id="$SHARED_WORKER_ID"
+          -v reviewer_worker_id="$REVIEWER_WORKER_ID"
+          -f tests/fix-review-delivery-tests.sql
