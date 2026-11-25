@@ -3,6 +3,47 @@
 -- This is a repository/CI migration; production deployment is separately gated.
 BEGIN;
 
+-- A reviewed fix child must be able to retain its own review decision and provenance.
+-- Implementations keep the existing invariant: only review tasks carry review metadata
+-- in the existing root-delivery lifecycle.
+ALTER TABLE public.tasks
+  DROP CONSTRAINT tasks_check1;
+
+ALTER TABLE public.tasks
+  ADD CONSTRAINT tasks_check1 CHECK (
+    (
+      task_type = 'review'
+      AND review_target_original_task_id IS NOT NULL
+      AND review_target_delivery_task_id IS NOT NULL
+      AND review_target_execution_id IS NOT NULL
+      AND requires_review = false
+      AND fixes_task_id IS NULL
+    )
+    OR
+    (
+      task_type <> 'review'
+      AND review_target_original_task_id IS NULL
+      AND review_target_delivery_task_id IS NULL
+      AND review_target_execution_id IS NULL
+      AND (
+        (
+          task_type = 'fix'
+          AND (
+            (review_decision IS NULL AND latest_review_task_id IS NULL)
+            OR
+            (review_decision IS NOT NULL AND latest_review_task_id IS NOT NULL)
+          )
+        )
+        OR
+        (
+          task_type = 'implementation'
+          AND review_decision IS NULL
+          AND review_evidence IS NULL
+        )
+      )
+    )
+  );
+
 -- Implementation deliveries retain root-only review metadata. A distinct fix
 -- delivery may store the final review outcome, but only in a matching terminal
 -- state with durable review evidence and a same-project review-task pointer.
