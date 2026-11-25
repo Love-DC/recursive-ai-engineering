@@ -210,7 +210,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
             worker,
         )
         self.assertIn("## Production task-pool write gate", discovery)
-        self.assertIn("Do not call create_task, claim_task", discovery)
+        self.assertIn("Do not call `create_task`, `claim_task`", discovery)
         self.assertIn("keep all Supabase task state unchanged", discovery)
 
     def test_rae_session_manifest_is_minimal_and_activation_is_summarized(self):
