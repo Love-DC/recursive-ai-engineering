@@ -29,7 +29,7 @@ Load the relevant document only when the corresponding operation is about to occ
 | Creating, claiming, submitting, completing, retrying or recovering tasks; exact RPC argument details | docs/WORKER-INSTRUCTIONS.md |
 | Establishing or troubleshooting the private RAE System Owner context | docs/RAE-SYSTEM-OWNER.md |
 | Reading, reporting, updating or resolving Problem Inbox entries | docs/PROBLEM-INBOX.md |
-| Empty-queue discovery or creation of new work | docs/AUTONOMOUS-TASK-DISCOVERY.md |
+| Evaluating RAE task activation before a claim/create, or running empty-queue discovery | docs/AUTONOMOUS-TASK-DISCOVERY.md |
 | PR review, revision assessment, merge or post-merge acceptance | docs/COORDINATOR-PR-REVIEW-AND-MERGE.md |
 | Auth, RLS, grants, SECURITY DEFINER, credentials, database exposure or security incidents | docs/SECURITY-BOUNDARY-AUDIT.md |
 | Registering a project or changing cross-project architecture/policy | docs/MULTI-PROJECT-ARCHITECTURE.md, docs/ADR-001-REPOSITORY-LOCAL-GOVERNANCE.md and docs/REPOSITORY-GOVERNANCE-PROTOCOL.md |
