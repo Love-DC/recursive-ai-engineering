@@ -1,6 +1,56 @@
 -- Finalize a reviewed fix-delivery task together with its original task.
--- The submitted delivery result and execution remain immutable historical evidence.
+-- Submitted delivery results/executions remain immutable historical evidence.
+-- This is a repository/CI migration; production deployment is separately gated.
 BEGIN;
+
+-- Implementation deliveries retain root-only review metadata. A distinct fix
+-- delivery may store the final review outcome, but only in a matching terminal
+-- state with durable review evidence and a same-project review-task pointer.
+ALTER TABLE public.tasks
+  DROP CONSTRAINT tasks_check1;
+
+ALTER TABLE public.tasks
+  ADD CONSTRAINT tasks_check1 CHECK (
+    (
+      task_type = 'review'
+      AND review_target_original_task_id IS NOT NULL
+      AND review_target_delivery_task_id IS NOT NULL
+      AND review_target_execution_id IS NOT NULL
+      AND requires_review = false
+      AND fixes_task_id IS NULL
+    )
+    OR
+    (
+      task_type = 'implementation'
+      AND review_target_original_task_id IS NULL
+      AND review_target_delivery_task_id IS NULL
+      AND review_target_execution_id IS NULL
+      AND review_decision IS NULL
+      AND review_evidence IS NULL
+    )
+    OR
+    (
+      task_type = 'fix'
+      AND review_target_original_task_id IS NULL
+      AND review_target_delivery_task_id IS NULL
+      AND review_target_execution_id IS NULL
+      AND (
+        (review_decision IS NULL AND review_evidence IS NULL)
+        OR
+        (
+          status IN ('accepted', 'rejected')
+          AND review_decision IS NOT NULL
+          AND review_decision = status
+          AND review_evidence IS NOT NULL
+          AND latest_review_task_id IS NOT NULL
+          AND completed_at IS NOT NULL
+        )
+      )
+    )
+  );
+
+COMMENT ON CONSTRAINT tasks_check1 ON public.tasks IS
+  'Review rows require exact targets; implementation rows retain null review outcome fields; fix rows may store review outcome/evidence only when terminal with a review pointer and completion timestamp.';
 
 CREATE OR REPLACE FUNCTION public.review_result(
   p_review_task_id uuid,
@@ -50,18 +100,25 @@ BEGIN
     RETURN v_replay;
   END IF;
 
-  -- Preserve the deployed lock order: Original Task, Delivery Task, Review Task,
-  -- then Review Execution. The distinct delivery update below uses the existing
-  -- delivery-row lock and does not introduce another lock acquisition.
+  -- Preserve the deployed lock order: Original Task, Delivery Task,
+  -- Review Task, then Review Execution.
   SELECT * INTO v_original
   FROM public.tasks
   WHERE id = v_review.review_target_original_task_id
   FOR UPDATE;
 
+  IF NOT FOUND OR v_original.project_id IS DISTINCT FROM v_project THEN
+    RAISE EXCEPTION USING errcode = '55000', message = 'ORIGINAL_TASK_CHANGED';
+  END IF;
+
   SELECT * INTO v_delivery
   FROM public.tasks
   WHERE id = v_review.review_target_delivery_task_id
   FOR UPDATE;
+
+  IF NOT FOUND OR v_delivery.project_id IS DISTINCT FROM v_project THEN
+    RAISE EXCEPTION USING errcode = '55000', message = 'DELIVERY_TASK_CHANGED';
+  END IF;
 
   SELECT * INTO v_review
   FROM public.tasks
@@ -103,6 +160,13 @@ BEGIN
     RAISE EXCEPTION USING errcode = '22023', message = 'INVALID_REVIEW_DECISION';
   END IF;
 
+  -- A review can only finalize the exact latest submitted delivery version.
+  IF v_original.status <> 'submitted'
+    OR v_original.latest_delivery_task_id IS DISTINCT FROM v_review.review_target_delivery_task_id
+    OR v_original.latest_delivery_execution_id IS DISTINCT FROM v_review.review_target_execution_id THEN
+    RAISE EXCEPTION USING errcode = '55000', message = 'DELIVERY_VERSION_NOT_CURRENT';
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1
     FROM public.executions
@@ -111,6 +175,17 @@ BEGIN
       AND status = 'submitted'
   ) THEN
     RAISE EXCEPTION USING errcode = '55000', message = 'DELIVERY_EXECUTION_CHANGED';
+  END IF;
+
+  -- A distinct delivery must still be the submitted fix child of this root.
+  -- Direct deliveries use the original task row and retain existing behavior.
+  IF v_delivery.id IS DISTINCT FROM v_original.id
+    AND (
+      v_delivery.task_type <> 'fix'
+      OR v_delivery.fixes_task_id IS DISTINCT FROM v_original.id
+      OR v_delivery.status <> 'submitted'
+    ) THEN
+    RAISE EXCEPTION USING errcode = '55000', message = 'FIX_DELIVERY_TASK_CHANGED';
   END IF;
 
   v_now := clock_timestamp();
@@ -131,6 +206,7 @@ BEGIN
       completed_at = v_now
   WHERE id = p_review_task_id;
 
+  -- Keep implementation/root rows on the established root-only metadata model.
   UPDATE public.tasks
   SET status = CASE WHEN p_decision = 'accepted' THEN 'accepted' ELSE 'rejected' END,
       latest_delivery_task_id = v_review.review_target_delivery_task_id,
@@ -138,23 +214,44 @@ BEGIN
       latest_review_task_id = p_review_task_id,
       updated_at = v_now,
       completed_at = v_now
-  WHERE id = v_review.review_target_original_task_id;
+  WHERE id = v_original.id;
 
-  -- A fix delivery is a separate child task. Persist the same final decision on
-  -- that child atomically, while leaving its submitted result and execution
-  -- untouched. For direct deliveries (delivery = original), the original-row
-  -- update above is the only task mutation, preserving the existing behavior.
   IF v_delivery.id IS DISTINCT FROM v_original.id THEN
     UPDATE public.tasks
-    SET status = CASE WHEN p_decision = 'accepted' THEN 'accepted' ELSE 'rejected' END,
+    SET status = p_decision,
         review_decision = p_decision,
-        review_evidence = p_review,
+        review_evidence = coalesce(p_review, '{}'::jsonb),
         latest_review_task_id = p_review_task_id,
-        current_execution_id = NULL,
-        lease_until = NULL,
         updated_at = v_now,
         completed_at = v_now
-    WHERE id = v_delivery.id;
+    WHERE id = v_delivery.id
+      AND project_id = v_project
+      AND task_type = 'fix'
+      AND fixes_task_id = v_original.id
+      AND status = 'submitted'
+    RETURNING * INTO v_delivery;
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION USING errcode = '55000', message = 'FIX_DELIVERY_TASK_CHANGED';
+    END IF;
+
+    PERFORM private.add_event(
+      v_project,
+      v_delivery.id,
+      v_review.review_target_execution_id,
+      p_reviewer_worker_id,
+      CASE WHEN p_decision = 'accepted'
+        THEN 'fix_delivery_review_accepted'
+        ELSE 'fix_delivery_review_rejected'
+      END,
+      jsonb_build_object(
+        'decision', p_decision,
+        'original_task_id', v_original.id,
+        'review_task_id', p_review_task_id,
+        'delivery_execution_id', v_review.review_target_execution_id,
+        'review_evidence', coalesce(p_review, '{}'::jsonb)
+      )
+    );
   END IF;
 
   IF p_decision = 'accepted' THEN
