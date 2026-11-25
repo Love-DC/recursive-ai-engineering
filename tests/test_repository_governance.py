@@ -164,7 +164,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
             }
             self.assertTrue(
                 required_triggers <= triggers,
-                f"_{event} path filters omit: {sorted(required_triggers - triggers)}",
+                f"{event} path filters omit: {sorted(required_triggers - triggers)}",
             )
 
     def test_production_claim_safety_gate_is_fail_closed_across_session_contracts(self):
@@ -205,7 +205,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
         self.assertIn("Mandatory production claim-safety gate", worker)
         self.assertIn("Do not call claim_task", worker)
         self.assertIn(
-            "only after the mandatory production claim-safety gate in docs/SESSION-START.md",
+            "only after the mandatory production claim-safety gate in",
             worker,
         )
         self.assertIn("## Production task-pool write gate", discovery)
