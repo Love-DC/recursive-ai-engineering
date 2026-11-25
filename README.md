@@ -47,7 +47,7 @@ Load these only when needed:
 - docs/WORKER-INSTRUCTIONS.md — task lifecycle RPC and lease reference.
 - docs/RAE-SYSTEM-OWNER.md — System Owner context and authority boundary.
 - docs/PROBLEM-INBOX.md — evidence-backed issue intake and resolution.
-- docs/AUTONOMOUS-TASK-DISCOVERY.md — empty-queue discovery and deduplication.
+- docs/AUTONOMOUS-TASK-DISCOVERY.md — task activation, empty-queue discovery and deduplication.
 - docs/COORDINATOR-PR-REVIEW-AND-MERGE.md — independent review and merge checklist.
 - docs/SECURITY-BOUNDARY-AUDIT.md — Auth, RLS, grants and database-exposure audit.
 - docs/MULTI-PROJECT-ARCHITECTURE.md, docs/ADR-001-REPOSITORY-LOCAL-GOVERNANCE.md and docs/REPOSITORY-GOVERNANCE-PROTOCOL.md — project onboarding or cross-project governance changes.
