@@ -154,3 +154,14 @@ The function requires an authorized project Owner/System Owner context and canno
 - This trigger-based audit is not tamper-proof against a PostgreSQL superuser: a superuser can alter/disable triggers or change the database schema. Platform-level statement auditing (for example, an appropriately configured `pgaudit`/PostgreSQL log sink) is required to cover trigger bypasses and failed destructive statements. The migration does not install extensions, change platform logging, expand DELETE grants, or alter production configuration.
 
 The PostgreSQL 17 integration workflow applies the migration only to its disposable service database, then runs `tests/task-integrity-audit-tests.sql` to validate clean scans, synthetic missing/cross-project edge detection, cascaded DELETE auditing, TRUNCATE auditing, audit privacy/append-only controls, and transaction rollback. This CI test is not a production deployment.
+
+
+## Reviewed fix-delivery terminal-state contract
+
+A review may target either the original implementation task itself or a distinct fix child task. `review_result` continues to finalize the original task and the review task atomically. When the delivery task is a distinct fix child, the same transaction now also moves that child to the review decision (`accepted` or `rejected`) and stores `review_decision`, `review_evidence`, `latest_review_task_id`, and terminal timestamps.
+
+The child task's submitted `result` and its submitted delivery execution are immutable evidence: the review does not rewrite the result JSON or change the delivery execution from `submitted`. The review execution is recorded separately as succeeded. The original task continues to point to the exact latest delivery task and execution.
+
+For a direct delivery where `review_target_delivery_task_id = review_target_original_task_id`, only the existing original-task update is applied; the distinct-child update is skipped. This preserves the root-only review path.
+
+The additive migration `20261125160000_reviewed_fix_delivery_terminal_state.sql` is applied by the disposable PostgreSQL 17 workflow. `tests/fix-review-delivery-tests.sql` exercises both accepted and rejected fix-child decisions, direct-delivery compatibility, review evidence and pointers, immutable submitted result/execution history, and idempotent replay. These workflow tests do not deploy the migration to production or backfill historical rows.
