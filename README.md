@@ -1,68 +1,60 @@
-# AI Worker Collaboration System — Shared MCP Pilot
+# Recursive AI Engineering (RAE)
 
-A Supabase/PostgreSQL-backed shared task pool for short-lived ChatGPT conversations, with GitHub as the durable code and documentation store.
-
-## Pilot operating model
-
-- A conversation is disposable and is not tracked as a Worker identity.
-- All conversations use the user's already-authorized Supabase MCP connection.
-- Each project has project-scoped Worker routing rows; worker keys can differ by repository and task type. A Worker row is a routing reference, not an individual session identity.
-- Supabase stores project and task state. GitHub stores code, documents and commit history.
-- Large tasks can be decomposed into child tasks. Any fresh conversation can claim the next available task.
-- Pilot implementation tasks use `requires_review=false`; the separate Reviewer/Fixer workflow is not a startup requirement.
-- Autonomous discovery runs during an active Coordinator/Worker session. The shared MCP pilot does not depend on a deployed background daemon or scheduled job.
-
-## Current pilot setup
-
-- Supabase project: `recursive-ai-engineering` (PostgreSQL 17, ap-northeast-1).
-- Supabase MCP project ref: `rgztxilqcfuclkekyojl`.
-- Database `public.projects.id`: `61e32c05-39b7-47a6-ab5c-592c8e37d72d`.
-- Shared Worker ID: `78953b49-db9d-4fbc-9d3c-be3421a1c975`.
-- GitHub repository: `Love-DC/recursive-ai-engineering`.
-- Seven core tables and 22 public RPCs are deployed.
-- The create → claim → complete RPC smoke test passed using the shared Worker and was rolled back.
-- The failure → owner requeue → retry claim → complete transaction smoke test also passed and was rolled back; no smoke-test task remains in the queue.
-- The deployed failure/retry migration is recorded as `20261122221942_failure_reporting_retry`; see [Failure Reporting and Retry Contract](docs/FAILURE-RECOVERY-CONTRACT.md) for production behavior and evidence.
-- The first formal root task (`dedafaf5-6abb-4d66-9c0d-7622cebfcb2f`) has been created and claimed; three bounded child tasks were created and completed in the initial execution run.
-- The task lifecycle and owner-MCP SQL examples are documented in `docs/WORKER-INSTRUCTIONS.md`; query Supabase for live task state.
+RAE is a lightweight, session-driven engineering coordinator for multiple GitHub repositories. Supabase stores project-scoped task and execution state; GitHub stores source code, governance, Issues, PRs and CI.
 
 ## Start here
 
-- [RAE Problem Inbox](docs/PROBLEM-INBOX.md): cross-session findings, Owner decisions, evidence, deduplication, and the temporary intake fallback until deployment.
-- [Autonomous Task Discovery & Generation](docs/AUTONOMOUS-TASK-DISCOVERY.md): evidence-based discovery, project authorization, deduplication, and empty-queue behavior.
-- [One-message session entry point](docs/SESSION-START.md): open one ChatGPT conversation, state the objective and target project, and let the coordinator route and execute it.
-- [Multi-project architecture](docs/MULTI-PROJECT-ARCHITECTURE.md): project boundaries, Supabase routing, and task metadata.
-- [Repository-local governance protocol](docs/REPOSITORY-GOVERNANCE-PROTOCOL.md): pinned-SHA discovery, compatibility checks, conflict handling, and repository-owned CI routing.
-- [Shared MCP Pilot Instructions](docs/WORKER-INSTRUCTIONS.md): Supabase task lifecycle and owner-MCP operating details.
+For every new session, read only:
 
-The platform currently registers three projects: `recursive-ai-engineering`, `colony-sim` (`Love-DC/colony-sim`), and `lambent` (`Love-DC/Lambent`). Each has its own Supabase project row and project-scoped Worker routing records; Worker UUIDs are never shared across project boundaries. Task state remains isolated by `project_id`; code, Issues, PRs, CI, and project governance remain in the target repository. Lambent has been reset to an empty initial source state and is registered with its own `rae-governance.json`, `AGENTS.md`, and `README.md`; its current external validation is governance-only until application source and tests are introduced. Private Lambent validation is hosted by the public `Love-DC/ai-project-governance` runner through its separate workflow, control issue, scoped secret, and `external-ci/lambent-governance` status context.
+1. docs/SESSION-START.md — the canonical startup and safety contract.
+2. The selected target repository's root rae-governance.json, plus files it declares at the same pinned commit.
 
-Before changing the system, review [Pilot Readiness and Deferred Production Gates](docs/REAL-PROJECT-READINESS.md) for the trusted-pilot boundary and outstanding expansion gates. The [Failure Reporting and Retry Contract](docs/FAILURE-RECOVERY-CONTRACT.md) documents the deployed RPCs, retry semantics, and verified production evidence.
+Other RAE documents are operation-specific references. The session contract names exactly when to load them; routine sessions should not read the entire documentation set.
 
-## Not required for the pilot
+## Operating model
 
-- Per-session identity or Worker Auth accounts.
-- Session heartbeats, presence dashboards or activity tracking.
-- Separate Coordinator/Implementer/Reviewer/Fixer accounts.
-- Browser console deployment.
-- Automated review/fix orchestration.
-- A persistent background Coordinator daemon or timer.
+- A ChatGPT conversation is temporary. It is not a Worker identity and is not tracked as one.
+- Existing project-scoped Worker rows are routing references, not people or session identities.
+- Active sessions discover, claim, execute, test and hand off work through the existing project-scoped Supabase RPCs.
+- GitHub is the durable delivery and review surface. Eligible routine engineering PRs are reviewed and merged by the Coordinator under repository policy.
+- Discovery is session-driven. No persistent Coordinator daemon, scheduled Worker or background execution is implied.
+- No second human account, Worker Auth account, session heartbeat, presence system or additional orchestration layer is required for this pilot.
 
-The Owner console remains available for later use, but the pilot can be operated directly through the connected Supabase MCP and GitHub MCP tools.
+## Registered project snapshot
 
-## Production hardening deferred
+Verified against Supabase on 2026-11-25. This is an informational snapshot, not live authorization; every session must query the current registry and project controls.
 
-The existing v1.2 database includes identity-isolation and review/fix machinery. Those features are not prerequisites for the shared-owner MCP pilot. Before exposing the system to untrusted users or non-owner clients, separately review RPC authorization, Auth configuration, backup/restore, and independent-identity testing.
+| Project | Repository | Execution state at snapshot |
+|---|---|---|
+| RAE | Love-DC/recursive-ai-engineering | Unpaused |
+| Colony Sim | Love-DC/colony-sim | Unpaused |
+| Hexa Game Kernel | Love-DC/Hexa-Game-Kernel | Unpaused |
+| Lambent | Love-DC/Lambent | Paused |
 
-## Security boundary
+Each project has its own UUID and Worker routes. Never reuse a Worker UUID across projects. Project-specific governance, CI and product/design authority remain in the target repository.
 
-The pilot assumes every participating ChatGPT conversation has the user's authorized Supabase MCP access. That access is the trust boundary. Do not copy Service Role keys, secret keys, database passwords, or privileged connection strings into prompts, GitHub files, or external clients. Do not deploy production systems or perform high-impact external side effects without explicit authorization. Routine engineering PR review/merge is covered by the standing owner authorization and coordinator checklist.
+## Responsibility split
 
-## Verification
-- [Cross-project resource inventory and lifecycle center](docs/RESOURCE-LIFECYCLE.md): current read-only inventory, pagination evidence, and fail-closed 30-minute freshness gate. No deletion path is enabled.
+- Supabase: project registration, routing, task lifecycle, dependencies, leases, execution history, artifacts and audit events.
+- Target GitHub repository: project-specific AI instructions, engineering rules, CI, review/release policy and acceptance criteria.
+- RAE platform: global authorization, project isolation, task coordination and execution safety.
+- Human Owner: product direction, game design, Initiative/resource decisions and pause/kill-switch controls.
 
-- Task lifecycle integration coverage: [docs/TASK-LIFECYCLE-TESTING.md](docs/TASK-LIFECYCLE-TESTING.md)
-- Credential-free shell static checks: [.github/workflows/shell-static-checks.yml](.github/workflows/shell-static-checks.yml)
-- Fresh-conversation handoff acceptance: [docs/FRESH-SESSION-HANDOFF-ACCEPTANCE.md](docs/FRESH-SESSION-HANDOFF-ACCEPTANCE.md)
-- Two-connection claim race harness: [scripts/test-claim-concurrency.sh](scripts/test-claim-concurrency.sh)
-- Transactional task lifecycle harness: [scripts/test-task-lifecycle.sh](scripts/test-task-lifecycle.sh)
+## Useful references
+
+Load these only when needed:
+
+- docs/WORKER-INSTRUCTIONS.md — task lifecycle RPC and lease reference.
+- docs/RAE-SYSTEM-OWNER.md — System Owner context and authority boundary.
+- docs/PROBLEM-INBOX.md — evidence-backed issue intake and resolution.
+- docs/AUTONOMOUS-TASK-DISCOVERY.md — empty-queue discovery and deduplication.
+- docs/COORDINATOR-PR-REVIEW-AND-MERGE.md — independent review and merge checklist.
+- docs/SECURITY-BOUNDARY-AUDIT.md — Auth, RLS, grants and database-exposure audit.
+- docs/MULTI-PROJECT-ARCHITECTURE.md, docs/ADR-001-REPOSITORY-LOCAL-GOVERNANCE.md and docs/REPOSITORY-GOVERNANCE-PROTOCOL.md — project onboarding or cross-project governance changes.
+- docs/TASK-LIFECYCLE-TESTING.md and docs/FAILURE-RECOVERY-CONTRACT.md — lifecycle/schema testing and retry semantics.
+
+## Safety and verification
+
+Do not copy secrets into prompts or repositories. Do not write task/execution/lease/event tables directly. Do not alter project controls, game design or production data through routine engineering authority. Verify the exact commit SHA tested, the current PR head, review disposition, merge SHA and available post-merge checks. Never claim background work, independent sessions, tests, reviews or deployments that did not occur.
+
+Historical table/RPC counts and dated setup details are intentionally omitted. Query the live Supabase project when those details matter.
