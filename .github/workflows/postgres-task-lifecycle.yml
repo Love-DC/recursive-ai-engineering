@@ -188,6 +188,7 @@ jobs:
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125120000_owner_mcp_problem_inbox_context.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125130000_rae_system_owner_authority.sql
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125140000_task_integrity_monitor_and_audit.sql
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125150000_missing_foreign_key_indexes.sql
 
       - name: Run trusted Owner-MCP context and full task/review lifecycle tests
         run: psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f tests/owner-mcp-context-tests.sql
@@ -202,3 +203,6 @@ jobs:
           -v project_id="$SUPABASE_PROJECT_ID"
           -v worker_id="$SHARED_WORKER_ID"
           -f tests/task-integrity-audit-tests.sql
+
+      - name: Run foreign-key index coverage and boundary regression tests
+        run: psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f tests/foreign-key-index-tests.sql
