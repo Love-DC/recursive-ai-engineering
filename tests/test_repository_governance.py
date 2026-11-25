@@ -95,6 +95,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
         manifest["governance"]["rule_sets"].append(
             {"id": "engineering", "path": "docs/WORKFLOW.md", "priority": 100}
         )
+        manifest_path.write_text(json.dumps(manifest))
         with self.assertRaisesRegex(GovernanceError, "Conflicting declarations"):
             self.load(root)
 
@@ -203,7 +204,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
         )
 
         self.assertIn("Mandatory production claim-safety gate", worker)
-        self.assertIn("Do not call claim_task", worker)
+        self.assertIn("Do not call `claim_task`", worker)
         self.assertIn(
             "only after the mandatory production claim-safety gate in",
             worker,
