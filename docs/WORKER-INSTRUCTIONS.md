@@ -28,7 +28,7 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 - All sessions work as one shared executor through the user's already-authorized Supabase MCP connection.
 - Use the Worker selected by the project's routing metadata. The current pilot uses one `shared-executor` row per project, but that key is not a platform-wide requirement; different projects may route to different Worker keys and task types.
 - Do not create separate Supabase Auth users or bind Worker identities for this pilot.
-- Supabase is the source of truth for project/task state and the cross-session Problem Inbox. GitHub is the source of truth for code, Issues, PRs, and durable repository documents. Read `docs/PROBLEM-INBOX.md` at startup.
+- Supabase is the source of truth for project/task state and the cross-session Problem Inbox. GitHub is the source of truth for code, Issues, PRs, and durable repository documents. Read `docs/PROBLEM-INBOX.md` only when the current operation reads, reports, updates, or resolves Problem Inbox entries; the canonical session startup contract is `docs/SESSION-START.md`.
 
 ## Project references
 
