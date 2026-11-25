@@ -3,15 +3,13 @@
 BEGIN;
 
 SELECT set_config('request.jwt.claim.sub', :'owner_id', true);
-SELECT set_config('test.project_id', :'project_id', true);
-SELECT set_config('test.worker_id', :'worker_id', true);
-SELECT set_config('test.reviewer_worker_id', :'reviewer_worker_id', true);
 
 DO $test$
 DECLARE
-  v_project uuid := current_setting('test.project_id')::uuid;
-  v_worker uuid := current_setting('test.worker_id')::uuid;
-  v_reviewer uuid := current_setting('test.reviewer_worker_id')::uuid;
+  v_owner uuid := current_setting('request.jwt.claim.sub')::uuid;
+  v_project uuid := gen_random_uuid();
+  v_worker uuid := gen_random_uuid();
+  v_reviewer uuid := gen_random_uuid();
   v_decision text;
   v_created jsonb;
   v_claim jsonb;
@@ -46,6 +44,28 @@ DECLARE
   v_event_count integer;
   v_final_idempotency_key text;
 BEGIN
+  -- Isolate this regression from shared fixture project pause/cap mutations.
+  -- The project and both Workers are rolled back with the test transaction.
+  INSERT INTO public.projects(id, name, owner_id, status, config)
+  VALUES (
+    v_project,
+    'fix-delivery-terminal-state-fixture',
+    v_owner,
+    'active',
+    jsonb_build_object(
+      'autonomy', jsonb_build_object('paused', false, 'max_active_executions', 2),
+      'worker_routing', jsonb_build_object(
+        'default_worker_key', 'test-worker-a',
+        'task_type_worker_keys', jsonb_build_object('review', 'test-reviewer')
+      )
+    )
+  );
+
+  INSERT INTO public.workers(id, project_id, worker_key, display_name, status, auth_user_id)
+  VALUES
+    (v_worker, v_project, 'test-worker-a', 'Fix Delivery Executor', 'active', NULL),
+    (v_reviewer, v_project, 'test-reviewer', 'Fix Delivery Reviewer', 'active', NULL);
+
   FOREACH v_decision IN ARRAY ARRAY['accepted', 'rejected'] LOOP
     -- First reject a direct implementation delivery. This exercises the
     -- delivery_task_id = original_task_id path before creating a fix child.
