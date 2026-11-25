@@ -226,6 +226,7 @@ class RepositoryGovernanceTests(unittest.TestCase):
         session = (root / "docs/SESSION-START.md").read_text(encoding="utf-8")
         self.assertIn("active_session_autonomy", session)
         self.assertIn("docs/AUTONOMOUS-TASK-DISCOVERY.md", session)
+        self.assertIn("Evaluating RAE task activation before a claim/create", session)
         self.assertIn("docs/COORDINATOR-PR-REVIEW-AND-MERGE.md", session)
         self.assertIn("Conditional governance loading", session)
 
