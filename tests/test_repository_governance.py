@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -253,6 +254,31 @@ class RepositoryGovernanceTests(unittest.TestCase):
             self.assertIn(path, session)
         self.assertIn("Load the relevant document only when", session)
         self.assertNotIn("Read docs/MULTI-PROJECT-ARCHITECTURE.md", session)
+
+    def test_every_conditional_governance_reference_resolves(self):
+        root = Path(__file__).resolve().parents[1]
+        session = (root / "docs/SESSION-START.md").read_text(encoding="utf-8")
+        section_start = session.index("## Conditional governance loading")
+        next_heading = session.find("\n## ", section_start + 1)
+        section = session[section_start:next_heading if next_heading >= 0 else None]
+        referenced_paths = sorted(
+            set(re.findall(r"\bdocs/[A-Za-z0-9_./-]+\.md\b", section))
+        )
+        self.assertTrue(referenced_paths, "No conditional governance references were found")
+        for path in referenced_paths:
+            with self.subTest(path=path):
+                self.assertTrue(
+                    (root / path).is_file(),
+                    f"Conditional governance reference does not exist: {path}",
+                )
+
+    def test_cross_repository_revision_pins_are_explicit(self):
+        root = Path(__file__).resolve().parents[1]
+        session = (root / "docs/SESSION-START.md").read_text(encoding="utf-8")
+        startup = session.split("## Minimal startup sequence", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("Pin the RAE entry repository", startup)
+        self.assertIn("selected target repository to its own full 40-character base SHA", startup)
+        self.assertIn("must not be treated as one cross-repository SHA", startup)
 
 
 if __name__ == "__main__":
