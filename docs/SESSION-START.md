@@ -10,7 +10,7 @@ This is a session-driven system, not a background daemon. Do not claim work cont
 
 ## Minimal startup sequence
 
-1. Read this file and the target repository's root rae-governance.json at one pinned full commit SHA. Read every file declared by that manifest; do not read unrelated linked documents unless their operation is needed.
+1. Pin the RAE entry repository (`Love-DC/recursive-ai-engineering`) to a full 40-character commit SHA and read `docs/SESSION-START.md` from that SHA. Separately pin the selected target repository to its own full 40-character base SHA; read its root `rae-governance.json` and every file it declares from that target SHA. The two SHAs may be identical when the target is the RAE repository, but they must not be treated as one cross-repository SHA. Do not mix revisions within either repository; do not read unrelated linked documents unless their operation is needed.
 2. Read live public.projects rows. Resolve each repository from its project row, then resolve active project-scoped Worker routes from that same project_id and task type. Never reuse Worker UUIDs across projects.
 3. For each project, inspect its queue through the existing project-scoped list_tasks RPC. Supabase is the source of truth for tasks, leases, executions and events; GitHub is the source of truth for code, Issues, PRs, commits and CI.
 4. Before any task claim or task-lifecycle write, revalidate the database-wide safety gate below, the selected project's operational controls, its repository-local activation policy, and its Worker route. If any check is stale, closed, contradictory or unavailable, remain read-only for task state and continue repository-only work.
