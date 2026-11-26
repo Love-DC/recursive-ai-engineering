@@ -6,36 +6,10 @@
     "min_coordinator_version": "1.0.0"
   },
   "governance": {
-    "agent_instructions": "docs/WORKER-INSTRUCTIONS.md",
-    "entrypoints": [
-      "docs/SESSION-START.md",
-      "docs/COORDINATOR-PR-REVIEW-AND-MERGE.md",
-      "docs/MULTI-PROJECT-ARCHITECTURE.md",
-      "docs/ADR-001-REPOSITORY-LOCAL-GOVERNANCE.md",
-      "docs/REPOSITORY-GOVERNANCE-PROTOCOL.md"
-    ],
-    "required": [
-      "docs/AUTONOMOUS-TASK-DISCOVERY.md",
-      "docs/SECURITY-BOUNDARY-AUDIT.md",
-      "docs/PROBLEM-INBOX.md"
-    ],
-    "rule_sets": [
-      {
-        "id": "rae-platform-security",
-        "path": "docs/SECURITY-BOUNDARY-AUDIT.md",
-        "priority": 100
-      },
-      {
-        "id": "autonomous-task-activation-policy",
-        "path": "docs/AUTONOMOUS-TASK-DISCOVERY.md",
-        "priority": 95
-      },
-      {
-        "id": "rae-execution-contract",
-        "path": "docs/WORKER-INSTRUCTIONS.md",
-        "priority": 90
-      }
-    ]
+    "agent_instructions": "docs/SESSION-START.md",
+    "entrypoints": [],
+    "required": [],
+    "rule_sets": []
   },
   "validation": {
     "provider": "github-actions",

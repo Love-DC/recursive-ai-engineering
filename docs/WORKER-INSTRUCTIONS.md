@@ -1,3 +1,5 @@
+> Loading rule: this file is a detailed task-lifecycle API and lease reference, not an unconditional session-start document. Read docs/SESSION-START.md for the canonical startup contract. Consult only the relevant sections when creating, claiming, submitting, completing, retrying or recovering a task, or when exact RPC signatures and SQL examples are needed. Do not load the entire file for a routine read-only queue scan.
+
 # Multi-project routing — authoritative addendum
 
 This addendum supersedes any assumption below that every task belongs to the original RAE project. Before creating, claiming, or completing work, resolve the target project and its project-scoped worker from live Supabase data.
@@ -26,7 +28,7 @@ Use [Session Start](SESSION-START.md) as the canonical new-conversation entry po
 - All sessions work as one shared executor through the user's already-authorized Supabase MCP connection.
 - Use the Worker selected by the project's routing metadata. The current pilot uses one `shared-executor` row per project, but that key is not a platform-wide requirement; different projects may route to different Worker keys and task types.
 - Do not create separate Supabase Auth users or bind Worker identities for this pilot.
-- Supabase is the source of truth for project/task state and the cross-session Problem Inbox. GitHub is the source of truth for code, Issues, PRs, and durable repository documents. Read `docs/PROBLEM-INBOX.md` at startup.
+- Supabase is the source of truth for project/task state and the cross-session Problem Inbox. GitHub is the source of truth for code, Issues, PRs, and durable repository documents. Read `docs/PROBLEM-INBOX.md` only when the current operation reads, reports, updates, or resolves Problem Inbox entries; the canonical session startup contract is `docs/SESSION-START.md`.
 
 ## Project references
 
